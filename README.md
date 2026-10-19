@@ -39,7 +39,9 @@ Uwaga: plik `index.html` otwarty bezpośrednio z dysku (file://) nie zadziała. 
    Nie zdubluje danych, nie przywróci usuniętych i nie nadpisze zmian z panelu.
 4. **Authentication → Users → Add user**: logowanie na stronie odbywa się **loginem**, więc jako e-mail wpisz
    `<login>@ssp.example.com` (np. `daniel@ssp.example.com`, na stronie logujesz się jako `daniel`). Ustaw hasło
-   i zaznacz *Auto Confirm User*. Domenę zmienisz w `js/config.js` (`LOGIN_DOMAIN`). `example.com` nie przyjmuje
+   i zaznacz *Auto Confirm User*. Jeśli zapomnisz o tej opcji, logowanie zgłosi „Konto nie jest potwierdzone”.
+   Wtedy w SQL Editor wykonaj `update auth.users set email_confirmed_at = now() where email = '<login>@ssp.example.com';`.
+   Domenę zmienisz w `js/config.js` (`LOGIN_DOMAIN`). `example.com` nie przyjmuje
    poczty, więc nikt nie dostanie żadnych wiadomości. Pełny adres e-mail wpisany w polu logowania też działa.
 5. Skopiuj **User UID** tego użytkownika i w SQL Editor wykonaj:
    ```sql
@@ -77,6 +79,16 @@ usuń sezon w panelu admina. Konwersja:
 
 > Darmowy projekt Supabase jest wstrzymywany po ok. tygodniu bez żadnego ruchu. Przy aktywnej lidze to nie problem,
 > a wstrzymany projekt wznowisz jednym kliknięciem w panelu Supabase.
+
+### Szybkość ładowania
+
+- Dane sezonu pobiera jedno zapytanie (funkcja `season_bundle` w bazie), a nie kilkanaście.
+  **Po aktualizacji strony uruchom ponownie `supabase/schema.sql`**: to bezpieczne i doda brakującą funkcję.
+  Bez niej strona działa, tylko wolniej (pobiera dane po staremu).
+- Biblioteka Supabase jest w projekcie jako jeden plik (`vendor/supabase.js`, wersja 2.116.0), a `index.html`
+  ma podpowiedzi `modulepreload`, więc przeglądarka pobiera wszystkie moduły równolegle.
+  Po dodaniu nowego pliku w `js/` dopisz go do tej listy.
+- Odczytane dane są trzymane w pamięci przez 5 minut. Każdy zapis w panelu admina czyści tę pamięć.
 
 ### Bezpieczeństwo danych i kont
 

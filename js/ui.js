@@ -28,31 +28,84 @@ export function useAsync(fn, deps = []) {
 
 const byId = (rows) => new Map(rows.map((r) => [r.id, r]));
 
-/** Wszystko, czego potrzeba do wyświetlenia sezonu, jednym wywołaniem. */
-export async function loadSeasonBundle(seasonId) {
-  const [seasons, teams, entries, races, tracks, drivers] = await Promise.all([
-    db.list('seasons', { eq: { id: seasonId } }),
-    db.list('teams', { eq: { season_id: seasonId }, order: ['name'] }),
-    db.list('entries', { eq: { season_id: seasonId } }),
-    db.list('races', { eq: { season_id: seasonId }, order: ['round'] }),
-    db.list('tracks', { order: ['name'] }),
-    db.list('drivers', { order: ['nick'] }),
-  ]);
-  const raceIds = races.map((r) => r.id);
-  const [results, penalties, rosterChanges] = await Promise.all([
-    db.list('results', { in: { race_id: raceIds } }),
-    db.list('penalties', { in: { race_id: raceIds }, order: ['created_at'] }),
-    db.list('roster_changes', { eq: { season_id: seasonId }, order: ['from_round'] }),
-  ]);
+// ---------- pamięć podręczna danych ----------
+// Dane z bazy trzymamy w pamięci przez kilka minut, żeby przechodzenie między stronami było natychmiastowe.
+// Każdy zapis (panel admina) czyści pamięć — patrz zdarzenie 'ssp-db-write' w db.js.
+
+const CACHE_TTL = 5 * 60 * 1000;
+const cache = new Map();
+window.addEventListener('ssp-db-write', () => cache.clear());
+
+export function cached(key, fn) {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_TTL) return hit.promise;
+  const promise = fn().catch((e) => {
+    cache.delete(key); // błędu nie zapamiętujemy
+    throw e;
+  });
+  cache.set(key, { at: Date.now(), promise });
+  return promise;
+}
+
+const sortBy = (rows, key) => [...rows].sort((a, b) => (a[key] > b[key] ? 1 : a[key] < b[key] ? -1 : 0));
+
+function makeBundle(raw) {
+  const teams = sortBy(raw.teams || [], 'name');
+  const tracks = sortBy(raw.tracks || [], 'name');
+  const drivers = sortBy(raw.drivers || [], 'nick');
   return {
-    season: seasons[0] ?? null, teams, entries, races, tracks, drivers, results, penalties, rosterChanges,
+    season: raw.seasons?.[0] ?? null,
+    teams,
+    entries: raw.entries || [],
+    races: sortBy(raw.races || [], 'round'),
+    tracks,
+    drivers,
+    results: raw.results || [],
+    penalties: sortBy(raw.penalties || [], 'created_at'),
+    rosterChanges: sortBy(raw.roster_changes || [], 'from_round'),
     teamById: byId(teams), driverById: byId(drivers), trackById: byId(tracks),
   };
 }
 
-export async function listSeasons(series) {
-  const rows = await db.list('seasons', { eq: { series }, order: ['created_at', false] });
-  return rows;
+/** Pobranie sezonu po staremu (~9 zapytań w 3 falach) — gdy w bazie nie ma jeszcze funkcji season_bundle. */
+async function fetchBundleTables(seasonId) {
+  const [seasons, teams, entries, races, tracks, drivers, rosterChanges] = await Promise.all([
+    db.list('seasons', { eq: { id: seasonId } }),
+    db.list('teams', { eq: { season_id: seasonId } }),
+    db.list('entries', { eq: { season_id: seasonId } }),
+    db.list('races', { eq: { season_id: seasonId } }),
+    db.list('tracks'),
+    db.list('drivers'),
+    db.list('roster_changes', { eq: { season_id: seasonId } }),
+  ]);
+  const raceIds = races.map((r) => r.id);
+  const [results, penalties] = await Promise.all([
+    db.list('results', { in: { race_id: raceIds } }),
+    db.list('penalties', { in: { race_id: raceIds } }),
+  ]);
+  return { seasons, teams, entries, races, tracks, drivers, results, penalties, roster_changes: rosterChanges };
+}
+
+/** Wszystko, czego potrzeba do wyświetlenia sezonu — jednym zapytaniem (funkcja season_bundle w bazie). */
+export function loadSeasonBundle(seasonId) {
+  return cached(`bundle:${seasonId}`, async () => {
+    const raw = (await db.seasonBundle?.(seasonId, null)) || (await fetchBundleTables(seasonId));
+    return makeBundle(raw);
+  });
+}
+
+/** Bieżący sezon danej serii (np. na stronie głównej) — jednym zapytaniem. */
+export function loadCurrentBundle(series) {
+  return cached(`current:${series}`, async () => {
+    const raw = await db.seasonBundle?.(null, series);
+    if (raw) return raw.seasons?.length ? makeBundle(raw) : null;
+    const season = pickSeason(await listSeasons(series), series);
+    return season ? loadSeasonBundle(season.id) : null;
+  });
+}
+
+export function listSeasons(series) {
+  return cached(`seasons:${series}`, () => db.list('seasons', { eq: { series }, order: ['created_at', false] }));
 }
 
 const SEASON_KEY = (series) => `ssp_season_${series}`;

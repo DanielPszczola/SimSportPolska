@@ -1,17 +1,13 @@
 import { useState, useMemo } from '../../vendor/preact-htm.js';
-import { html, useAsync, loadSeasonBundle, listSeasons, pickSeason, seriesBase, Flag, TeamTag, DriverLink, PosBadge, Countdown, formatDate, shortDate } from '../ui.js';
+import { html, useAsync, loadCurrentBundle, Loader, seriesBase, Flag, TeamTag, DriverLink, PosBadge, Countdown, formatDate, shortDate } from '../ui.js';
 import { computeStandings, carClass, seasonClasses } from '../scoring.js';
 import { classBundle } from './league.js';
 import { loadEndurance, ClassBadge } from './endurance.js';
 
-async function currentBundle(series) {
-  const season = pickSeason(await listSeasons(series), series);
-  return season ? loadSeasonBundle(season.id) : null;
-}
-
 export function HomePage() {
   const data = useAsync(async () => {
-    const [f1, lmu, endurance] = await Promise.all([currentBundle('f1'), currentBundle('lmu'), loadEndurance()]);
+    // wszystko równolegle: bieżący sezon F1, bieżący sezon LMU (po jednym zapytaniu) i Endurance
+    const [f1, lmu, endurance] = await Promise.all([loadCurrentBundle('f1'), loadCurrentBundle('lmu'), loadEndurance()]);
     return { f1, lmu, endurance };
   }, []);
   const d = data.data;
@@ -26,6 +22,7 @@ export function HomePage() {
     </section>
 
     <div class="wrap page">
+      ${!d ? html`<${Loader} />` : null}
       ${d ? html`<div class="home-grid">
         <section class="home-col">
           <div class="page-head"><h2>Nadchodzące wydarzenia</h2></div>

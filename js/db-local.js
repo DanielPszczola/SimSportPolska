@@ -64,6 +64,26 @@ export function createLocalDb() {
       data[table] = tbl(table).filter((r) => !matches(r, eq));
       save();
     },
+    async seasonBundle(seasonId, series) {
+      const seasons = tbl('seasons');
+      const season = seasonId
+        ? seasons.find((s) => s.id === seasonId)
+        : [...seasons].filter((s) => s.series === series).sort((a, b) => (b.is_current - a.is_current) || String(b.created_at).localeCompare(String(a.created_at)))[0];
+      if (!season) return null;
+      const races = tbl('races').filter((r) => r.season_id === season.id);
+      const raceIds = new Set(races.map((r) => r.id));
+      return clone({
+        seasons: [season],
+        teams: tbl('teams').filter((t) => t.season_id === season.id),
+        entries: tbl('entries').filter((e) => e.season_id === season.id),
+        races,
+        tracks: tbl('tracks'),
+        drivers: tbl('drivers'),
+        results: tbl('results').filter((r) => raceIds.has(r.race_id)),
+        penalties: tbl('penalties').filter((p) => raceIds.has(p.race_id)),
+        roster_changes: tbl('roster_changes').filter((c) => c.season_id === season.id),
+      });
+    },
     // tryb demo: obrazek zapisywany jako data URL w localStorage (limit przeglądarki ok. 5 MB łącznie)
     async uploadImage(blob) {
       if (blob.size > 400 * 1024) throw new Error('W trybie demo obrazek może mieć maks. 400 KB po zmniejszeniu');

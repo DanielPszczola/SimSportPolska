@@ -10,6 +10,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
+  <!-- Szybsze ładowanie: przeglądarka pobiera wszystkie moduły równolegle, zamiast odkrywać je łańcuchem importów.
+       Przy dodaniu nowego pliku js/ dopisz go tutaj (pliki tylko dla trybu demo celowo pominięte). -->
+  <link rel="modulepreload" href="vendor/preact-htm.js" />
+  <link rel="modulepreload" href="js/admin/admin.js" />
+  <link rel="modulepreload" href="js/admin/common.js" />
+  <link rel="modulepreload" href="js/admin/database.js" />
+  <link rel="modulepreload" href="js/admin/endurance.js" />
+  <link rel="modulepreload" href="js/admin/race.js" />
+  <link rel="modulepreload" href="js/admin/series.js" />
+  <link rel="modulepreload" href="js/admin/start.js" />
+  <link rel="modulepreload" href="js/admin/tracks.js" />
+  <link rel="modulepreload" href="js/app.js" />
+  <link rel="modulepreload" href="js/config.js" />
+  <link rel="modulepreload" href="js/db.js" />
+  <link rel="modulepreload" href="js/images.js" />
+  <link rel="modulepreload" href="js/lineup.js" />
+  <link rel="modulepreload" href="js/pages/driver.js" />
+  <link rel="modulepreload" href="js/pages/endurance.js" />
+  <link rel="modulepreload" href="js/pages/home.js" />
+  <link rel="modulepreload" href="js/pages/league.js" />
+  <link rel="modulepreload" href="js/pages/section.js" />
+  <link rel="modulepreload" href="js/pages/teams.js" />
+  <link rel="modulepreload" href="js/scoring.js" />
+  <link rel="modulepreload" href="js/team-assets.js" />
+  <link rel="modulepreload" href="js/tracks-seed.js" />
+  <link rel="modulepreload" href="js/ui.js" />
+  <link rel="preload" href="vendor/supabase.js" as="script" />
 </head>
 <body>
   <div id="app"><div class="boot">Ładowanie…</div></div>

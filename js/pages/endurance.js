@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, useAsync, Loader, ErrorBox, Empty, Flag, DriverLink, Countdown, formatDate, VideoEmbed, youtubeId } from '../ui.js';
+import { html, useAsync, cached, Loader, ErrorBox, Empty, Flag, DriverLink, Countdown, formatDate, VideoEmbed, youtubeId } from '../ui.js';
 import { carClass } from '../scoring.js';
 import { SectionHead, LmuTopNav } from './section.js';
 
@@ -9,7 +9,9 @@ import { SectionHead, LmuTopNav } from './section.js';
 
 const CLASS_ORDER = ['HY', 'LMP', 'GT3'];
 
-export async function loadEndurance() {
+export const loadEndurance = () => cached('endurance', fetchEndurance);
+
+async function fetchEndurance() {
   const [events, crews, tracks, drivers] = await Promise.all([
     db.list('endurance_events', { order: ['start_at'] }),
     db.list('endurance_crews', { order: ['created_at'] }),

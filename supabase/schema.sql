@@ -264,6 +264,36 @@ create policy "images admin write" on storage.objects
   using (bucket_id = 'images' and public.is_admin())
   with check (bucket_id = 'images' and public.is_admin());
 
+-- ---------- szybkie pobieranie: cały sezon jednym zapytaniem ----------
+-- Strona zamiast ~9 zapytań w trzech falach wywołuje jedną funkcję. Działa z uprawnieniami
+-- odwiedzającego (security invoker), więc obowiązują te same reguły RLS co przy zwykłych zapytaniach.
+-- p_season = konkretny sezon; gdy pusty — bieżący (albo najnowszy) sezon serii p_series.
+create or replace function public.season_bundle(p_season uuid default null, p_series text default null)
+returns json
+language sql stable
+security invoker
+set search_path = public
+as $$
+  with s as (
+    select coalesce(p_season, (
+      select id from public.seasons where series = p_series
+      order by is_current desc, created_at desc limit 1
+    )) as id
+  )
+  select json_build_object(
+    'seasons',        coalesce((select json_agg(x) from public.seasons x, s where x.id = s.id), '[]'::json),
+    'teams',          coalesce((select json_agg(x order by x.name) from public.teams x, s where x.season_id = s.id), '[]'::json),
+    'entries',        coalesce((select json_agg(x) from public.entries x, s where x.season_id = s.id), '[]'::json),
+    'races',          coalesce((select json_agg(x order by x.round) from public.races x, s where x.season_id = s.id), '[]'::json),
+    'tracks',         coalesce((select json_agg(x order by x.name) from public.tracks x), '[]'::json),
+    'drivers',        coalesce((select json_agg(x order by x.nick) from public.drivers x), '[]'::json),
+    'results',        coalesce((select json_agg(x) from public.results x join public.races r on r.id = x.race_id, s where r.season_id = s.id), '[]'::json),
+    'penalties',      coalesce((select json_agg(x order by x.created_at) from public.penalties x join public.races r on r.id = x.race_id, s where r.season_id = s.id), '[]'::json),
+    'roster_changes', coalesce((select json_agg(x order by x.from_round) from public.roster_changes x, s where x.season_id = s.id), '[]'::json)
+  );
+$$;
+grant execute on function public.season_bundle(uuid, text) to anon, authenticated;
+
 -- =====================================================================
 -- PO URUCHOMIENIU: nadaj sobie uprawnienia admina
 --  1. Authentication → Users → Add user → (e-mail + hasło, zaznacz "Auto Confirm User")

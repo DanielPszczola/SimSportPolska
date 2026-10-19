@@ -7,14 +7,35 @@
 // update(table, id, patch)  -> zaktualizowany wiersz
 // remove(table, id), removeWhere(table, eq)
 // uploadImage(blob, folder) -> publiczny URL obrazka
+// seasonBundle(seasonId | null, series) -> wszystkie dane sezonu jednym zapytaniem (albo null, gdy niedostępne)
+//
+// Po każdym zapisie wysyłane jest zdarzenie 'ssp-db-write' — czyści pamięć podręczną danych (ui.js).
 import { SUPABASE_URL, SUPABASE_ANON_KEY, loginToEmail } from './config.js';
-import { createLocalDb } from './db-local.js';
 
-const SUPABASE_ESM = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/+esm';
+// biblioteka Supabase 2.116.0 jako jeden plik (vendor/supabase.js) — jedno żądanie zamiast łańcucha modułów z CDN
+const SUPABASE_LIB = new URL('../vendor/supabase.js', import.meta.url).href;
+
+function loadSupabaseLib() {
+  if (window.supabase?.createClient) return Promise.resolve(window.supabase);
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = SUPABASE_LIB;
+    s.onload = () => resolve(window.supabase);
+    s.onerror = () => reject(new Error('Nie udało się wczytać biblioteki Supabase (vendor/supabase.js)'));
+    document.head.appendChild(s);
+  });
+}
 const IMAGE_BUCKET = 'images'; // Supabase Storage, tworzony w supabase/schema.sql
 
+// komunikaty logowania Supabase po polsku (z podpowiedzią, co zrobić)
+const AUTH_ERRORS = {
+  'Invalid login credentials': 'Nieprawidłowy login lub hasło',
+  'Email not confirmed': 'Konto nie jest potwierdzone. W Supabase: SQL Editor → update auth.users set email_confirmed_at = now() where email = \'<login>@<domena>\'; (albo załóż konto z „Auto Confirm User”)',
+  'Invalid API key': 'Nieprawidłowy klucz API w js/config.js — wklej klucz „Publishable” (sb_publishable_…) z Supabase → Project Settings → API Keys',
+};
+
 async function createSupabaseDb() {
-  const { createClient } = await import(SUPABASE_ESM);
+  const { createClient } = await loadSupabaseLib();
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const check = ({ data, error }) => {
     if (error) throw new Error(error.message);
@@ -50,6 +71,18 @@ async function createSupabaseDb() {
       for (const [k, v] of Object.entries(eq)) q = q.eq(k, v);
       check(await q);
     },
+    // jedno zapytanie zamiast ~9 w trzech falach (funkcja season_bundle w supabase/schema.sql);
+    // gdy funkcji jeszcze nie ma w bazie, zwraca null i strona pobiera dane po staremu
+    async seasonBundle(seasonId, series) {
+      if (bundleRpcMissing) return null;
+      const { data, error } = await sb.rpc('season_bundle', { p_season: seasonId || null, p_series: series || null });
+      if (error) {
+        bundleRpcMissing = true;
+        console.info('season_bundle niedostępne — uruchom ponownie supabase/schema.sql, aby przyspieszyć stronę.', error.message);
+        return null;
+      }
+      return data;
+    },
     async uploadImage(blob, folder) {
       const ext = blob.type === 'image/png' ? 'png' : 'webp';
       const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -64,7 +97,7 @@ async function createSupabaseDb() {
       },
       async signIn(login, password) {
         const { error } = await sb.auth.signInWithPassword({ email: loginToEmail(login), password });
-        if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Nieprawidłowy login lub hasło' : error.message);
+        if (error) throw new Error(AUTH_ERRORS[error.message] || error.message);
       },
       async signOut() {
         await sb.auth.signOut();
@@ -77,4 +110,22 @@ async function createSupabaseDb() {
   };
 }
 
-export const db = SUPABASE_URL && SUPABASE_ANON_KEY ? await createSupabaseDb() : createLocalDb();
+let bundleRpcMissing = false;
+
+/** Po każdym udanym zapisie powiadamiamy stronę, żeby wyczyściła pamięć podręczną danych. */
+function withWriteEvents(adapter) {
+  for (const m of ['insert', 'update', 'remove', 'removeWhere']) {
+    const fn = adapter[m].bind(adapter);
+    adapter[m] = async (...args) => {
+      const r = await fn(...args);
+      window.dispatchEvent(new Event('ssp-db-write'));
+      return r;
+    };
+  }
+  return adapter;
+}
+
+// tryb demo (dane w przeglądarce + przykładowe dane ~200 KB) ładujemy tylko wtedy, gdy nie ma konfiguracji Supabase
+export const db = withWriteEvents(SUPABASE_URL && SUPABASE_ANON_KEY
+  ? await createSupabaseDb()
+  : (await import('./db-local.js')).createLocalDb());
