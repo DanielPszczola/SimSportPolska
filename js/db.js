@@ -7,7 +7,7 @@
 // update(table, id, patch)  -> zaktualizowany wiersz
 // remove(table, id), removeWhere(table, eq)
 // uploadImage(blob, folder) -> publiczny URL obrazka
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, loginToEmail } from './config.js';
 import { createLocalDb } from './db-local.js';
 
 const SUPABASE_ESM = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
@@ -62,9 +62,9 @@ async function createSupabaseDb() {
         const { data } = await sb.auth.getSession();
         return data.session?.user ?? null;
       },
-      async signIn(email, password) {
-        const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Nieprawidłowy e-mail lub hasło' : error.message);
+      async signIn(login, password) {
+        const { error } = await sb.auth.signInWithPassword({ email: loginToEmail(login), password });
+        if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Nieprawidłowy login lub hasło' : error.message);
       },
       async signOut() {
         await sb.auth.signOut();

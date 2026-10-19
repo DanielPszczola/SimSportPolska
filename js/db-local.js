@@ -1,5 +1,6 @@
 // Backend demo: cała "baza" w localStorage tej przeglądarki.
 import { buildDemoData } from './demo-data.js';
+import { loginToEmail } from './config.js';
 
 const KEY = 'ssp_demo_db_v10'; // zmiana wersji = nowe dane demo
 const AUTH_KEY = 'ssp_demo_auth';
@@ -83,9 +84,9 @@ export function createLocalDb() {
         const email = storage.get(AUTH_KEY);
         return email ? { email } : null;
       },
-      async signIn(email, password) {
+      async signIn(login, password) {
         if (password !== 'admin') throw new Error('W trybie demo hasło to: admin');
-        storage.set(AUTH_KEY, email || 'admin@demo');
+        storage.set(AUTH_KEY, loginToEmail(login || 'admin'));
       },
       async signOut() {
         storage.del(AUTH_KEY);

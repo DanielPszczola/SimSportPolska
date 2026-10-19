@@ -25,7 +25,7 @@ Dopóki `js/config.js` jest pusty, strona działa w **trybie demo** na przykład
 python -m http.server 8000
 ```
 
-Otwórz http://localhost:8000. Do panelu admina zalogujesz się dowolnym e-mailem i hasłem `admin`.
+Otwórz http://localhost:8000. Do panelu admina zalogujesz się dowolnym loginem i hasłem `admin`.
 Uwaga: plik `index.html` otwarty bezpośrednio z dysku (file://) nie zadziała. Potrzebny jest serwer, choćby ten powyżej.
 
 ## Podłączenie bazy (Supabase), ok. 10 minut
@@ -35,8 +35,12 @@ Uwaga: plik `index.html` otwarty bezpośrednio z dysku (file://) nie zadziała. 
    Skrypt tworzy tabele, reguły bezpieczeństwa, magazyn grafik i startową bazę torów: 25 dla F1 oraz po 14 dla klas Hypercar, LMP i GT3.
 3. **Dane startowe ligi**: w nowym zapytaniu SQL Editor wklej `supabase/seed.sql` i kliknij **Run**.
    Ładuje sezony 1–2 F1: 23 wyścigi, 451 wyników, 74 kierowców, zespoły i składy.
-   Skrypt można bezpiecznie uruchomić ponownie, bo niczego nie dubluje.
-4. **Authentication → Users → Add user**: podaj e-mail i hasło admina, zaznacz *Auto Confirm User*.
+   **Działa jednorazowo**: zapisuje znacznik w tabeli `app_meta`, więc każde kolejne uruchomienie nic nie robi.
+   Nie zdubluje danych, nie przywróci usuniętych i nie nadpisze zmian z panelu.
+4. **Authentication → Users → Add user**: logowanie na stronie odbywa się **loginem**, więc jako e-mail wpisz
+   `<login>@ssp.example.com` (np. `daniel@ssp.example.com`, na stronie logujesz się jako `daniel`). Ustaw hasło
+   i zaznacz *Auto Confirm User*. Domenę zmienisz w `js/config.js` (`LOGIN_DOMAIN`). `example.com` nie przyjmuje
+   poczty, więc nikt nie dostanie żadnych wiadomości. Pełny adres e-mail wpisany w polu logowania też działa.
 5. Skopiuj **User UID** tego użytkownika i w SQL Editor wykonaj:
    ```sql
    insert into public.admins (user_id) values ('WKLEJ-UID');
@@ -73,6 +77,19 @@ usuń sezon w panelu admina. Konwersja:
 
 > Darmowy projekt Supabase jest wstrzymywany po ok. tygodniu bez żadnego ruchu. Przy aktywnej lidze to nie problem,
 > a wstrzymany projekt wznowisz jednym kliknięciem w panelu Supabase.
+
+### Bezpieczeństwo danych i kont
+
+- **Strona nie może skasować bazy.** Kod strony nie tworzy ani nie usuwa tabel. Ponowne wdrożenie na Vercelu
+  nie dotyka bazy, a dane znikają tylko wtedy, gdy admin sam je usunie w panelu.
+- **`schema.sql` można uruchamiać wielokrotnie.** Tylko tworzy brakujące elementy i nie zawiera poleceń
+  usuwających tabele ani dane.
+- **Konta adminów** są w Supabase Auth (hasła zaszyfrowane), a uprawnienia w tabeli `admins`.
+  **Nie trzymaj kont ani haseł w plikach projektu ani w `.env`.** Strona działa w przeglądarce, więc wszystko,
+  co do niej trafia, jest publiczne. Admina dodajesz w Supabase (*Authentication → Users*, a potem `insert into admins`).
+- **`js/config.js`** zawiera tylko publiczny adres projektu i klucz `anon`. Zapis blokują reguły bezpieczeństwa (RLS).
+  Klucz `service_role` nigdy nie trafia do projektu.
+- **Kopia zapasowa**: Supabase → *Database → Backups*. W darmowym planie warto też co jakiś czas pobrać zrzut bazy.
 
 ## Hosting
 

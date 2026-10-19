@@ -169,16 +169,10 @@ def sql_insert(table, rows, cols, extra=None):
     allcols = cols + (list(extra) if extra else [])
     return f'insert into public.{table} ({", ".join(allcols)}) values\n' + ',\n'.join(lines) + '\non conflict (id) do nothing;\n'
 
+SEED_MARKER = 'seed:f1-sezony-1-2'
+
 def write_sql(db):
-    out = [
-        '-- =====================================================================',
-        '-- Sim Sport Polska — startowe dane ligi (sezony F1 z pliku wyniki_ligi.json)',
-        '-- Wygenerowane przez: python tools/build_seed.py  (nie edytuj ręcznie)',
-        '-- Uruchom w Supabase → SQL Editor PO pliku supabase/schema.sql.',
-        '-- Bezpieczne do ponownego uruchomienia (on conflict do nothing).',
-        '-- =====================================================================',
-        'begin;',
-        '',
+    inserts = [
         sql_insert('seasons', db['seasons'], ['id', 'series', 'name', 'is_current', 'format', 'points', 'fl_point', 'fl_top10', 'pole_point', 'finish_bonus', 'created_at']),
         sql_insert('teams', db['teams'], ['id', 'season_id', 'name', 'color', 'logo_url', 'car_url', 'car_class']),
         sql_insert('drivers', db['drivers'], ['id', 'nick', 'country_code', 'number']),
@@ -186,7 +180,30 @@ def write_sql(db):
         sql_insert('races', db['races'], ['id', 'season_id', 'round', 'race_date', 'laps', 'status', 'counts', 'notes'],
                    extra={'track_id': lambda r: f"(select id from public.tracks where name = {sql_val(r['track_name'])} and category = 'F1' limit 1)"}),
         sql_insert('results', db['results'], ['id', 'race_id', 'driver_id', 'team_id', 'car_class', 'position', 'grid', 'status', 'laps_down', 'time_ms', 'best_lap_ms', 'fastest_lap', 'pit_stops']),
-        'commit;',
+    ]
+    out = [
+        '-- =====================================================================',
+        '-- Sim Sport Polska — startowe dane ligi (sezony F1 z pliku wyniki_ligi.json)',
+        '-- Wygenerowane przez: python tools/build_seed.py  (nie edytuj ręcznie)',
+        '-- Uruchom w Supabase → SQL Editor PO pliku supabase/schema.sql.',
+        '--',
+        '-- JEDNORAZOWY: po pierwszym uruchomieniu w tabeli app_meta zapisuje się znacznik',
+        f"-- '{SEED_MARKER}' i każde kolejne uruchomienie nic nie robi — nie przywróci usuniętych",
+        '-- danych, nie zdubluje ich i nie nadpisze zmian wprowadzonych w panelu admina.',
+        '-- Całość wykonuje się jako jedna transakcja: albo wgra się wszystko, albo nic.',
+        '-- =====================================================================',
+        'do $seed$',
+        'begin',
+        f"  if exists (select 1 from public.app_meta where key = '{SEED_MARKER}') then",
+        "    raise notice 'Dane startowe były już wgrane wcześniej — nic nie zmieniam.';",
+        '    return;',
+        '  end if;',
+        '',
+        *inserts,
+        f"insert into public.app_meta (key, value) values ('{SEED_MARKER}', now()::text);",
+        "raise notice 'Wgrano dane startowe ligi.';",
+        'end',
+        '$seed$;',
         '',
     ]
     (ROOT / 'supabase' / 'seed.sql').write_text('\n'.join(out), encoding='utf-8')

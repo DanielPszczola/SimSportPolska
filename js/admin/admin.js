@@ -1,6 +1,7 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, useAsync, Loader, ErrorBox, attempt } from '../ui.js';
+import { emailToLogin } from '../config.js';
 import { SeriesAdmin } from './series.js';
 import { DatabaseAdmin } from './database.js';
 import { EnduranceAdmin } from './endurance.js';
@@ -25,6 +26,7 @@ export function AdminPage({ parts }) {
 
   const logout = async () => {
     await db.auth.signOut();
+    window.dispatchEvent(new Event('ssp-auth'));
     auth.reload();
   };
 
@@ -32,7 +34,7 @@ export function AdminPage({ parts }) {
     return html`<div class="wrap page narrow">
       <div class="card">
         <h2>Brak uprawnień</h2>
-        <p>Jesteś zalogowany jako <b>${user.email}</b>, ale to konto nie jest administratorem.</p>
+        <p>Jesteś zalogowany jako <b>${emailToLogin(user.email)}</b>, ale to konto nie jest administratorem.</p>
         <p class="muted">Aby nadać uprawnienia, w Supabase → SQL Editor wykonaj:</p>
         <pre class="code">insert into admins (user_id) values ('${user.id}');</pre>
         <button class="btn" onClick=${logout}>Wyloguj</button>
@@ -45,7 +47,7 @@ export function AdminPage({ parts }) {
     <div class="section-head">
       <div class="wrap section-head-inner">
         <div class="section-title"><span class="series-chip admin">ADMIN</span><h1>Panel administratora</h1></div>
-        <div class="admin-user"><span class="muted">${user.email}</span><button class="btn btn-sm" onClick=${logout}>Wyloguj</button></div>
+        <div class="admin-user"><span class="muted">${emailToLogin(user.email)}</span><button class="btn btn-sm" onClick=${logout}>Wyloguj</button></div>
       </div>
       <nav class="wrap subnav admin-sections">
         ${SECTIONS.map(([id, label, chip]) => html`<a href=${`#/admin/${id}`} class=${section === id ? 'active' : ''}>
@@ -70,13 +72,16 @@ function Login({ onDone }) {
     setBusy(true);
     const ok = await attempt(() => db.auth.signIn(email, password), 'Zalogowano');
     setBusy(false);
-    if (ok) onDone();
+    if (ok) {
+      window.dispatchEvent(new Event('ssp-auth'));
+      onDone();
+    }
   };
   return html`<div class="wrap page narrow">
     <form class="card login" onSubmit=${submit}>
       <h2>🔒 Autoryzacja</h2>
       <p class="muted">Panel dostępny tylko dla administratorów ligi.</p>
-      <label class="field"><span>E-mail</span><input type="email" required=${db.mode !== 'demo'} value=${email} onInput=${(e) => setEmail(e.target.value)} autocomplete="username" /></label>
+      <label class="field"><span>Login</span><input type="text" required value=${email} onInput=${(e) => setEmail(e.target.value)} autocomplete="username" autocapitalize="none" spellcheck="false" /></label>
       <label class="field"><span>Hasło</span><input type="password" required value=${password} onInput=${(e) => setPassword(e.target.value)} autocomplete="current-password" /></label>
       <button class="btn btn-accent" disabled=${busy}>${busy ? 'Logowanie…' : 'Zaloguj się'}</button>
     </form>

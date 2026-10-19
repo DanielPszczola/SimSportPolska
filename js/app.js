@@ -31,7 +31,12 @@ function Header({ section }) {
   const [loggedIn, setLoggedIn] = useState(false);
   useEffect(() => setOpen(false), [section]);
   // dyskretny link: „Zaloguj” dla gości, „Panel” po zalogowaniu (sprawdzane przy każdej zmianie sekcji)
-  useEffect(() => { db.auth.user().then((u) => setLoggedIn(!!u)).catch(() => setLoggedIn(false)); }, [section]);
+  useEffect(() => {
+    const check = () => db.auth.user().then((u) => setLoggedIn(!!u)).catch(() => setLoggedIn(false));
+    check();
+    window.addEventListener('ssp-auth', check); // zalogowanie / wylogowanie w panelu
+    return () => window.removeEventListener('ssp-auth', check);
+  }, [section]);
   const link = (href, id, label) => html`<a href=${href} class=${section === id ? 'active' : ''} onClick=${() => setOpen(false)}>${label}</a>`;
   return html`<header class="site-header">
     <div class="wrap header-inner">
@@ -50,7 +55,7 @@ function Header({ section }) {
 function DemoBanner() {
   if (db.mode !== 'demo') return null;
   return html`<div class="demo-banner">
-    <b>TRYB DEMO</b> — dane zapisują się tylko w tej przeglądarce. Admin: dowolny e-mail, hasło <code>admin</code>.
+    <b>TRYB DEMO</b> — dane zapisują się tylko w tej przeglądarce. Admin: dowolny login, hasło <code>admin</code>.
     Podłącz Supabase w <code>js/config.js</code> (instrukcja w README).
     <button class="link" onClick=${() => confirm('Przywrócić przykładowe dane demo? Twoje zmiany zostaną utracone.') && db.reset()}>Resetuj dane demo</button>
   </div>`;

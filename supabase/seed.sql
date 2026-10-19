@@ -2,9 +2,18 @@
 -- Sim Sport Polska — startowe dane ligi (sezony F1 z pliku wyniki_ligi.json)
 -- Wygenerowane przez: python tools/build_seed.py  (nie edytuj ręcznie)
 -- Uruchom w Supabase → SQL Editor PO pliku supabase/schema.sql.
--- Bezpieczne do ponownego uruchomienia (on conflict do nothing).
+--
+-- JEDNORAZOWY: po pierwszym uruchomieniu w tabeli app_meta zapisuje się znacznik
+-- 'seed:f1-sezony-1-2' i każde kolejne uruchomienie nic nie robi — nie przywróci usuniętych
+-- danych, nie zdubluje ich i nie nadpisze zmian wprowadzonych w panelu admina.
+-- Całość wykonuje się jako jedna transakcja: albo wgra się wszystko, albo nic.
 -- =====================================================================
-begin;
+do $seed$
+begin
+  if exists (select 1 from public.app_meta where key = 'seed:f1-sezony-1-2') then
+    raise notice 'Dane startowe były już wgrane wcześniej — nic nie zmieniam.';
+    return;
+  end if;
 
 insert into public.seasons (id, series, name, is_current, format, points, fl_point, fl_top10, pole_point, finish_bonus, created_at) values
   ('55983c13-1283-554e-aaaa-3fa24dff62fa', 'f1', 'Sezon 1', false, 'league', '{25,18,15,12,10,8,6,4,2,1}', 0, true, 0, 0, '2025-01-01T00:00:00Z'),
@@ -681,4 +690,7 @@ insert into public.results (id, race_id, driver_id, team_id, car_class, position
   ('6fb1865f-97a7-5215-b3c6-a7cb4553a355', 'aeb7320d-80f5-53af-8c92-6a878fff1651', '7f57b300-7297-50a9-9122-86957736c0dd', 'c0181218-0453-5aa9-8ee0-19775d9154a0', 'F1', 19, 15, 'DNF', 0, null, null, false, null)
 on conflict (id) do nothing;
 
-commit;
+insert into public.app_meta (key, value) values ('seed:f1-sezony-1-2', now()::text);
+raise notice 'Wgrano dane startowe ligi.';
+end
+$seed$;
