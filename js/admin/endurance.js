@@ -86,7 +86,7 @@ function EventEditor({ ev, data, reload, onDeleted }) {
     while (used.includes(`${TEAM_NAME} #${n}`)) n++;
     if (await attempt(() => db.insert('endurance_crews', {
       event_id: ev.id, name: `${TEAM_NAME} #${n}`, car_class: 'GT3', car_number: String(n), car_model: '', car_image_url: null,
-      driver_ids: [], result_status: null, position_class: null, position_overall: null, laps: null, result_note: '',
+      driver_ids: [], result_status: null, position_class: null, position_overall: null, laps: null, result_note: '', hall_of_fame: false,
     }), 'Dodano zespół')) reload();
   };
   const remove = async () => {
@@ -204,6 +204,10 @@ function CrewEditor({ crew, drivers, finished, reload }) {
           <label class="field"><span>Miejsce w klasie</span><input type="number" min="1" value=${crew.position_class ?? ''} onChange=${(e) => patch({ position_class: num(e.target.value) })} /></label>
           <label class="field"><span>Miejsce ogólnie</span><input type="number" min="1" value=${crew.position_overall ?? ''} onChange=${(e) => patch({ position_overall: num(e.target.value) })} /></label>
           <label class="field"><span>Okrążenia</span><input type="number" min="0" value=${crew.laps ?? ''} onChange=${(e) => patch({ laps: num(e.target.value) })} /></label>
+          <label class="field hof-check" title="Wynik pojawi się w zakładce Galeria sław (po zakończeniu eventu)">
+            <span>Galeria sław</span>
+            <span class="check-inline"><input type="checkbox" checked=${!!crew.hall_of_fame} onChange=${(e) => patch({ hall_of_fame: e.target.checked })} /> 🏆 Pokaż w Galerii sław</span>
+          </label>
           <label class="field span2"><span>Komentarz do wyniku</span><input value=${crew.result_note || ''} onChange=${(e) => patch({ result_note: e.target.value })} placeholder="np. awaria skrzyni w 18. godzinie" /></label>
         </div>
       </div>

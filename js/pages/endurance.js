@@ -74,6 +74,7 @@ function CrewResult({ crew }) {
     ${crew.position_class ? html`<span class=${`pos ${crew.position_class <= 3 ? `pos-${crew.position_class}` : ''}`}>P${crew.position_class}</span> <b>w klasie</b>` : null}
     ${crew.position_overall ? html`<span class="muted">· P${crew.position_overall} ogólnie</span>` : null}
     ${crew.laps ? html`<span class="muted">· ${crew.laps} okr.</span>` : null}
+    ${crew.hall_of_fame ? html`<a class="badge badge-hof" href="#/galeria" title="Wynik w Galerii sław">🏆 Galeria sław</a>` : null}
     ${crew.result_note ? html`<div class="muted small">${crew.result_note}</div>` : null}
   </div>`;
 }

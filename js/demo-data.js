@@ -119,13 +119,13 @@ function buildEnduranceDemo({ uid, now, trackByName, drivers }) {
   const bahrain = event('8h Bahrain', 'Bahrain International Circuit', 'GT3', at(40, 12), 8, 'scheduled');
   const crew = (ev, n, car_class, car_model, driver_ids, result = {}) => ({
     id: uid(), created_at: now, event_id: ev.id, name: `Sim Sport Polska #${n}`, car_class, car_number: String(n * 11), car_model,
-    car_image_url: null, driver_ids, result_status: null, position_class: null, position_overall: null, laps: null, result_note: '', ...result,
+    car_image_url: null, driver_ids, result_status: null, position_class: null, position_overall: null, laps: null, result_note: '', hall_of_fame: false, ...result,
   });
   return {
     endurance_events: [spa, lemans, bahrain],
     endurance_crews: [
       crew(spa, 1, 'HY', 'Porsche 963', ids('Demo_Hyper1', 'Demo_Hyper2', 'Demo_Hyper3'), { result_status: 'FIN', position_class: 4, position_overall: 4, laps: 168 }),
-      crew(spa, 2, 'GT3', 'BMW M4 GT3', ids('Demo_GT1', 'Demo_GT2'), { result_status: 'FIN', position_class: 2, position_overall: 21, laps: 149 }),
+      crew(spa, 2, 'GT3', 'BMW M4 GT3', ids('Demo_GT1', 'Demo_GT2'), { result_status: 'FIN', position_class: 2, position_overall: 21, laps: 149, hall_of_fame: true }),
       crew(lemans, 1, 'HY', 'Porsche 963', ids('Demo_Hyper1', 'Demo_Hyper2', 'Demo_Hyper4')),
       crew(lemans, 2, 'LMP', 'Oreca 07', ids('Demo_LMP1', 'Demo_LMP2', 'Demo_LMP3')),
       crew(lemans, 3, 'GT3', 'Ford Mustang GT3', ids('Demo_GT3', 'Demo_GT4')),

@@ -881,3 +881,41 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
   letter-spacing: .04em; line-height: 1; text-shadow: 0 6px 30px rgba(0, 0, 0, .45);
 }
 .hero-compact .hero-tag { margin: 14px 0 0; color: var(--accent); }
+
+/* ---------- Galeria sław ---------- */
+.hof-chip { background: var(--gold); color: #2b1d00; font-style: normal; }
+.hof-section { margin-bottom: 34px; }
+.hof-section > h2 { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.hof-seasons { display: flex; flex-direction: column; gap: 16px; }
+.hof-card { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--gold); border-radius: 14px; overflow: hidden; }
+.hof-card.running { border-left-color: var(--warn); }
+.hof-card-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 14px 18px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
+.hof-card-head h3 { margin: 0; color: var(--text); font-size: 1.25rem; font-style: italic; }
+.hof-card-head .badge { margin-left: 0; }
+.hof-champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; padding: 16px 18px 18px; }
+.hof-champ {
+  --team: var(--gold);
+  display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); border-top: 4px solid var(--team);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--team) 18%, var(--bg-2)), var(--bg-2) 60%);
+}
+.hof-champ .eyebrow { display: flex; align-items: center; gap: 6px; }
+.hof-champ-name { font-size: 1.35rem; font-weight: 900; }
+.hof-champ-name .driver-link { font-size: inherit; }
+.hof-team { display: flex; align-items: center; gap: 10px; }
+.hof-team a { color: var(--text); }
+.hof-car { max-width: 280px; width: 100%; margin-top: 6px; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .45)); }
+.hof-podium { list-style: none; margin: 6px 0 0; padding: 8px 0 0; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 4px; }
+.hof-podium li { display: flex; align-items: center; gap: 8px; font-size: .9rem; }
+.hof-podium .pos { min-width: 24px; height: 22px; font-size: .8rem; }
+.hof-podium .pts { margin-left: auto; font-weight: 700; color: var(--muted); }
+.hof-endurance { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.hof-end-card { --cls: var(--accent); display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--cls); border-radius: 12px; padding: 14px; }
+.hof-end-car { display: flex; align-items: center; justify-content: center; min-height: 80px; }
+.hof-end-car img { max-width: 100%; max-height: 90px; object-fit: contain; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .45)); }
+.hof-end-trophy { font-size: 3rem; }
+.hof-end-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.hof-end-result { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 1.05rem; }
+.hof-end-drivers { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.badge-hof { background: rgba(245, 197, 66, .18); color: var(--gold); text-decoration: none; }
+.check-inline { display: inline-flex; align-items: center; gap: 8px; padding: 7px 0; font-weight: 700; }
+@media (max-width: 520px) { .hof-end-card { grid-template-columns: 1fr; } }

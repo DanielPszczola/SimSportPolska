@@ -191,9 +191,11 @@ function ResultsForm({ b, race, onSaved }) {
   };
 
   const opts = (list, row) => list.map((d) => html`<option value=${d.id} disabled=${chosen.has(d.id) && d.id !== row.driver_id}>${d.nick}</option>`);
+  // zmiana kierowcy przestawia też zespół (i klasę) na jego skład w tej rundzie — chyba że zespół
+  // ustawiono w tym wierszu ręcznie (zastępstwo); wcześniej zespół zostawał od poprzedniego kierowcy
   const driverSelect = (row, i) => html`<select value=${row.driver_id} onChange=${(e) => {
-    const team_id = row.team_id || seatTeam(e.target.value);
-    setRow(i, { driver_id: e.target.value, team_id, car_class: row.car_class || teamClass(team_id) });
+    const team_id = row.teamManual ? row.team_id : seatTeam(e.target.value);
+    setRow(i, { driver_id: e.target.value, team_id, car_class: row.teamManual ? row.car_class : teamClass(team_id) || row.car_class });
   }}>
     <option value="">— kierowca —</option>
     <optgroup label=${`Skład na rundę ${race.round}`}>${opts(inLineup, row)}</optgroup>
@@ -227,7 +229,7 @@ function ResultsForm({ b, race, onSaved }) {
             return html`<tr key=${row.key} class=${sub ? 'row-sub' : ''}>
               <td class="c"><span class="pos-fixed">P${i + 1}</span></td>
               <td>${driverSelect(row, i)}${sub ? html`<span class="badge" title=${multiClass ? 'Inne auto niż przypisane w tej rundzie' : 'Jedzie za inny zespół niż w składzie'}>${multiClass ? 'inne auto' : 'zastępstwo'}</span>` : null}</td>
-              <td><select value=${row.team_id} onChange=${(e) => setRow(i, { team_id: e.target.value, car_class: teamClass(e.target.value) || row.car_class })}>
+              <td><select value=${row.team_id} onChange=${(e) => setRow(i, { team_id: e.target.value, teamManual: true, car_class: teamClass(e.target.value) || row.car_class })}>
                 <option value="">—</option>
                 ${b.teams.map((t) => html`<option value=${t.id}>${t.name}</option>`)}
               </select></td>

@@ -5,6 +5,7 @@ import { LEAGUE_NAME } from './config.js';
 import { HomePage } from './pages/home.js';
 import { F1Section, LmuSection } from './pages/league.js';
 import { DriverPage } from './pages/driver.js';
+import { HallOfFamePage } from './pages/halloffame.js';
 import { AdminPage } from './admin/admin.js';
 
 function parseHash() {
@@ -44,8 +45,9 @@ function Header({ section }) {
       <button class="burger" aria-label="Menu" aria-expanded=${open} onClick=${() => setOpen(!open)}><span></span><span></span><span></span></button>
       <nav class=${open ? 'open' : ''}>
         ${link('#/', '', 'Strona główna')}
-        ${link('#/f1', 'f1', 'Formuła 1')}
+        ${link('#/f1', 'f1', 'F1')}
         ${link('#/lmu', 'lmu', 'Le Mans Ultimate')}
+        ${link('#/galeria', 'galeria', 'Galeria sław')}
         <a href="#/admin" class=${`nav-admin ${section === 'admin' ? 'active' : ''}`} title="Panel administratora">${loggedIn ? 'Panel' : 'Zaloguj'}</a>
       </nav>
     </div>
@@ -69,6 +71,7 @@ function App() {
   else if (section === 'f1') page = html`<${F1Section} parts=${rest} query=${query} />`;
   else if (section === 'lmu') page = html`<${LmuSection} parts=${rest} />`;
   else if (section === 'kierowca') page = html`<${DriverPage} driverId=${rest[0]} />`;
+  else if (section === 'galeria') page = html`<${HallOfFamePage} />`;
   else if (section === 'admin') page = html`<${AdminPage} parts=${rest} />`;
   else page = html`<div class="wrap page"><h1>404</h1><p>Nie ma takiej strony. <a href="#/">Wróć na start</a></p></div>`;
 

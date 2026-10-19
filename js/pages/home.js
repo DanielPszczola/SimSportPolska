@@ -17,7 +17,7 @@ export function HomePage() {
       <div class="hero-bg"></div>
       <div class="wrap hero-inner">
         <h1 class="hero-title">Sim Sport Polska</h1>
-        <p class="hero-tag">Formuła 1 · Le Mans Ultimate</p>
+        <p class="hero-tag">F1 · Le Mans Ultimate</p>
       </div>
     </section>
 

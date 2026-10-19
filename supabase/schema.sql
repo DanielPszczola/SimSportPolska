@@ -127,6 +127,7 @@ create table if not exists public.endurance_crews (
   position_overall int,
   laps int,
   result_note text default '',
+  hall_of_fame boolean not null default false,  -- admin: pokaż ten wynik w Galerii sław
   created_at timestamptz not null default now()
 );
 
@@ -190,6 +191,8 @@ create index if not exists results_race_idx on public.results (race_id);
 create index if not exists results_driver_idx on public.results (driver_id);
 create index if not exists penalties_race_idx on public.penalties (race_id);
 create index if not exists endurance_crews_event_idx on public.endurance_crews (event_id);
+-- dodanie kolumny do bazy utworzonej wcześniejszą wersją tego pliku (bezpieczne)
+alter table public.endurance_crews add column if not exists hall_of_fame boolean not null default false;
 
 -- ---------- bezpieczeństwo (Row Level Security) ----------
 -- Każdy może czytać dane ligi; zapisywać mogą tylko użytkownicy z tabeli admins.
