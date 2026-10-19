@@ -596,7 +596,7 @@ function RaceSummary({ b, race, nav, reload }) {
   const rows = byClass(computeRaceByClass(race, b.season, b.results, b.penalties));
   // klasyfikacja po tej rundzie (ten wyścig liczony tak, jakby był już zatwierdzony)
   const races = b.races.filter((r) => r.round <= race.round).map((r) => (r.id === race.id ? { ...r, status: 'completed' } : r));
-  const st = computeStandings({ season: b.season, races, results: b.results, penalties: b.penalties });
+  const st = computeStandings({ ...b, races });
 
   const approve = async () => {
     if (await attempt(() => db.update('races', race.id, { status: 'completed' }), `Runda ${race.round} zatwierdzona i opublikowana`)) {

@@ -919,3 +919,4 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
 .badge-hof { background: rgba(245, 197, 66, .18); color: var(--gold); text-decoration: none; }
 .check-inline { display: inline-flex; align-items: center; gap: 8px; padding: 7px 0; font-weight: 700; }
 @media (max-width: 520px) { .hof-end-card { grid-template-columns: 1fr; } }
+.radio-line { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text); font-size: .9rem; }

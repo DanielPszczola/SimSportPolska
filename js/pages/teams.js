@@ -3,7 +3,7 @@ import { db } from '../db.js';
 import {
   html, seriesBase, unit, teamHref, teamListHref, useAsync, loadSeasonBundle, Flag, TeamTag, TeamLogo, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, roleInTeam, ROLE_LABEL,
 } from '../ui.js';
-import { computeRace, computeStandings, carClass } from '../scoring.js';
+import { computeRace, computeStandings, carClass, teamPointsResolver } from '../scoring.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
 
 /** Punkty, starty i najlepszy wynik każdego kierowcy w barwach danego zespołu w sezonie. */
@@ -128,9 +128,12 @@ function TeamProfile({ team, b }) {
   const ranked = b.season.series === 'f1'; // LMU: bez klasyfikacji zespołów
 
   // wyścig po wyścigu: kto jechał w barwach zespołu i ile punktów zdobył zespół
+  const teamOf = teamPointsResolver(b);
   const rounds = st.races.map((race) => {
-    const rows = computeRace(race, b.season, b.results, b.penalties).filter((r) => r.team_id === team.id);
-    return { race, rows, points: rows.reduce((sum, r) => sum + r.points, 0) };
+    const all = computeRace(race, b.season, b.results, b.penalties);
+    const rows = all.filter((r) => r.team_id === team.id || teamOf(race, r) === team.id);
+    // punkty zespołu: tylko wyniki zaliczane temu zespołowi (zasada z ustawień sezonu)
+    return { race, rows, points: all.filter((r) => teamOf(race, r) === team.id).reduce((sum, r) => sum + r.points, 0) };
   });
   const poles = rounds.reduce((n, r) => n + r.rows.filter((x) => x.hasPole).length, 0);
   const fls = rounds.reduce((n, r) => n + r.rows.filter((x) => x.hasFastestLap).length, 0);

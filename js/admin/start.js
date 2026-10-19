@@ -1,7 +1,7 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, unit, Flag, TeamLogo, attempt, formatDate } from '../ui.js';
-import { DEFAULT_POINTS, LMU_CLASSES, seasonClasses, carClass } from '../scoring.js';
+import { DEFAULT_POINTS, LMU_CLASSES, seasonClasses, carClass, TEAM_POINTS_MODES } from '../scoring.js';
 import { categoriesForSeries } from '../tracks-seed.js';
 import { F1_TEAMS_2026, LMU_CARS, LOGO_PRESETS, CAR_PRESETS } from '../team-assets.js';
 import { StepBar, NextStep, ImageField, ClassSelect, toLocalInput, fromLocalInput } from './common.js';
@@ -60,6 +60,7 @@ export function SeasonForm({ season, onCancel, onSaved }) {
   const [f, setF] = useState({
     name: season.name ?? '',
     classes: season.classes?.length ? season.classes : ['HY', 'LMP', 'GT3'],
+    team_points: season.team_points || 'lineup',
     is_current: season.is_current ?? true,
     points: (season.points || DEFAULT_POINTS).join(', '),
     fl_point: season.fl_point ?? (series === 'f1' ? 1 : 0),
@@ -77,6 +78,7 @@ export function SeasonForm({ season, onCancel, onSaved }) {
     const row = {
       name: f.name.trim(), series, format: 'league', is_current: f.is_current, points,
       classes: series === 'lmu' ? LMU_CLASSES.map((c) => c.id).filter((id) => f.classes.includes(id)) : ['HY', 'LMP', 'GT3'],
+      team_points: f.team_points,
       fl_point: Number(f.fl_point) || 0, fl_top10: f.fl_top10, pole_point: Number(f.pole_point) || 0, finish_bonus: Number(f.finish_bonus) || 0,
     };
     const saved = await attempt(async () => {
@@ -102,6 +104,10 @@ export function SeasonForm({ season, onCancel, onSaved }) {
           </label>`)}
         </div>
         <small class="muted">Wyniki i klasyfikacje są liczone osobno dla każdej klasy.</small>
+      </div>` : null}
+      ${series === 'f1' ? html`<div class="field span2"><span>Punkty konstruktorów</span>
+        ${TEAM_POINTS_MODES.map((m) => html`<label class="radio-line"><input type="radio" name="team_points" checked=${f.team_points === m.id} onChange=${() => setF({ ...f, team_points: m.id })} />
+          <span><b>${m.label}</b> — ${m.desc}</span></label>`)}
       </div>` : null}
       <label class="field span2"><span>Punkty za pozycje (od 1. miejsca)</span><input value=${f.points} onInput=${set('points')} /></label>
       <label class="field"><span>Pkt za najszybsze okrążenie</span><input type="number" min="0" value=${f.fl_point} onInput=${set('fl_point')} /></label>

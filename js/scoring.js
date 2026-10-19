@@ -2,6 +2,8 @@
 // Wszystko liczone jest "w locie" z surowych wyników + kar, więc nałożenie
 // lub usunięcie kary od razu zmienia wyniki i klasyfikację generalną.
 
+import { lineupAt } from './lineup.js';
+
 export const DEFAULT_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
 
 export const STATUSES = [
@@ -167,8 +169,34 @@ function countback(a, b) {
   return 0;
 }
 
+/** Zasady liczenia punktów konstruktorów (ustawienie sezonu team_points). */
+export const TEAM_POINTS_MODES = [
+  { id: 'lineup', label: 'Punkty zostają w zespole', desc: 'Wynik zalicza się zespołowi, w którego składzie kierowca był w danej rundzie. Po rotacji zespół zachowuje punkty zdobyte przez poprzedniego kierowcę. Rezerwowi i zastępstwa nie zdobywają punktów dla zespołu.' },
+  { id: 'final', label: 'Punkty odchodzą z kierowcą', desc: 'Zespół ma sumę punktów kierowców ze swojego obecnego składu (po wszystkich rotacjach). Kierowca, który odchodzi, zabiera swoje punkty, a nowy wnosi wszystkie swoje. Rezerwowi nie liczą się dla zespołu.' },
+  { id: 'result', label: 'Za zespół z wyniku', desc: 'Wynik zalicza się zespołowi, którym kierowca jechał w wyścigu (wpisanemu przy wyniku) — także rezerwowym.' },
+];
+
+/**
+ * Do którego zespołu trafiają punkty wyniku w klasyfikacji konstruktorów — patrz TEAM_POINTS_MODES.
+ * Bez danych o składzie (entries) zawsze liczy „za zespół z wyniku”.
+ */
+export function teamPointsResolver({ season, entries, rosterChanges }) {
+  const mode = season?.team_points || 'lineup';
+  if (mode === 'result' || !entries) return (race, row) => row.team_id || null;
+  if (mode === 'final') {
+    const seats = lineupAt(entries, rosterChanges, Infinity);
+    return (race, row) => seats.get(row.driver_id)?.team_id || null;
+  }
+  const byRound = new Map();
+  return (race, row) => {
+    if (!byRound.has(race.round)) byRound.set(race.round, lineupAt(entries, rosterChanges, race.round));
+    return byRound.get(race.round).get(row.driver_id)?.team_id || null;
+  };
+}
+
 /** Klasyfikacja kierowców i konstruktorów + macierz wyników runda po rundzie. */
-export function computeStandings({ season, races, results, penalties }) {
+export function computeStandings({ season, races, results, penalties, entries, rosterChanges }) {
+  const teamOf = teamPointsResolver({ season, entries, rosterChanges });
   const done = races.filter((r) => r.status === 'completed').sort((a, b) => a.round - b.round);
   const drivers = new Map();
   const teams = new Map();
@@ -198,8 +226,9 @@ export function computeStandings({ season, races, results, penalties }) {
       }
       d.perRound[race.id] = { pos: row.finalPos, status: row.status, points: row.points, fl: row.hasFastestLap, pole: row.hasPole };
 
-      if (row.team_id) {
-        const t = getT(row.team_id);
+      const teamId = teamOf(race, row);
+      if (teamId) {
+        const t = getT(teamId);
         t.points += row.points;
         t.perRound[race.id] = (t.perRound[race.id] || 0) + row.points;
         if (row.finalPos) {
