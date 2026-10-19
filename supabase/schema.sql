@@ -48,9 +48,9 @@ create table if not exists public.seasons (
   finish_bonus int not null default 0,   -- bonus za ukończenie wyścigu
   format text not null default 'league' check (format in ('league', 'endurance')),  -- (nieużywane, zostawione dla zgodności)
   classes text[] not null default '{HY,LMP,GT3}',  -- LMU: klasy jadące w sezonie (1–3); F1 ignoruje
-  -- punkty konstruktorów: 'lineup' = zostają w zespole (skład w danej rundzie), 'final' = odchodzą z kierowcą
-  --                       (suma punktów obecnego składu), 'result' = za zespół wpisany przy wyniku
-  team_points text not null default 'lineup' check (team_points in ('lineup', 'final', 'result')),
+  -- punkty konstruktorów: 'final' (domyślnie, wg regulaminu) = suma punktów kierowców z końcowego składu zespołu,
+  --                       'lineup' = za zespół ze składu w danej rundzie, 'result' = za zespół wpisany przy wyniku
+  team_points text not null default 'final' check (team_points in ('lineup', 'final', 'result')),
   created_at timestamptz not null default now()
 );
 
@@ -196,7 +196,7 @@ create index if not exists penalties_race_idx on public.penalties (race_id);
 create index if not exists endurance_crews_event_idx on public.endurance_crews (event_id);
 -- dodanie kolumny do bazy utworzonej wcześniejszą wersją tego pliku (bezpieczne)
 alter table public.endurance_crews add column if not exists hall_of_fame boolean not null default false;
-alter table public.seasons add column if not exists team_points text not null default 'lineup' check (team_points in ('lineup', 'final', 'result'));
+alter table public.seasons add column if not exists team_points text not null default 'final' check (team_points in ('lineup', 'final', 'result'));
 
 -- ---------- bezpieczeństwo (Row Level Security) ----------
 -- Każdy może czytać dane ligi; zapisywać mogą tylko użytkownicy z tabeli admins.

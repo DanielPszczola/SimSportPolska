@@ -60,7 +60,7 @@ export function SeasonForm({ season, onCancel, onSaved }) {
   const [f, setF] = useState({
     name: season.name ?? '',
     classes: season.classes?.length ? season.classes : ['HY', 'LMP', 'GT3'],
-    team_points: season.team_points || 'lineup',
+    team_points: season.team_points || 'final',
     is_current: season.is_current ?? true,
     points: (season.points || DEFAULT_POINTS).join(', '),
     fl_point: season.fl_point ?? (series === 'f1' ? 1 : 0),

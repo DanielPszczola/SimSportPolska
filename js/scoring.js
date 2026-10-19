@@ -169,10 +169,10 @@ function countback(a, b) {
   return 0;
 }
 
-/** Zasady liczenia punktów konstruktorów (ustawienie sezonu team_points). */
+/** Zasady liczenia punktów konstruktorów (ustawienie sezonu team_points); domyślnie 'final' — wg regulaminu ligi. */
 export const TEAM_POINTS_MODES = [
-  { id: 'lineup', label: 'Punkty zostają w zespole', desc: 'Wynik zalicza się zespołowi, w którego składzie kierowca był w danej rundzie. Po rotacji zespół zachowuje punkty zdobyte przez poprzedniego kierowcę. Rezerwowi i zastępstwa nie zdobywają punktów dla zespołu.' },
   { id: 'final', label: 'Punkty odchodzą z kierowcą', desc: 'Zespół ma sumę punktów kierowców ze swojego obecnego składu (po wszystkich rotacjach). Kierowca, który odchodzi, zabiera swoje punkty, a nowy wnosi wszystkie swoje. Rezerwowi nie liczą się dla zespołu.' },
+  { id: 'lineup', label: 'Punkty zostają w zespole', desc: 'Wynik zalicza się zespołowi, w którego składzie kierowca był w danej rundzie. Po rotacji zespół zachowuje punkty zdobyte przez poprzedniego kierowcę. Rezerwowi i zastępstwa nie zdobywają punktów dla zespołu.' },
   { id: 'result', label: 'Za zespół z wyniku', desc: 'Wynik zalicza się zespołowi, którym kierowca jechał w wyścigu (wpisanemu przy wyniku) — także rezerwowym.' },
 ];
 
@@ -181,7 +181,7 @@ export const TEAM_POINTS_MODES = [
  * Bez danych o składzie (entries) zawsze liczy „za zespół z wyniku”.
  */
 export function teamPointsResolver({ season, entries, rosterChanges }) {
-  const mode = season?.team_points || 'lineup';
+  const mode = season?.team_points || 'final';
   if (mode === 'result' || !entries) return (race, row) => row.team_id || null;
   if (mode === 'final') {
     const seats = lineupAt(entries, rosterChanges, Infinity);
