@@ -3,10 +3,12 @@
 // tylko w przeglądarce (localStorage), a do panelu admina logujesz się
 // dowolnym loginem i hasłem "admin".
 //
-// Gdzie to znaleźć: Supabase → Project Settings → API
-//   SUPABASE_URL      = "Project URL"
-//   SUPABASE_ANON_KEY = klucz "anon" / "publishable" (jest publiczny, można go trzymać w repo;
-//                        bezpieczeństwo zapewniają reguły RLS z pliku supabase/schema.sql)
+// Gdzie to znaleźć: Supabase → Project Settings
+//   SUPABASE_URL      = Data API → "Project URL" (https://<id-projektu>.supabase.co)
+//   SUPABASE_ANON_KEY = API Keys → "Publishable key" (sb_publishable_…) albo Legacy API keys → "anon" (eyJ…).
+//                        Klucz jest publiczny i może być w repo — bezpieczeństwo zapewniają reguły RLS
+//                        z pliku supabase/schema.sql. NIGDY nie wpisuj tu klucza "Secret" / "service_role".
+//                        Uwaga: to nie jest identyfikator projektu (20 znaków z adresu).
 export const SUPABASE_URL = 'https://sdlkqrwxbqhvnxoflpjh.supabase.co';
 export const SUPABASE_ANON_KEY = 'sb_publishable_vP4XYKzoxGsTbifaHacRmQ_LdBdSkEn';
 

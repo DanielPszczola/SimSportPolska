@@ -10,7 +10,7 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY, loginToEmail } from './config.js';
 import { createLocalDb } from './db-local.js';
 
-const SUPABASE_ESM = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
+const SUPABASE_ESM = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/+esm';
 const IMAGE_BUCKET = 'images'; // Supabase Storage, tworzony w supabase/schema.sql
 
 async function createSupabaseDb() {
