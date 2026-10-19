@@ -8,7 +8,7 @@
 //   SUPABASE_ANON_KEY = klucz "anon" / "publishable" (jest publiczny, można go trzymać w repo;
 //                        bezpieczeństwo zapewniają reguły RLS z pliku supabase/schema.sql)
 export const SUPABASE_URL = 'https://sdlkqrwxbqhvnxoflpjh.supabase.co';
-export const SUPABASE_ANON_KEY = 'sdlkqrwxbqhvnxoflpjh';
+export const SUPABASE_ANON_KEY = 'sb_publishable_vP4XYKzoxGsTbifaHacRmQ_LdBdSkEn';
 
 export const LEAGUE_NAME = 'Sim Sport Polska';
 
