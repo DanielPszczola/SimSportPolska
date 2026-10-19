@@ -115,6 +115,15 @@ create table if not exists public.endurance_events (
   created_at timestamptz not null default now()
 );
 
+-- garaż: skonfigurowane auta (model, klasa, zdjęcie w malowaniu ligowym) do wyboru przy zespołach eventu
+create table if not exists public.endurance_cars (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,                    -- np. "Porsche 963"
+  car_class text check (car_class in ('HY', 'LMP', 'GT3')),
+  image_url text,                        -- zdjęcie auta w malowaniu ligowym (Supabase Storage, bucket images)
+  created_at timestamptz not null default now()
+);
+
 -- zespoły Sim Sport Polska w danym evencie (w jednym evencie może jechać kilka zespołów)
 create table if not exists public.endurance_crews (
   id uuid primary key default gen_random_uuid(),
@@ -124,6 +133,7 @@ create table if not exists public.endurance_crews (
   car_number text,
   car_model text,                        -- np. "Porsche 963"
   car_image_url text,                    -- zdjęcie auta w malowaniu ligowym (Supabase Storage, bucket images)
+  car_id uuid references public.endurance_cars (id) on delete set null,  -- auto z garażu (model/klasa/zdjęcie kopiowane do zespołu)
   driver_ids uuid[] not null default '{}',
   result_status text check (result_status in ('FIN', 'DNF', 'DSQ', 'DNS')),
   position_class int,
@@ -196,6 +206,7 @@ create index if not exists penalties_race_idx on public.penalties (race_id);
 create index if not exists endurance_crews_event_idx on public.endurance_crews (event_id);
 -- dodanie kolumny do bazy utworzonej wcześniejszą wersją tego pliku (bezpieczne)
 alter table public.endurance_crews add column if not exists hall_of_fame boolean not null default false;
+alter table public.endurance_crews add column if not exists car_id uuid references public.endurance_cars (id) on delete set null;
 alter table public.seasons add column if not exists team_points text not null default 'final' check (team_points in ('lineup', 'final', 'result'));
 
 -- ---------- bezpieczeństwo (Row Level Security) ----------
@@ -203,7 +214,7 @@ alter table public.seasons add column if not exists team_points text not null de
 do $$
 declare t text;
 begin
-  foreach t in array array['tracks', 'seasons', 'teams', 'drivers', 'entries', 'roster_changes', 'races', 'results', 'penalties', 'endurance_events', 'endurance_crews'] loop
+  foreach t in array array['tracks', 'seasons', 'teams', 'drivers', 'entries', 'roster_changes', 'races', 'results', 'penalties', 'endurance_events', 'endurance_crews', 'endurance_cars'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "public read" on public.%I', t);
     execute format('create policy "public read" on public.%I for select using (true)', t);

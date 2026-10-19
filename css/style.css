@@ -800,6 +800,14 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
 .crew-result-edit { border-top: 1px dashed var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .crew-result-edit.dim { opacity: .7; }
 @media (max-width: 900px) { .crew-edit { grid-template-columns: 1fr; } }
+.garage-picked { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.garage-add { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 16px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin: 12px 0 18px; }
+.garage-add .inline-form { margin: 0; flex-wrap: nowrap; }
+.garage-add .inline-form input { flex: 1; min-width: 0; }
+.garage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.garage-card { --cls: var(--accent); display: flex; flex-direction: column; gap: 10px; background: var(--bg-2); border: 1px solid var(--line); border-top: 4px solid var(--cls); border-radius: 10px; padding: 12px; }
+.garage-card .form-actions { margin: 0; align-items: center; }
+@media (max-width: 700px) { .garage-add { grid-template-columns: 1fr; } .garage-add .inline-form { flex-wrap: wrap; } }
 .tcard-stats.two { grid-template-columns: repeat(2, 1fr); }
 
 /* ---------- LMU: główne zakładki Liga / Endurance ---------- */

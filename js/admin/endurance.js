@@ -4,26 +4,47 @@ import { html, useAsync, Loader, ErrorBox, Flag, attempt, formatDate } from '../
 import { LMU_CLASSES, carClass } from '../scoring.js';
 import { categoriesForSeries } from '../tracks-seed.js';
 import { ImageField, ClassSelect, toLocalInput, fromLocalInput } from './common.js';
+import { LMU_CARS } from '../team-assets.js';
+import { ClassBadge } from '../pages/endurance.js';
 
 // LMU Endurance: wyścigi długodystansowe. Event = nazwa, tor, start, długość, transmisja;
 // w evencie dowolna liczba zespołów Sim Sport Polska (klasa, auto, zdjęcie, kierowcy, wynik).
+// Garaż: raz skonfigurowane auta (model, klasa, zdjęcie), które potem wybiera się przy zespole.
 
 const TEAM_NAME = 'Sim Sport Polska';
 
-export function EnduranceAdmin() {
+const TABS = [
+  ['eventy', '🏁 Eventy'],
+  ['garaz', '🚗 Garaż'],
+];
+
+export function EnduranceAdmin({ tab }) {
+  const current = TABS.some(([id]) => id === tab) ? tab : 'eventy';
   const data = useAsync(async () => {
-    const [events, crews, tracks, drivers] = await Promise.all([
+    const [events, crews, tracks, drivers, garage] = await Promise.all([
       db.list('endurance_events', { order: ['start_at'] }),
       db.list('endurance_crews', { order: ['created_at'] }),
       db.list('tracks', { order: ['name'] }),
       db.list('drivers', { order: ['nick'] }),
+      // tabela garażu dochodzi w nowszej wersji schema.sql — bez niej reszta panelu działa dalej
+      db.list('endurance_cars', { order: ['name'] }).then((cars) => ({ cars }), () => ({ cars: [], missing: true })),
     ]);
-    return { events, crews, tracks, drivers };
+    return { events, crews, tracks, drivers, cars: garage.cars, garageMissing: garage.missing };
   }, []);
-  const [open, setOpen] = useState(null);
 
   if (data.loading && !data.data) return html`<${Loader} />`;
   if (data.error) return html`<${ErrorBox} error=${data.error} />`;
+  return html`
+    <div class="db-tabs">
+      ${TABS.map(([id, label]) => html`<a href=${`#/admin/endurance/${id}`} class=${`btn btn-sm ${current === id ? 'btn-accent' : ''}`}>${label}${id === 'garaz' ? ` (${data.data.cars.length})` : ''}</a>`)}
+    </div>
+    ${data.data.garageMissing ? html`<div class="hint warn">Garaż wymaga aktualizacji bazy: uruchom ponownie plik <b>supabase/schema.sql</b> w Supabase → SQL Editor (nic nie kasuje).</div>` : null}
+    ${current === 'garaz' ? html`<${GarageAdmin} data=${data.data} reload=${data.reload} />` : html`<${EventsAdmin} data=${data} />`}
+  `;
+}
+
+function EventsAdmin({ data }) {
+  const [open, setOpen] = useState(null);
   const { events, crews } = data.data;
   const upcoming = events.filter((e) => e.status !== 'finished');
   const finished = events.filter((e) => e.status === 'finished').reverse();
@@ -85,7 +106,7 @@ function EventEditor({ ev, data, reload, onDeleted }) {
     let n = crews.length + 1;
     while (used.includes(`${TEAM_NAME} #${n}`)) n++;
     if (await attempt(() => db.insert('endurance_crews', {
-      event_id: ev.id, name: `${TEAM_NAME} #${n}`, car_class: 'GT3', car_number: String(n), car_model: '', car_image_url: null,
+      event_id: ev.id, name: `${TEAM_NAME} #${n}`, car_class: null, car_number: String(n), car_model: '', car_image_url: null,
       driver_ids: [], result_status: null, position_class: null, position_overall: null, laps: null, result_note: '', hall_of_fame: false,
     }), 'Dodano zespół')) reload();
   };
@@ -136,7 +157,7 @@ function EventEditor({ ev, data, reload, onDeleted }) {
 
     <h3>Zespoły Sim Sport Polska w tym evencie (${crews.length})</h3>
     <div class="crew-edit-list">
-      ${crews.map((c) => html`<${CrewEditor} key=${c.id} crew=${c} drivers=${data.drivers} finished=${ev.status === 'finished'} reload=${reload} />`)}
+      ${crews.map((c) => html`<${CrewEditor} key=${c.id} crew=${c} drivers=${data.drivers} cars=${data.cars} finished=${ev.status === 'finished'} reload=${reload} />`)}
     </div>
     <div class="form-actions">
       <button class="btn btn-accent" onClick=${addCrew}>+ Dodaj zespół</button>
@@ -146,7 +167,7 @@ function EventEditor({ ev, data, reload, onDeleted }) {
   </div>`;
 }
 
-function CrewEditor({ crew, drivers, finished, reload }) {
+function CrewEditor({ crew, drivers, cars, finished, reload }) {
   const [pick, setPick] = useState('');
   const patch = async (p) => (await attempt(() => db.update('endurance_crews', crew.id, p))) && reload();
   const num = (v) => (v === '' ? null : Number(v));
@@ -162,17 +183,37 @@ function CrewEditor({ crew, drivers, finished, reload }) {
     if (await attempt(() => db.remove('endurance_crews', crew.id), 'Zespół usunięty')) reload();
   };
 
+  // auto z garażu: model, klasa i zdjęcie kopiujemy do zespołu (zakończone eventy zachowują swój wygląd)
+  const pickCar = (id) => {
+    const car = cars.find((c) => c.id === id);
+    if (!car) return;
+    patch({ car_id: car.id, car_model: car.name, car_class: car.car_class, car_image_url: car.image_url });
+  };
+  const linked = cars.some((c) => c.id === crew.car_id);
+
   return html`<div class="crew-edit" style=${{ '--cls': carClass(crew.car_class)?.color || 'var(--accent)' }}>
     <div class="crew-edit-car">
-      <span class="field-label">Zdjęcie auta (malowanie ligowe)</span>
-      <${ImageField} kind="car" value=${crew.car_image_url} onChange=${(v) => patch({ car_image_url: v })} />
+      <span class="field-label">Auto (malowanie ligowe)</span>
+      <div class="image-field image-car"><div class="image-preview">
+        ${crew.car_image_url ? html`<img src=${crew.car_image_url} alt="" />` : html`<span>${crew.car_model ? 'Auto bez zdjęcia' : 'Wybierz auto z garażu'}</span>`}
+      </div></div>
+      ${crew.car_model ? html`<div class="garage-picked"><b>${crew.car_model}</b> <${ClassBadge} id=${crew.car_class} /></div>` : null}
     </div>
     <div class="crew-edit-main">
       <div class="form-grid">
         <label class="field span2"><span>Nazwa zespołu</span><input value=${crew.name} onChange=${(e) => patch({ name: e.target.value.trim() || crew.name })} /></label>
-        <label class="field"><span>Klasa</span><${ClassSelect} value=${crew.car_class} options=${LMU_CLASSES.map((c) => c.id)} onChange=${(v) => patch({ car_class: v })} /></label>
+        <label class="field span2"><span>Samochód z garażu</span>
+          <select value=${linked ? crew.car_id : ''} onChange=${(e) => pickCar(e.target.value)}>
+            <option value="">${crew.car_model && !linked ? `${crew.car_model} (wpisany ręcznie) — wybierz z garażu` : '— wybierz auto —'}</option>
+            ${LMU_CLASSES.map((cl) => {
+              const list = cars.filter((c) => c.car_class === cl.id);
+              return list.length ? html`<optgroup label=${cl.label}>${list.map((c) => html`<option value=${c.id}>${c.name}</option>`)}</optgroup>` : null;
+            })}
+            ${cars.some((c) => !c.car_class) ? html`<optgroup label="Bez klasy">${cars.filter((c) => !c.car_class).map((c) => html`<option value=${c.id}>${c.name}</option>`)}</optgroup>` : null}
+          </select>
+          <a class="muted small" href="#/admin/endurance/garaz">${cars.length ? 'Brakuje auta? Dodaj je w Garażu →' : 'Garaż jest pusty — dodaj auta w zakładce Garaż →'}</a>
+        </label>
         <label class="field"><span>Numer auta</span><input value=${crew.car_number || ''} onChange=${(e) => patch({ car_number: e.target.value.trim() || null })} placeholder="np. 77" /></label>
-        <label class="field span2"><span>Model auta</span><input value=${crew.car_model || ''} onChange=${(e) => patch({ car_model: e.target.value.trim() })} placeholder="np. Porsche 963 / BMW M4 GT3" /></label>
       </div>
       <div class="field">
         <span>Kierowcy</span>
@@ -212,6 +253,83 @@ function CrewEditor({ crew, drivers, finished, reload }) {
         </div>
       </div>
       <div class="form-actions"><span class="spacer"></span><button class="btn btn-sm btn-danger" onClick=${remove}>Usuń zespół</button></div>
+    </div>
+  </div>`;
+}
+
+// ---------- garaż: auta gotowe do wyboru przy zespołach ----------
+
+function GarageAdmin({ data, reload }) {
+  const { cars, crews, events } = data;
+  const [custom, setCustom] = useState({ name: '', car_class: 'GT3' });
+  const presets = LMU_CARS.filter((p) => !cars.some((c) => c.name === p.name));
+  const add = async (row) => {
+    if (await attempt(() => db.insert('endurance_cars', { image_url: null, ...row }), `Dodano ${row.name} — wgraj zdjęcie auta`)) reload();
+  };
+  const addPreset = (name) => {
+    const p = LMU_CARS.find((x) => x.name === name);
+    if (p) add({ name: p.name, car_class: p.car_class });
+  };
+  const addCustom = (e) => {
+    e.preventDefault();
+    const name = custom.name.trim();
+    if (!name) return;
+    if (cars.some((c) => c.name.toLowerCase() === name.toLowerCase())) return alert(`${name} jest już w garażu.`);
+    add({ name, car_class: custom.car_class || null });
+    setCustom({ ...custom, name: '' });
+  };
+
+  return html`
+    <p class="muted">Skonfiguruj auto raz — model, klasę i zdjęcie w malowaniu ligowym — a potem przy zespole eventu wystarczy wybrać je z listy.</p>
+    <div class="garage-add">
+      <label class="field"><span>Auto z Le Mans Ultimate</span>
+        <select value="" onChange=${(e) => addPreset(e.target.value)} disabled=${data.garageMissing}>
+          <option value="">— wybierz model, aby dodać —</option>
+          ${LMU_CLASSES.map((cl) => html`<optgroup label=${cl.label}>${presets.filter((p) => p.car_class === cl.id).map((p) => html`<option value=${p.name}>${p.name}</option>`)}</optgroup>`)}
+        </select>
+      </label>
+      <form class="field garage-custom" onSubmit=${addCustom}><span>albo inne auto</span>
+        <div class="inline-form">
+          <input value=${custom.name} onInput=${(e) => setCustom({ ...custom, name: e.target.value })} placeholder="nazwa modelu" disabled=${data.garageMissing} />
+          <${ClassSelect} value=${custom.car_class} onChange=${(v) => setCustom({ ...custom, car_class: v })} />
+          <button class="btn btn-sm btn-accent" disabled=${!custom.name.trim() || data.garageMissing}>+ Dodaj</button>
+        </div>
+      </form>
+    </div>
+    ${!cars.length ? html`<p class="muted">Garaż jest pusty.</p>` : null}
+    ${[...LMU_CLASSES.map((cl) => [cl.id, cl.label]), [null, 'Bez klasy']].map(([id, label]) => {
+      const list = cars.filter((c) => (c.car_class || null) === id);
+      return list.length ? html`<h3>${label} (${list.length})</h3>
+        <div class="garage-grid">${list.map((car) => html`<${GarageCar} key=${car.id} car=${car} crews=${crews} events=${events} reload=${reload} />`)}</div>` : null;
+    })}
+  `;
+}
+
+function GarageCar({ car, crews, events, reload }) {
+  const used = crews.filter((c) => c.car_id === car.id);
+  // zmiana auta w garażu aktualizuje zespoły w nadchodzących eventach; zakończone zostają bez zmian (historia)
+  const upcoming = used.filter((c) => events.find((e) => e.id === c.event_id)?.status !== 'finished');
+  const save = async (p, crewPatch) => {
+    const ok = await attempt(async () => {
+      await db.update('endurance_cars', car.id, p);
+      for (const c of upcoming) await db.update('endurance_crews', c.id, crewPatch);
+    });
+    if (ok) reload();
+  };
+  const remove = async () => {
+    if (!confirm(`Usunąć ${car.name} z garażu?${used.length ? ` Zespoły (${used.length}), które go używają, zachowają model i zdjęcie.` : ''}`)) return;
+    if (await attempt(() => db.remove('endurance_cars', car.id), 'Auto usunięte z garażu')) reload();
+  };
+  return html`<div class="garage-card" style=${{ '--cls': carClass(car.car_class)?.color || 'var(--accent)' }}>
+    <${ImageField} kind="car" value=${car.image_url} onChange=${(v) => save({ image_url: v }, { car_image_url: v })} />
+    <div class="form-grid">
+      <label class="field span2"><span>Model</span><input value=${car.name} onChange=${(e) => { const v = e.target.value.trim(); if (v) save({ name: v }, { car_model: v }); }} /></label>
+      <label class="field"><span>Klasa</span><${ClassSelect} value=${car.car_class} onChange=${(v) => save({ car_class: v }, { car_class: v })} /></label>
+    </div>
+    <div class="form-actions">
+      <span class="muted small">${used.length ? `Używane w ${used.length} ${used.length === 1 ? 'zespole' : 'zespołach'}` : 'Jeszcze nieużywane'}</span>
+      <span class="spacer"></span>
+      <button class="btn btn-sm btn-danger" onClick=${remove}>Usuń</button>
     </div>
   </div>`;
 }

@@ -57,7 +57,7 @@ export function AdminPage({ parts }) {
     </div>
     <div class="wrap page">
       ${section === 'baza' ? html`<${DatabaseAdmin} tab=${parts[1]} />`
-        : section === 'endurance' ? html`<${EnduranceAdmin} />`
+        : section === 'endurance' ? html`<${EnduranceAdmin} tab=${parts[1]} />`
         : html`<${SeriesAdmin} key=${section} series=${section} parts=${parts} />`}
     </div>
   </div>`;
