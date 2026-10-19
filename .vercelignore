@@ -1,0 +1,7 @@
+# Pliki potrzebne do pracy nad projektem, ale nie stronie na serwerze
+Img/
+tools/
+supabase/
+wyniki_ligi.json
+README.md
+_*.html

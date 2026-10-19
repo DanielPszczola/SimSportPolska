@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sim Sport Polska</title>
+  <meta name="description" content="Sim Sport Polska — liga sim racingowa F1 i Le Mans Ultimate. Wyniki, klasyfikacje, kalendarz." />
+  <link rel="icon" type="image/jpeg" href="assets/hero.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app"><div class="boot">Ładowanie…</div></div>
+  <script>
+    // Diagnostyka startu: zamiast wiecznego "Ładowanie…" pokaż, dlaczego strona się nie uruchomiła.
+    (function () {
+      function fail(msg) {
+        var app = document.getElementById('app');
+        if (!app || !app.querySelector('.boot')) return; // aplikacja już działa
+        app.innerHTML = '<div class="boot-error"><h2>Strona nie uruchomiła się</h2><p>' + msg + '</p>' +
+          '<p>Spróbuj: <b>Ctrl+F5</b> (odświeżenie bez pamięci podręcznej). Lokalnie uruchamiaj podgląd poleceniem ' +
+          '<code>python tools/serve.py</code> i otwieraj <code>http://localhost:8000</code>.</p></div>';
+      }
+      if (location.protocol === 'file:') {
+        return fail('Plik został otwarty bezpośrednio z dysku (file://) — przeglądarka blokuje wtedy moduły JavaScript.');
+      }
+      window.addEventListener('error', function (e) {
+        // reagujemy tylko na błędy skryptów, nie na nieudane wczytanie czcionki czy obrazka
+        if (e.target && e.target.tagName && e.target.tagName !== 'SCRIPT') return;
+        fail('Błąd: ' + (e.message || 'nie udało się wczytać pliku ' + (e.target && (e.target.src || e.target.href) || '')));
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        fail('Błąd: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+      });
+      setTimeout(function () { fail('Aplikacja nie wystartowała w ciągu 15 sekund. Sprawdź połączenie z internetem i konsolę przeglądarki (F12).'); }, 15000);
+    })();
+  </script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

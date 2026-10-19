@@ -1,0 +1,3851 @@
+[
+ {
+  "sezon": 1,
+  "runda": 1,
+  "gp": "Austria",
+  "najszybsze_okrazenie": null,
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Kacper",
+    "zespol": "Mercedes",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Tomegg",
+    "zespol": "Ferrari",
+    "strata": "+13,399",
+    "start": 5,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "DonCysiek",
+    "zespol": "Williams",
+    "strata": "+5,437",
+    "start": 4,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Kisielele",
+    "zespol": "Haas",
+    "strata": "+0,533",
+    "start": 6,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Ostyrcz",
+    "zespol": "McLaren",
+    "strata": "+11,330",
+    "start": 13,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Dudek",
+    "zespol": "Mercedes",
+    "strata": "+12,819",
+    "start": 11,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Rysiulek",
+    "zespol": "Racing Bulls",
+    "strata": "+4,516",
+    "start": 3,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Mimios",
+    "zespol": "Williams",
+    "strata": "+3,579",
+    "start": 9,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Blaszak",
+    "zespol": "Haas",
+    "strata": "+1,877",
+    "start": 7,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+9,315",
+    "start": 8,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Mazixmpwp",
+    "zespol": "Racing Bulls",
+    "strata": "+17,315",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Igisol",
+    "zespol": "Aston Martin",
+    "strata": "",
+    "start": 10,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Krisswloch",
+    "zespol": "Ferrari",
+    "strata": "",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Hotline",
+    "zespol": "Aston Martin",
+    "strata": "",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Matismal",
+    "zespol": "Red Bull",
+    "strata": "",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "N1K1",
+    "zespol": "Kick Sauber",
+    "strata": "DNF",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 2,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Wojtek8822",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 20,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Turbo",
+    "zespol": "Kick Sauber",
+    "strata": "DNF",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Progracz560",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 18,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 1,
+  "runda": 2,
+  "gp": "Wielka Brytania",
+  "najszybsze_okrazenie": null,
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Kisielele",
+    "zespol": "Haas",
+    "strata": "LEADER",
+    "start": 7,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Blaszak",
+    "zespol": "Haas",
+    "strata": "+6,548",
+    "start": 5,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Nikoxx",
+    "zespol": "Kick Sauber",
+    "strata": "+0,398",
+    "start": 3,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "+3,956",
+    "start": 2,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Rysiulek",
+    "zespol": "Racing Bulls",
+    "strata": "+0,877",
+    "start": 1,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Kacper",
+    "zespol": "Mercedes",
+    "strata": "+13,038",
+    "start": 4,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "DonCysiek",
+    "zespol": "Williams",
+    "strata": "+10,634",
+    "start": 8,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+6,938",
+    "start": 9,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Mimios",
+    "zespol": "Williams",
+    "strata": "+31,553",
+    "start": 12,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Krisswloch",
+    "zespol": "Ferrari",
+    "strata": "+6,215",
+    "start": 17,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Igisol",
+    "zespol": "Aston Martin",
+    "strata": "+12,214",
+    "start": 10,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Mazixmpwp",
+    "zespol": "Racing Bulls",
+    "strata": "+4,879",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Tomegg",
+    "zespol": "Ferrari",
+    "strata": "+20,469",
+    "start": 6,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Matismal",
+    "zespol": "Red Bull",
+    "strata": "+1 LAP",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Dudek",
+    "zespol": "Mercedes",
+    "strata": "+1 LAP",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Hotline",
+    "zespol": "Aston Martin",
+    "strata": "+1 LAP",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Ponczek",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Turbo",
+    "zespol": "Kick Sauber",
+    "strata": "DNF",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Jaca",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Progracz560",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 20,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 1,
+  "runda": 3,
+  "gp": "Belgia",
+  "najszybsze_okrazenie": null,
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "LEADER",
+    "start": 8,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Nikoxx",
+    "zespol": "Kick Sauber",
+    "strata": "+0,706",
+    "start": 1,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Kisielele",
+    "zespol": "Haas",
+    "strata": "+2,892",
+    "start": 7,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Tomegg",
+    "zespol": "Ferrari",
+    "strata": "+1,744",
+    "start": 5,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Dudek",
+    "zespol": "Mercedes",
+    "strata": "+0,171",
+    "start": 12,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "DonCysiek",
+    "zespol": "Williams",
+    "strata": "+1,114",
+    "start": 6,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Ostyrcz",
+    "zespol": "McLaren",
+    "strata": "+0,858",
+    "start": 9,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "+12,572",
+    "start": 2,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Blaszak",
+    "zespol": "Haas",
+    "strata": "+16,682",
+    "start": 10,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Rysiulek",
+    "zespol": "Racing Bulls",
+    "strata": "+11,322",
+    "start": 3,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Krisswloch",
+    "zespol": "Ferrari",
+    "strata": "+13,454",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Ponczek",
+    "zespol": "Racing Bulls",
+    "strata": "+3,499",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Hotline",
+    "zespol": "Aston Martin",
+    "strata": "+15,792",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Turbo",
+    "zespol": "Kick Sauber",
+    "strata": "+1,496",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Matismal",
+    "zespol": "Red Bull",
+    "strata": "+1 LAP",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Kacper",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 4,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Jaca",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Igisol",
+    "zespol": "Aston Martin",
+    "strata": "DNF",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Progracz560",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 18,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 1,
+  "runda": 4,
+  "gp": "Azerbejdżan",
+  "najszybsze_okrazenie": {
+   "kierowca": "Kacper",
+   "czas": "1:42,017"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Tomegg",
+    "zespol": "Ferrari",
+    "strata": "LEADER",
+    "start": 3,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Ostyrcz",
+    "zespol": "McLaren",
+    "strata": "+2,902",
+    "start": 13,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "DonCysiek",
+    "zespol": "Williams",
+    "strata": "+0,024",
+    "start": 8,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Dudek",
+    "zespol": "Mercedes",
+    "strata": "+27,268",
+    "start": 6,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "+0,846",
+    "start": 5,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Kacper",
+    "zespol": "Mercedes",
+    "strata": "+1,167",
+    "start": 1,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Ponczek",
+    "zespol": "Racing Bulls",
+    "strata": "+2,897",
+    "start": 12,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Igisol",
+    "zespol": "Aston Martin",
+    "strata": "+0,388",
+    "start": 11,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Mimios",
+    "zespol": "Williams",
+    "strata": "+13,418",
+    "start": 14,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Blaszak",
+    "zespol": "Haas",
+    "strata": "+1,194",
+    "start": 10,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Kraczi",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Kisielele",
+    "zespol": "Haas",
+    "strata": "DNF",
+    "start": 9,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Nikoxx",
+    "zespol": "Kick Sauber",
+    "strata": "DNF",
+    "start": 2,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Krisswloch",
+    "zespol": "Ferrari",
+    "strata": "DNF",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Matismal",
+    "zespol": "Red Bull",
+    "strata": "DNF",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Hotline",
+    "zespol": "Aston Martin",
+    "strata": "DNF",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Rysiulek",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 4,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "DNF",
+    "start": 7,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 1,
+  "runda": 5,
+  "gp": "São Paulo",
+  "najszybsze_okrazenie": {
+   "kierowca": "Kacper",
+   "czas": "1:09,789"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Nikoxx",
+    "zespol": "Kick Sauber",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Tomegg",
+    "zespol": "Ferrari",
+    "strata": "+11,540",
+    "start": 4,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Ponczek",
+    "zespol": "Racing Bulls",
+    "strata": "+0,408",
+    "start": 7,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Blaszak",
+    "zespol": "Haas",
+    "strata": "+1,997",
+    "start": 9,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Dudek",
+    "zespol": "Mercedes",
+    "strata": "+2,212",
+    "start": 6,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+3,327",
+    "start": 10,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Ostyrcz",
+    "zespol": "McLaren",
+    "strata": "+3,357",
+    "start": 11,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Krisswloch",
+    "zespol": "Ferrari",
+    "strata": "+1,940",
+    "start": 16,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Rysiulek",
+    "zespol": "Racing Bulls",
+    "strata": "+10,308",
+    "start": 2,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Igisol",
+    "zespol": "Aston Martin",
+    "strata": "+2,423",
+    "start": 15,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Apoge",
+    "zespol": "Kick Sauber",
+    "strata": "+3,735",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Kacper",
+    "zespol": "Mercedes",
+    "strata": "+13,869",
+    "start": 3,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Hotline",
+    "zespol": "Aston Martin",
+    "strata": "+13,668",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "DonCysiek",
+    "zespol": "Williams",
+    "strata": "+48,440",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Vetoszek",
+    "zespol": "Williams",
+    "strata": "+48,440",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 5,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Kisielele",
+    "zespol": "Haas",
+    "strata": "DNF",
+    "start": 8,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Matismal",
+    "zespol": "Red Bull",
+    "strata": "DNF",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Kacper803",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Progracz560",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 20,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 1,
+  "runda": 6,
+  "gp": "Australia",
+  "najszybsze_okrazenie": {
+   "kierowca": "Myszor",
+   "czas": "1:19,198"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Nikoxx",
+    "zespol": "Kick Sauber",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Rysiulek",
+    "zespol": "Racing Bulls",
+    "strata": "+14,462",
+    "start": 2,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Tomegg",
+    "zespol": "Ferrari",
+    "strata": "+2,146",
+    "start": 4,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+4,200",
+    "start": 5,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Blaszak",
+    "zespol": "Haas",
+    "strata": "+10,964",
+    "start": 6,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "+4,962",
+    "start": 20,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "DonCysiek",
+    "zespol": "Williams",
+    "strata": "+14,158",
+    "start": 13,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "BeeDaniel",
+    "zespol": "McLaren",
+    "strata": "+4,935",
+    "start": 8,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Ponczek",
+    "zespol": "Mercedes",
+    "strata": "+1,743",
+    "start": 12,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Igisol",
+    "zespol": "Aston Martin",
+    "strata": "+3,406",
+    "start": 10,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Kraczi",
+    "zespol": "McLaren",
+    "strata": "+7,348",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Matismal",
+    "zespol": "Red Bull",
+    "strata": "+4,375",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Hotline",
+    "zespol": "Aston Martin",
+    "strata": "+25,146",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Dudek",
+    "zespol": "Mercedes",
+    "strata": "+19,044",
+    "start": 9,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Kisielele",
+    "zespol": "Haas",
+    "strata": "+1:23,532",
+    "start": 7,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Krisswloch",
+    "zespol": "Ferrari",
+    "strata": "DNF",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Mimios",
+    "zespol": "Williams",
+    "strata": "DNF",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Turbo",
+    "zespol": "Kick Sauber",
+    "strata": "DNF",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Kacper",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 3,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Mazak Cwel",
+    "zespol": "Alpine",
+    "strata": "DSQ",
+    "start": 18,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 1,
+  "runda": 7,
+  "gp": "Japonia",
+  "najszybsze_okrazenie": {
+   "kierowca": "Nikoxx",
+   "czas": "1:31,831"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Nikoxx",
+    "zespol": "Kick Sauber",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "+16,110",
+    "start": 2,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Blaszak",
+    "zespol": "Haas",
+    "strata": "+15,227",
+    "start": 7,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Tomegg",
+    "zespol": "Ferrari",
+    "strata": "+0,601",
+    "start": 3,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Kisielele",
+    "zespol": "Haas",
+    "strata": "+0,615",
+    "start": 11,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+1,632",
+    "start": 6,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Kacper",
+    "zespol": "Racing Bulls",
+    "strata": "+34,630",
+    "start": 4,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Ponczek",
+    "zespol": "Mercedes",
+    "strata": "+1,716",
+    "start": 15,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "BeeDaniel",
+    "zespol": "Alpine",
+    "strata": "+0,578",
+    "start": 14,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Dudek",
+    "zespol": "Mercedes",
+    "strata": "+1,709",
+    "start": 10,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Igisol",
+    "zespol": "Aston Martin",
+    "strata": "+3,448",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Rysiulek",
+    "zespol": "Racing Bulls",
+    "strata": "+1:06,773",
+    "start": 5,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Krisswloch",
+    "zespol": "Ferrari",
+    "strata": "+28,376",
+    "start": 9,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Alzheimer",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Turbo",
+    "zespol": "Kick Sauber",
+    "strata": "DNF",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Mimios",
+    "zespol": "Williams",
+    "strata": "DNF",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Matismal",
+    "zespol": "Red Bull",
+    "strata": "DNF",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Hotline",
+    "zespol": "Aston Martin",
+    "strata": "DNF",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "DonCysiek",
+    "zespol": "Williams",
+    "strata": "DNF",
+    "start": 8,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 1,
+  "runda": 8,
+  "gp": "Katar",
+  "najszybsze_okrazenie": {
+   "kierowca": "Rysiulek",
+   "czas": "1:23,293"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Nikoxx",
+    "zespol": "Kick Sauber",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Tomegg",
+    "zespol": "Ferrari",
+    "strata": "+9,991",
+    "start": 4,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Kacper",
+    "zespol": "Racing Bulls",
+    "strata": "+6,319",
+    "start": 2,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+5,885",
+    "start": 5,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "DonCysiek",
+    "zespol": "Williams",
+    "strata": "+4,604",
+    "start": 8,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "+0,907",
+    "start": 3,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Blaszak",
+    "zespol": "Haas",
+    "strata": "+2,589",
+    "start": 9,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Ostyrcz",
+    "zespol": "McLaren",
+    "strata": "+0,097",
+    "start": 13,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Ponczek",
+    "zespol": "Mercedes",
+    "strata": "+8,387",
+    "start": 11,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "BeeDaniel",
+    "zespol": "Alpine",
+    "strata": "+6,440",
+    "start": 17,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Rysiulek",
+    "zespol": "Racing Bulls",
+    "strata": "+0,978",
+    "start": 6,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Kisielele",
+    "zespol": "Haas",
+    "strata": "+2,877",
+    "start": 7,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Matismal",
+    "zespol": "Red Bull",
+    "strata": "+3,751",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Dudek",
+    "zespol": "Mercedes",
+    "strata": "+30,644",
+    "start": 10,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Krisswloch",
+    "zespol": "Ferrari",
+    "strata": "+6,161",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Turbo",
+    "zespol": "Kick Sauber",
+    "strata": "+6,313",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Igisol",
+    "zespol": "Aston Martin",
+    "strata": "+28,969",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Hotline",
+    "zespol": "Aston Martin",
+    "strata": "DNF",
+    "start": 18,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 1,
+  "runda": 9,
+  "gp": "Emilia-Romania",
+  "najszybsze_okrazenie": {
+   "kierowca": "DonCysiek",
+   "czas": "1:17,354"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+21,778",
+    "start": 6,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Nikoxx",
+    "zespol": "Kick Sauber",
+    "strata": "+2,170",
+    "start": 5,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Kacper",
+    "zespol": "Racing Bulls",
+    "strata": "+4,590",
+    "start": 2,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Kisielele",
+    "zespol": "Haas",
+    "strata": "+26,627",
+    "start": 10,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Blaszak",
+    "zespol": "Haas",
+    "strata": "+10,922",
+    "start": 17,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Tomegg",
+    "zespol": "Ferrari",
+    "strata": "+14,615",
+    "start": 20,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Kadzidlo",
+    "zespol": "Racing Bulls",
+    "strata": "+1,197",
+    "start": 3,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "BeeDaniel",
+    "zespol": "Alpine",
+    "strata": "+1:16,816",
+    "start": 13,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Igisol",
+    "zespol": "Aston Martin",
+    "strata": "+18,822",
+    "start": 12,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Ponczek",
+    "zespol": "Mercedes",
+    "strata": "+12,842",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "DonCysiek",
+    "zespol": "Williams",
+    "strata": "+12,852",
+    "start": 9,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "RiderPL",
+    "zespol": "McLaren",
+    "strata": "+30,354",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Hotline",
+    "zespol": "Aston Martin",
+    "strata": "+11,949",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Ostyrcz",
+    "zespol": "McLaren",
+    "strata": "+11,024",
+    "start": 7,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Turbo",
+    "zespol": "Kick Sauber",
+    "strata": "+21,024",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Jaworski",
+    "zespol": "Williams",
+    "strata": "+1,520",
+    "start": 4,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Krisswloch",
+    "zespol": "Ferrari",
+    "strata": "DNF",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Matismal",
+    "zespol": "Red Bull",
+    "strata": "DNF",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Dudek",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 8,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 1,
+  "runda": 10,
+  "gp": "Abu Zabi",
+  "najszybsze_okrazenie": {
+   "kierowca": "Happyudka",
+   "czas": "1:26,246"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Kadzidlo",
+    "zespol": "McLaren",
+    "strata": "+4,531",
+    "start": 3,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Tomegg",
+    "zespol": "Ferrari",
+    "strata": "+3,364",
+    "start": 19,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Blaszak",
+    "zespol": "Haas",
+    "strata": "+0,906",
+    "start": 5,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Kacper",
+    "zespol": "Racing Bulls",
+    "strata": "+7,579",
+    "start": 4,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+4,076",
+    "start": 6,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Rysiulek",
+    "zespol": "Racing Bulls",
+    "strata": "+2,454",
+    "start": 11,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Igisol",
+    "zespol": "Aston Martin",
+    "strata": "+0,300",
+    "start": 16,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "DonCysiek",
+    "zespol": "Williams",
+    "strata": "+9,989",
+    "start": 8,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "BeeDaniel",
+    "zespol": "Alpine",
+    "strata": "+2,015",
+    "start": 15,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Happyudka",
+    "zespol": "Williams",
+    "strata": "+0,275",
+    "start": 2,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Turbo",
+    "zespol": "Kick Sauber",
+    "strata": "+8,095",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "RiderPL",
+    "zespol": "McLaren",
+    "strata": "+16,642",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Artikosa",
+    "zespol": "Mercedes",
+    "strata": "+18,274",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Krisswloch",
+    "zespol": "Ferrari",
+    "strata": "+18,277",
+    "start": 10,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Matismal",
+    "zespol": "Red Bull",
+    "strata": "+1:07,185",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Ponczek",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 9,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Hotline",
+    "zespol": "Aston Martin",
+    "strata": "DNF",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Nikoxx",
+    "zespol": "Kick Sauber",
+    "strata": "DNF",
+    "start": 20,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Kisielele",
+    "zespol": "Haas",
+    "strata": "DSQ",
+    "start": 7,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 1,
+  "gp": "Kanada",
+  "najszybsze_okrazenie": {
+   "kierowca": "Wojtek",
+   "czas": "1:11,942"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "LEADER",
+    "start": 2,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Tomegg",
+    "zespol": "Aston Martin",
+    "strata": "+6,414",
+    "start": 5,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "MotoMoto",
+    "zespol": "Cadillac",
+    "strata": "+7,615",
+    "start": 4,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+3,318",
+    "start": 7,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Glebson",
+    "zespol": "Williams",
+    "strata": "+2,989",
+    "start": 3,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+0,077",
+    "start": 8,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "BeeDaniel",
+    "zespol": "Alpine",
+    "strata": "+3,267",
+    "start": 10,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Nori",
+    "zespol": "Mercedes",
+    "strata": "+7,974",
+    "start": 9,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Skizze",
+    "zespol": "Racing Bulls",
+    "strata": "+30,220",
+    "start": 18,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "KacperPro",
+    "zespol": "Cadillac",
+    "strata": "+7,551",
+    "start": 12,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "+4,042",
+    "start": 6,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "+31,271",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Adus",
+    "zespol": "Ferrari",
+    "strata": "+1 LAP",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Artikosa",
+    "zespol": "Audi",
+    "strata": "DNF",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Happypasha",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "MrBanana",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 1,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "KSZL123",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Kamilowy",
+    "zespol": "Haas",
+    "strata": "DNF",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Dorsz",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 20,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 2,
+  "gp": "Bahrajn",
+  "najszybsze_okrazenie": {
+   "kierowca": "MotoMoto",
+   "czas": "1:30,935"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Tomegg",
+    "zespol": "Aston Martin",
+    "strata": "LEADER",
+    "start": 3,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Glebson",
+    "zespol": "Williams",
+    "strata": "+0,227",
+    "start": 4,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+16,255",
+    "start": 5,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "+5,351",
+    "start": 2,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "+13,603",
+    "start": 8,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Artikosa",
+    "zespol": "Audi",
+    "strata": "+31,524",
+    "start": 13,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Nori",
+    "zespol": "Mercedes",
+    "strata": "+0,444",
+    "start": 7,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "KacperPro",
+    "zespol": "Cadillac",
+    "strata": "+20,225",
+    "start": 10,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "MotoMoto",
+    "zespol": "Cadillac",
+    "strata": "+1 LAP",
+    "start": 1,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Skizze",
+    "zespol": "Racing Bulls",
+    "strata": "+1 LAP",
+    "start": 9,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "MrBanana",
+    "zespol": "Mercedes",
+    "strata": "+1 LAP",
+    "start": 6,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Chrisuuu",
+    "zespol": "Ferrari",
+    "strata": "+1 LAP",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "KSZL123",
+    "zespol": "Alpine",
+    "strata": "+1 LAP",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "+1 LAP",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Chudy78",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "DNF",
+    "start": 14,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 3,
+  "gp": "Madryt",
+  "najszybsze_okrazenie": null,
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Kubax",
+    "zespol": "McLaren",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "TomaszPierd",
+    "zespol": "Williams",
+    "strata": "+21,479",
+    "start": 4,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "+25,758",
+    "start": 2,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Nori",
+    "zespol": "Mercedes",
+    "strata": "+27,508",
+    "start": 5,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Skizze",
+    "zespol": "Racing Bulls",
+    "strata": "+42,645",
+    "start": 15,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "+49,018",
+    "start": 7,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Chrisuuu",
+    "zespol": "McLaren",
+    "strata": "+50,631",
+    "start": 16,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Kamilowy",
+    "zespol": "Haas",
+    "strata": "+55,598",
+    "start": 9,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Chudy78",
+    "zespol": "Ferrari",
+    "strata": "+1:00,086",
+    "start": 13,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+1:20,847",
+    "start": 3,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Kacper",
+    "zespol": "Cadillac",
+    "strata": "+1:31,983",
+    "start": 10,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "+1 LAP",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Artur",
+    "zespol": "Audi",
+    "strata": "+2 LAP",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "KSZL123",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "MrBanana",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "DNF",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Mati",
+    "zespol": "Williams",
+    "strata": "DNF",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "BeeDaniel",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 8,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Tomegg",
+    "zespol": "Aston Martin",
+    "strata": "DSQ",
+    "start": 6,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 4,
+  "gp": "Las Vegas",
+  "najszybsze_okrazenie": {
+   "kierowca": "Kubax",
+   "czas": "1:34,770"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Kubax",
+    "zespol": "McLaren",
+    "strata": "LEADER",
+    "start": 3,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "+4,602",
+    "start": 1,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Tomegg",
+    "zespol": "Aston Martin",
+    "strata": "+8,154",
+    "start": 5,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "TomaszPierd",
+    "zespol": "Williams",
+    "strata": "+14,456",
+    "start": 6,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+16,364",
+    "start": 7,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+16,977",
+    "start": 10,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "BeeDaniel",
+    "zespol": "Alpine",
+    "strata": "+18,804",
+    "start": 13,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "MrBanana",
+    "zespol": "Mercedes",
+    "strata": "+24,525",
+    "start": 16,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Skizze",
+    "zespol": "Racing Bulls",
+    "strata": "+35,440",
+    "start": 15,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Kamilowy",
+    "zespol": "Haas",
+    "strata": "+55,832",
+    "start": 18,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Chudy78",
+    "zespol": "Ferrari",
+    "strata": "+1 LAP",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Artikosa",
+    "zespol": "Audi",
+    "strata": "+1 LAP",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Chrisuuu",
+    "zespol": "Williams",
+    "strata": "+1 LAP",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "DNF",
+    "start": 9,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Nori",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "MotoMoto",
+    "zespol": "Cadillac",
+    "strata": "DNF",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "DonPedritto",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 8,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "KacperPro",
+    "zespol": "Cadillac",
+    "strata": "DNF",
+    "start": 21,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Dorsz",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 22,
+    "punkty": 0
+   },
+   {
+    "pozycja": 21,
+    "kierowca": "Wasik",
+    "zespol": "Ferrari",
+    "strata": "DNF",
+    "start": 4,
+    "punkty": 0
+   },
+   {
+    "pozycja": 22,
+    "kierowca": "MatiBudzilla",
+    "zespol": "Haas",
+    "strata": "DSQ",
+    "start": 20,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 5,
+  "gp": "Meksyk",
+  "najszybsze_okrazenie": {
+   "kierowca": "Wojtek",
+   "czas": "1:17,539"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "LEADER",
+    "start": 11,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "+3,058",
+    "start": 2,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Happyudka",
+    "zespol": "Williams",
+    "strata": "+4,461",
+    "start": 3,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "MotoMoto",
+    "zespol": "Cadillac",
+    "strata": "+4,929",
+    "start": 7,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Tomegg",
+    "zespol": "Aston Martin",
+    "strata": "+7,798",
+    "start": 12,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Peppies",
+    "zespol": "Ferrari",
+    "strata": "+8,020",
+    "start": 4,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Kubax",
+    "zespol": "McLaren",
+    "strata": "+10,265",
+    "start": 1,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "+11,844",
+    "start": 6,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Artur",
+    "zespol": "Audi",
+    "strata": "+14,128",
+    "start": 13,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Kamilowy",
+    "zespol": "Haas",
+    "strata": "+14,504",
+    "start": 17,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Ostyrcz",
+    "zespol": "Williams",
+    "strata": "+17,455",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "BeeDaniel",
+    "zespol": "Alpine",
+    "strata": "+24,273",
+    "start": 8,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+31,320",
+    "start": 10,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Nori",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 9,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Kacper",
+    "zespol": "Cadillac",
+    "strata": "DNF",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "DNF",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Skizze",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Farti",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 5,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 6,
+  "gp": "Arabia Saudyjska",
+  "najszybsze_okrazenie": {
+   "kierowca": "Klocek",
+   "czas": "1:30,988"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Kubax",
+    "zespol": "McLaren",
+    "strata": "+1,752",
+    "start": 2,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Klocek",
+    "zespol": "Williams",
+    "strata": "+0,160",
+    "start": 3,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Wasik",
+    "zespol": "Ferrari",
+    "strata": "+9,340",
+    "start": 4,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "TomaszPierd",
+    "zespol": "Williams",
+    "strata": "+13,771",
+    "start": 8,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Tomegg",
+    "zespol": "Aston Martin",
+    "strata": "+0,020",
+    "start": 5,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+4,284",
+    "start": 9,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Chudy78",
+    "zespol": "Ferrari",
+    "strata": "+5,584",
+    "start": 10,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "+13,282",
+    "start": 15,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Artikosa",
+    "zespol": "Audi",
+    "strata": "+4,940",
+    "start": 16,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "MrBanana",
+    "zespol": "Mercedes",
+    "strata": "+3,574",
+    "start": 22,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Skizze",
+    "zespol": "Racing Bulls",
+    "strata": "+3,962",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+8,853",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "+10,500",
+    "start": 6,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "KacperPro",
+    "zespol": "Cadillac",
+    "strata": "+2,500",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "+1 LAP",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Ostyrcz",
+    "zespol": "Cadillac",
+    "strata": "DNF",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Dorsz",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 20,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Farti",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 7,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Manu",
+    "zespol": "Haas",
+    "strata": "DNF",
+    "start": 21,
+    "punkty": 0
+   },
+   {
+    "pozycja": 21,
+    "kierowca": "Nori",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 22,
+    "kierowca": "Babacar",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 17,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 7,
+  "gp": "Chiny",
+  "najszybsze_okrazenie": {
+   "kierowca": "Klocek",
+   "czas": "1:34,757"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Klocek",
+    "zespol": "Williams",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Wasik",
+    "zespol": "Ferrari",
+    "strata": "+14,592",
+    "start": 3,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "DonPedritto",
+    "zespol": "Alpine",
+    "strata": "+25,434",
+    "start": 8,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "+6,424",
+    "start": 6,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Kubax",
+    "zespol": "McLaren",
+    "strata": "+16,626",
+    "start": 2,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Tomegg",
+    "zespol": "Aston Martin",
+    "strata": "+0,024",
+    "start": 9,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Dzins",
+    "zespol": "Mercedes",
+    "strata": "+8,075",
+    "start": 4,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Peppies",
+    "zespol": "Cadillac",
+    "strata": "+19,545",
+    "start": 5,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+6,345",
+    "start": 7,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Chudy78",
+    "zespol": "Ferrari",
+    "strata": "+7,437",
+    "start": 11,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Artur",
+    "zespol": "Audi",
+    "strata": "+59,577",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Kamilowy",
+    "zespol": "Haas",
+    "strata": "+14,588",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Mati",
+    "zespol": "McLaren",
+    "strata": "+0,215",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Babacar",
+    "zespol": "Mercedes",
+    "strata": "+21,197",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Skizze",
+    "zespol": "Racing Bulls",
+    "strata": "+23,000",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "+9,785",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "+1 LAP",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Farti",
+    "zespol": "Cadillac",
+    "strata": "DNF",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "DNF",
+    "start": 20,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "BeeDaniel",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 10,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 8,
+  "gp": "Miami",
+  "najszybsze_okrazenie": {
+   "kierowca": "Nikoxx",
+   "czas": "1:26,168"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Klocek",
+    "zespol": "Williams",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Nikoxx",
+    "zespol": "Cadillac",
+    "strata": "+1,438",
+    "start": 4,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Adamos",
+    "zespol": "Alpine",
+    "strata": "+0,856",
+    "start": 3,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Bartex",
+    "zespol": "Williams",
+    "strata": "+1,021",
+    "start": 2,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Kubax",
+    "zespol": "McLaren",
+    "strata": "+1,247",
+    "start": 5,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "+0,909",
+    "start": 6,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "+2,923",
+    "start": 10,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+0,220",
+    "start": 11,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "+0,430",
+    "start": 9,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Peppies",
+    "zespol": "Cadillac",
+    "strata": "+2,271",
+    "start": 8,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Chudy78",
+    "zespol": "Ferrari",
+    "strata": "+3,149",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "BeeDaniel",
+    "zespol": "Alpine",
+    "strata": "+0,542",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Dotch",
+    "zespol": "Ferrari",
+    "strata": "+1,192",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Chrisuuu",
+    "zespol": "Mercedes",
+    "strata": "+3,157",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Artikosa",
+    "zespol": "Audi",
+    "strata": "+45,005",
+    "start": 20,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "+49,986",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Tomegg",
+    "zespol": "Aston Martin",
+    "strata": "DNF",
+    "start": 7,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Kamilowy",
+    "zespol": "Haas",
+    "strata": "DNF",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Skizze",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 13,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 9,
+  "gp": "Chiny (2)",
+  "najszybsze_okrazenie": {
+   "kierowca": "Bartex",
+   "czas": "1:11,924"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Bartex",
+    "zespol": "Cadillac",
+    "strata": "LEADER",
+    "start": 3,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Klocek",
+    "zespol": "Williams",
+    "strata": "+0,310",
+    "start": 1,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "TomaszPierd",
+    "zespol": "Williams",
+    "strata": "+7,663",
+    "start": 7,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+1,152",
+    "start": 15,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Tebu",
+    "zespol": "Mercedes",
+    "strata": "+3,641",
+    "start": 12,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Tomegg",
+    "zespol": "Aston Martin",
+    "strata": "+3,646",
+    "start": 22,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Stanczyk",
+    "zespol": "Alpine",
+    "strata": "+6,262",
+    "start": 8,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "+0,024",
+    "start": 16,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Happyudka",
+    "zespol": "McLaren",
+    "strata": "+1,196",
+    "start": 5,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Artur",
+    "zespol": "Audi",
+    "strata": "+0,872",
+    "start": 17,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Babacar",
+    "zespol": "Mercedes",
+    "strata": "+15,024",
+    "start": 20,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Wasik",
+    "zespol": "Ferrari",
+    "strata": "+1,421",
+    "start": 10,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "GrottoPower",
+    "zespol": "Alpine",
+    "strata": "+2,806",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "+1,565",
+    "start": 9,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Skizze",
+    "zespol": "Racing Bulls",
+    "strata": "+2,187",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "MotoMoto",
+    "zespol": "Cadillac",
+    "strata": "+2,010",
+    "start": 6,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Chudy78",
+    "zespol": "Ferrari",
+    "strata": "+2,636",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Kamilowy",
+    "zespol": "Haas",
+    "strata": "+23,472",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Ostyrcz",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 21,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Nikoxx",
+    "zespol": "McLaren",
+    "strata": "DNF",
+    "start": 4,
+    "punkty": 0
+   },
+   {
+    "pozycja": 21,
+    "kierowca": "Szumikk",
+    "zespol": "Red Bull",
+    "strata": "DNF",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 22,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "DNF",
+    "start": 2,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 10,
+  "gp": "Włochy",
+  "najszybsze_okrazenie": {
+   "kierowca": "Kubax",
+   "czas": "1:21,469"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Kubax",
+    "zespol": "McLaren",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Wasik",
+    "zespol": "Ferrari",
+    "strata": "+11,732",
+    "start": 5,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Stanczyk",
+    "zespol": "Haas",
+    "strata": "+9,323",
+    "start": 7,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Chudy78",
+    "zespol": "Ferrari",
+    "strata": "+4,686",
+    "start": 4,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "+0,156",
+    "start": 3,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "+4,411",
+    "start": 8,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Nikoxx",
+    "zespol": "McLaren",
+    "strata": "+2,060",
+    "start": 2,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "+47,284",
+    "start": 10,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+57,264",
+    "start": 9,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "GrottoPower",
+    "zespol": "Haas",
+    "strata": "+0,975",
+    "start": 12,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Chrisuuu",
+    "zespol": "Red Bull",
+    "strata": "+36,654",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "MatiBudzilla",
+    "zespol": "Racing Bulls",
+    "strata": "+19,635",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Cresovia",
+    "zespol": "Aston Martin",
+    "strata": "+24,792",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Happyudka",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 6,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Artikosa",
+    "zespol": "Audi",
+    "strata": "DNF",
+    "start": 11,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 11,
+  "gp": "Azerbejdżan",
+  "najszybsze_okrazenie": {
+   "kierowca": "Sokolik",
+   "czas": "1:41,025"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Klocek",
+    "zespol": "Williams",
+    "strata": "LEADER",
+    "start": 2,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Wasik",
+    "zespol": "Ferrari",
+    "strata": "+4,548",
+    "start": 5,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Bartex",
+    "zespol": "Aston Martin",
+    "strata": "+3,001",
+    "start": 6,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Nikoxx",
+    "zespol": "McLaren",
+    "strata": "+5,555",
+    "start": 7,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "+2,776",
+    "start": 3,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Happyudka",
+    "zespol": "Williams",
+    "strata": "+0,112",
+    "start": 13,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Kubax",
+    "zespol": "McLaren",
+    "strata": "+2,954",
+    "start": 4,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+22,236",
+    "start": 11,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Sokolik",
+    "zespol": "Red Bull",
+    "strata": "+2,115",
+    "start": 1,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "MotoMoto",
+    "zespol": "Cadillac",
+    "strata": "+9,033",
+    "start": 10,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Stanczyk",
+    "zespol": "Alpine",
+    "strata": "+8,033",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Chudy78",
+    "zespol": "Ferrari",
+    "strata": "+19,811",
+    "start": 18,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Insejnikk",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Myszor",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "DNF",
+    "start": 8,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "GrottoPower",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 21,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Dzins",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 9,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "DNF",
+    "start": 22,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Peppies",
+    "zespol": "Cadillac",
+    "strata": "DNF",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 21,
+    "kierowca": "Artur",
+    "zespol": "Audi",
+    "strata": "DNF",
+    "start": 20,
+    "punkty": 0
+   },
+   {
+    "pozycja": 22,
+    "kierowca": "Kamilowy",
+    "zespol": "Haas",
+    "strata": "DNF",
+    "start": 14,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 12,
+  "gp": "Belgia",
+  "najszybsze_okrazenie": {
+   "kierowca": "Kubax",
+   "czas": "1:46,754"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Kubax",
+    "zespol": "McLaren",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "Stanczyk",
+    "zespol": "Aston Martin",
+    "strata": "+3,694",
+    "start": 7,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Kamilowy",
+    "zespol": "Haas",
+    "strata": "+1,834",
+    "start": 12,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "+0,507",
+    "start": 2,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+0,552",
+    "start": 10,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Misiaczek",
+    "zespol": "Alpine",
+    "strata": "+0,930",
+    "start": 5,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "MotoMoto",
+    "zespol": "Cadillac",
+    "strata": "+0,900",
+    "start": 9,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Nikoxx",
+    "zespol": "McLaren",
+    "strata": "+0,614",
+    "start": 6,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "+0,935",
+    "start": 16,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Tomegg",
+    "zespol": "Red Bull",
+    "strata": "+3,602",
+    "start": 8,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "MrBanana",
+    "zespol": "Racing Bulls",
+    "strata": "+7,425",
+    "start": 4,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Chudy78",
+    "zespol": "Ferrari",
+    "strata": "+3,878",
+    "start": 15,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "+2,206",
+    "start": 11,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Insejnikk",
+    "zespol": "Cadillac",
+    "strata": "+11,031",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Fazi",
+    "zespol": "Williams",
+    "strata": "+7,257",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Artikosa",
+    "zespol": "Audi",
+    "strata": "+13,155",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "Manu",
+    "zespol": "Williams",
+    "strata": "+13,155",
+    "start": 21,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Cresovia",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 20,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Dzins",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 22,
+    "punkty": 0
+   },
+   {
+    "pozycja": 20,
+    "kierowca": "Wasik",
+    "zespol": "Ferrari",
+    "strata": "DNF",
+    "start": 3,
+    "punkty": 0
+   },
+   {
+    "pozycja": 21,
+    "kierowca": "Babacar",
+    "zespol": "Mercedes",
+    "strata": "DNF",
+    "start": 19,
+    "punkty": 0
+   },
+   {
+    "pozycja": 22,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "DNF",
+    "start": 18,
+    "punkty": 0
+   }
+  ]
+ },
+ {
+  "sezon": 2,
+  "runda": 13,
+  "gp": "Abu Zabi",
+  "najszybsze_okrazenie": {
+   "kierowca": "Sokolik",
+   "czas": "1:24,628"
+  },
+  "wyniki": [
+   {
+    "pozycja": 1,
+    "kierowca": "Sokolik",
+    "zespol": "Red Bull",
+    "strata": "LEADER",
+    "start": 1,
+    "punkty": 25
+   },
+   {
+    "pozycja": 2,
+    "kierowca": "MrBanana",
+    "zespol": "Racing Bulls",
+    "strata": "+5,513",
+    "start": 8,
+    "punkty": 18
+   },
+   {
+    "pozycja": 3,
+    "kierowca": "Nikoxx",
+    "zespol": "McLaren",
+    "strata": "+1,144",
+    "start": 2,
+    "punkty": 15
+   },
+   {
+    "pozycja": 4,
+    "kierowca": "Blaszak",
+    "zespol": "Audi",
+    "strata": "+1,984",
+    "start": 10,
+    "punkty": 12
+   },
+   {
+    "pozycja": 5,
+    "kierowca": "Wasik",
+    "zespol": "Ferrari",
+    "strata": "+1,260",
+    "start": 3,
+    "punkty": 10
+   },
+   {
+    "pozycja": 6,
+    "kierowca": "Myszor",
+    "zespol": "Alpine",
+    "strata": "+1,802",
+    "start": 5,
+    "punkty": 8
+   },
+   {
+    "pozycja": 7,
+    "kierowca": "Wojtek",
+    "zespol": "Red Bull",
+    "strata": "+0,318",
+    "start": 18,
+    "punkty": 6
+   },
+   {
+    "pozycja": 8,
+    "kierowca": "Krisswloch",
+    "zespol": "Aston Martin",
+    "strata": "+0,163",
+    "start": 7,
+    "punkty": 4
+   },
+   {
+    "pozycja": 9,
+    "kierowca": "Kubax",
+    "zespol": "McLaren",
+    "strata": "+3,181",
+    "start": 19,
+    "punkty": 2
+   },
+   {
+    "pozycja": 10,
+    "kierowca": "Chudy78",
+    "zespol": "Ferrari",
+    "strata": "+0,546",
+    "start": 11,
+    "punkty": 1
+   },
+   {
+    "pozycja": 11,
+    "kierowca": "Kamilowy",
+    "zespol": "Haas",
+    "strata": "+0,215",
+    "start": 12,
+    "punkty": 0
+   },
+   {
+    "pozycja": 12,
+    "kierowca": "Insejnikk",
+    "zespol": "Mercedes",
+    "strata": "+14,025",
+    "start": 14,
+    "punkty": 0
+   },
+   {
+    "pozycja": 13,
+    "kierowca": "Turbo",
+    "zespol": "Haas",
+    "strata": "+10,531",
+    "start": 13,
+    "punkty": 0
+   },
+   {
+    "pozycja": 14,
+    "kierowca": "Artur",
+    "zespol": "Audi",
+    "strata": "+2,692",
+    "start": 16,
+    "punkty": 0
+   },
+   {
+    "pozycja": 15,
+    "kierowca": "Happyudka",
+    "zespol": "Alpine",
+    "strata": "DNF",
+    "start": 4,
+    "punkty": 0
+   },
+   {
+    "pozycja": 16,
+    "kierowca": "Stanczyk",
+    "zespol": "Aston Martin",
+    "strata": "DNF",
+    "start": 6,
+    "punkty": 0
+   },
+   {
+    "pozycja": 17,
+    "kierowca": "GrottoPower",
+    "zespol": "Williams",
+    "strata": "DNF",
+    "start": 17,
+    "punkty": 0
+   },
+   {
+    "pozycja": 18,
+    "kierowca": "Fazi",
+    "zespol": "Cadillac",
+    "strata": "DNF",
+    "start": 9,
+    "punkty": 0
+   },
+   {
+    "pozycja": 19,
+    "kierowca": "Cozabober",
+    "zespol": "Racing Bulls",
+    "strata": "DNF",
+    "start": 15,
+    "punkty": 0
+   }
+  ]
+ }
+]
