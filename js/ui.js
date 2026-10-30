@@ -2,6 +2,7 @@
 import { html, useState, useEffect, useCallback } from '../vendor/preact-htm.js';
 import { db } from './db.js';
 import { bundleLineup } from './lineup.js';
+import { isSprint, sessionOrder } from './scoring.js';
 
 export { html };
 
@@ -53,11 +54,15 @@ function makeBundle(raw) {
   const teams = sortBy(raw.teams || [], 'name');
   const tracks = sortBy(raw.tracks || [], 'name');
   const drivers = sortBy(raw.drivers || [], 'nick');
+  // races = wyścigi główne (jedna pozycja na rundę), sprints = sprinty, sessions = wszystko w kolejności rozgrywania
+  const sessions = [...(raw.races || [])].sort(sessionOrder);
   return {
     season: raw.seasons?.[0] ?? null,
     teams,
     entries: raw.entries || [],
-    races: sortBy(raw.races || [], 'round'),
+    races: sessions.filter((r) => !isSprint(r)),
+    sprints: sessions.filter(isSprint),
+    sessions,
     tracks,
     drivers,
     results: raw.results || [],
@@ -93,6 +98,14 @@ export function loadSeasonBundle(seasonId) {
     return makeBundle(raw);
   });
 }
+
+/** Sprint w rundzie wyścigu (weekend sprinterski) albo null. */
+export const sprintOf = (b, race) => (race && b.sprints?.find((s) => s.round === race.round)) || null;
+
+/** Nazwa sesji: „Runda 3” albo „Runda 3 · Sprint”. */
+export const sessionLabel = (race, short = false) => (short
+  ? `R${race.round}${isSprint(race) ? ' S' : ''}`
+  : `Runda ${race.round}${isSprint(race) ? ' · Sprint' : ''}`);
 
 /** Bieżący sezon danej serii (np. na stronie głównej) — jednym zapytaniem. */
 export function loadCurrentBundle(series) {

@@ -288,6 +288,21 @@ Strona *Le Mans Ultimate* ma dwie główne zakładki:
   Kliknięcie otwiera kalendarz na danym wyścigu, a event Endurance od razu się rozwija;
 - po prawej **wyniki bieżących sezonów**: F1 (kierowcy i konstruktorzy) oraz liga LMU (kierowcy w każdej klasie).
 
+### Weekendy sprinterskie (liga LMU)
+
+Runda może mieć oprócz wyścigu głównego **sprint**, jak we współczesnej F1. Punkty za sprint: **8-7-6-5-4-3-2-1**
+dla pierwszej ósemki (w każdej klasie osobno), bez punktów za pole i najszybsze okrążenie. Punkty ze sprintu wliczają
+się do klasyfikacji, a wygrane, podia, pole, starty i remisy liczą się z wyścigów głównych.
+
+- **Włączenie:** *Panel → LMU Liga → Start sezonu → Kalendarz* — przy dodawaniu rundy zaznacz *Weekend sprinterski*
+  albo w tabeli kalendarza zaznacz kolumnę *Sprint*. Pod rundą pojawi się wiersz sprintu (data, okrążenia, pogoda, pora dnia).
+  Tor i „do klasyfikacji” są wspólne dla sprintu i wyścigu głównego.
+- **Wyniki:** sprint ma na osi sezonu osobny kafelek przed wyścigiem głównym (wyniki → kary → zatwierdzenie).
+  Zmiany w składach wpisuje się po wyścigu głównym.
+- **Strona:** wyniki rundy mają przełącznik *Sprint / Wyścig główny*, kalendarz pokazuje „Weekend sprinterski”,
+  a tabela *Runda po rundzie* ma osobną kolumnę sprintu (R3 S).
+- **Baza:** jednorazowo uruchom `supabase/migrations/2026-10-30_sprint.sql` (dodaje tylko kolumnę `races.kind`).
+
 ## Klasy samochodów
 
 Każdy wynik ma klasę: **F1, GT3, LMP lub HY** (Hypercar). W sezonach F1 klasa jest zawsze F1. W sezonach LMU

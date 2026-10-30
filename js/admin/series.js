@@ -1,6 +1,7 @@
 import { useState, useEffect } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, useAsync, loadSeasonBundle, Loader, ErrorBox, Flag, attempt, shortDate } from '../ui.js';
+import { html, useAsync, loadSeasonBundle, sessionLabel, Loader, ErrorBox, Flag, attempt, shortDate } from '../ui.js';
+import { isSprint } from '../scoring.js';
 import { bundleLineup } from '../lineup.js';
 import { SERIES, adminHref } from './common.js';
 import { StartPanel, SeasonForm, deleteSeasonCascade } from './start.js';
@@ -54,7 +55,7 @@ export function SeriesAdmin({ series, parts }) {
 export function raceState(b, race) {
   if (race.status === 'completed') return 'done';
   if (b.results.some((r) => r.race_id === race.id)) return 'draft';
-  return b.races.find((r) => r.status !== 'completed')?.id === race.id ? 'next' : 'planned';
+  return b.sessions.find((r) => r.status !== 'completed')?.id === race.id ? 'next' : 'planned';
 }
 
 const STATE_LABEL = { done: 'Zatwierdzony', draft: 'Do zatwierdzenia', next: 'Następny', planned: 'Zaplanowany' };
@@ -83,9 +84,10 @@ function SeasonWorkspace({ season, seasons, tile, step, nav, onSeasonChanged }) 
   if (bundle.error) return html`<${ErrorBox} error=${bundle.error} />`;
   const b = bundle.data;
   const checks = startChecks(b);
-  const openRace = b.races.find((r) => r.status !== 'completed');
+  // oś sezonu: wszystkie sesje — w weekendzie sprinterskim sprint ma osobny kafelek przed wyścigiem głównym
+  const openRace = b.sessions.find((r) => r.status !== 'completed');
   const tileId = tile || (checks.ready && openRace ? openRace.id : 'start');
-  const race = b.races.find((r) => r.id === tileId) || null;
+  const race = b.sessions.find((r) => r.id === tileId) || null;
   const reload = () => {
     bundle.reload();
     onSeasonChanged();
@@ -99,14 +101,14 @@ function SeasonWorkspace({ season, seasons, tile, step, nav, onSeasonChanged }) 
         <span class="tile-meta">${checks.races} wyśc. · ${checks.teams} ${b.season.series === 'lmu' ? 'aut' : 'zesp.'} · ${checks.regulars} kier.</span>
         <span class=${`tile-state ${checks.ready ? 'st-done' : 'st-next'}`}>${checks.ready ? '✓ Gotowe' : 'Do uzupełnienia'}</span>
       </button>
-      ${b.races.map((r) => {
+      ${b.sessions.map((r) => {
         const t = b.trackById.get(r.track_id);
         const st = raceState(b, r);
         const d = shortDate(r.race_date);
         const pens = b.penalties.filter((p) => p.race_id === r.id).length;
-        const changes = b.rosterChanges.filter((c) => c.from_round === r.round + 1).length;
-        return html`<button role="tab" aria-selected=${race?.id === r.id} class=${`tile ${race?.id === r.id ? 'active' : ''} tile-${st}`} onClick=${() => nav(r.id)}>
-          <span class="tile-kicker">Runda ${r.round} · ${d.day} ${d.month}</span>
+        const changes = isSprint(r) ? 0 : b.rosterChanges.filter((c) => c.from_round === r.round + 1).length;
+        return html`<button role="tab" aria-selected=${race?.id === r.id} class=${`tile ${race?.id === r.id ? 'active' : ''} tile-${st} ${isSprint(r) ? 'tile-sprint' : ''}`} onClick=${() => nav(r.id)}>
+          <span class="tile-kicker">${sessionLabel(r)} · ${d.day} ${d.month}</span>
           <b class="tile-title"><${Flag} code=${t?.country_code} size=${18} /> ${t?.name ?? '?'}</b>
           <span class="tile-meta">${pens ? `⚖️ ${pens}` : ''} ${changes ? `🔁 ${changes}` : ''}</span>
           <span class=${`tile-state st-${st}`}>${st === 'done' ? '✓ ' : ''}${STATE_LABEL[st]}</span>

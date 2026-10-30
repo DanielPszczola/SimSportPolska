@@ -1,7 +1,7 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, seriesBase, unit, teamHref, useAsync, loadSeasonBundle, driverSeat, Flag, TeamTag, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, formatDate } from '../ui.js';
-import { computeRaceByClass, computeStandings, CAR_CLASSES, carClass } from '../scoring.js';
+import { html, seriesBase, unit, teamHref, useAsync, loadSeasonBundle, driverSeat, sessionLabel, Flag, TeamTag, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, formatDate } from '../ui.js';
+import { computeRaceByClass, computeStandings, CAR_CLASSES, carClass, isSprint } from '../scoring.js';
 import { classBundle } from './league.js';
 import { loadEndurance, ClassBadge as EndClassBadge } from './endurance.js';
 
@@ -53,12 +53,14 @@ export function DriverPage({ driverId, tab }) {
 function collectHistory(bundles, driverId) {
   const history = [];
   for (const b of bundles) {
-    for (const race of b.races.filter((r) => r.status === 'completed')) {
+    for (const race of b.sessions.filter((r) => r.status === 'completed')) {
       const row = computeRaceByClass(race, b.season, b.results, b.penalties).find((r) => r.driver_id === driverId);
       if (row) history.push({ b, race, row });
     }
   }
-  return history.sort((x, y) => new Date(x.race.race_date || 0) - new Date(y.race.race_date || 0));
+  // kolejność: data, a przy równej (lub brakującej) dacie — runda i sprint przed wyścigiem głównym
+  return history.sort((x, y) => new Date(x.race.race_date || 0) - new Date(y.race.race_date || 0)
+    || x.race.round - y.race.round || Number(isSprint(y.race)) - Number(isSprint(x.race)));
 }
 
 /** Przejazdy w Endurance: każdy event, w którym kierowca był w składzie któregoś zespołu SSP (od najnowszych). */
@@ -72,11 +74,13 @@ function collectRuns(end, driverId) {
   return runs.sort((x, y) => new Date(y.ev.start_at || 0) - new Date(x.ev.start_at || 0));
 }
 
-function summarize(items) {
+/** Statystyki: punkty ze wszystkich sesji, a starty, wygrane, podia itd. tylko z wyścigów głównych (bez sprintów). */
+function summarize(all) {
+  const items = all.filter((h) => !isSprint(h.race));
   const finished = items.filter((h) => h.row.classPos);
   return {
     starts: items.length,
-    points: items.reduce((s, h) => s + h.row.points, 0),
+    points: all.reduce((s, h) => s + h.row.points, 0),
     wins: finished.filter((h) => h.row.classPos === 1).length,
     podiums: finished.filter((h) => h.row.classPos <= 3).length,
     poles: items.filter((h) => h.row.hasPole).length,
@@ -118,7 +122,8 @@ function Profile({ bundles, end, driverId, initial }) {
     lmu: history.filter((h) => h.b.season.series === 'lmu'),
   };
   const runs = collectRuns(end, driverId);
-  const count = { f1: bySeries.f1.length, lmu: bySeries.lmu.length, endurance: runs.length };
+  const starts = (items) => items.filter((h) => !isSprint(h.race)).length; // sprinty nie są osobnymi startami
+  const count = { f1: starts(bySeries.f1), lmu: starts(bySeries.lmu), endurance: runs.length };
 
   // domyślnie seria z najświeższym startem
   const last = {
@@ -237,7 +242,7 @@ function SeasonView({ x, lmu, u }) {
           <span class="field-label">${many ? (lmu ? 'Auto' : 'Zespół') : (lmu ? `Auto w sezonie ${season.name}` : `Zespół w sezonie ${season.name}`)}</span>
           <b>${t.name}</b>
           ${lmu && t.car_class ? html`<${ClassBadge} id=${t.car_class} long />` : null}
-          <span class="muted small">${plural(x.items.filter((h) => h.row.team_id === t.id).length, 'wyścig', 'wyścigi', 'wyścigów')} · ${u.profile} →</span>
+          <span class="muted small">${plural(x.items.filter((h) => h.row.team_id === t.id && !isSprint(h.race)).length, 'wyścig', 'wyścigi', 'wyścigów')} · ${u.profile} →</span>
         </div>
       </a>`)}
       <div class="season-place-card">
@@ -260,9 +265,9 @@ function SeasonView({ x, lmu, u }) {
         ${x.items.slice().reverse().map(({ race, row }) => {
           const t = b.trackById.get(race.track_id);
           return html`<tr>
-            <td class="c muted">${race.round}</td>
+            <td class="c muted nowrap">${sessionLabel(race, true)}</td>
             <td class="muted hide-sm nowrap">${formatDate(race.race_date, false)}</td>
-            <td><a href=${`${base}/wyniki/${race.id}`}><${Flag} code=${t?.country_code} size=${18} /> ${t?.name ?? '?'}</a></td>
+            <td><a href=${`${base}/wyniki/${race.id}`}><${Flag} code=${t?.country_code} size=${18} /> ${t?.name ?? '?'}</a>${isSprint(race) ? html` <span class="badge badge-sprint">Sprint</span>` : null}</td>
             ${lmu ? html`<td class="c"><${ClassBadge} id=${row.carClass} /></td>` : null}
             ${many || !lmu ? html`<td class="hide-sm"><${TeamTag} team=${b.teamById.get(row.team_id)} base=${base} /></td>` : null}
             <td class="c">${row.grid || '—'}</td>

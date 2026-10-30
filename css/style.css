@@ -325,6 +325,24 @@ textarea { width: 100%; resize: vertical; }
 .round-strip a:hover { border-color: var(--primary); text-decoration: none; }
 .round-strip a.active { border-color: var(--accent); background: var(--surface-2); }
 .round-strip a.future { opacity: .45; }
+/* ---------- sprint (weekend sprinterski) ---------- */
+.badge-sprint { background: rgba(255, 128, 32, .16); color: #ff9a4d; border: 1px solid rgba(255, 128, 32, .4); }
+.round-strip a { position: relative; }
+.rs-sprint { position: absolute; top: 2px; right: 4px; font-style: normal; font-size: .6rem; font-weight: 900; color: #ff9a4d; }
+.session-tabs { display: flex; gap: 6px; margin: -6px 0 16px; }
+.session-tab {
+  padding: 6px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  font-weight: 700; font-size: .9rem;
+}
+.session-tab:hover { border-color: var(--accent); text-decoration: none; }
+.session-tab.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.session-tab.active .muted { color: inherit; opacity: .7; }
+.cal-sprint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; font-size: .88rem; }
+.matrix .mx-sprint-col { border-left: 1px dashed rgba(255, 128, 32, .35); }
+.matrix th.mx-sprint-col small { color: #ff9a4d; }
+.tile-sprint { flex-basis: 150px; background: linear-gradient(135deg, rgba(255, 128, 32, .12), var(--surface)); }
+.tile-sprint .tile-kicker { color: #ff9a4d; }
+.sprint-row td { background: rgba(255, 128, 32, .05); }
 .race-head { margin-bottom: 16px; }
 .race-head h2 { display: flex; align-items: center; gap: 10px; font-size: 1.7rem; font-style: italic; margin: 4px 0 8px; }
 .race-round { color: var(--accent); font-weight: 900; text-transform: uppercase; letter-spacing: .1em; font-size: .85rem; }

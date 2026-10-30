@@ -6,6 +6,10 @@ import { lineupAt } from './lineup.js';
 
 export const DEFAULT_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
 
+// sprint (weekend sprinterski jak we współczesnej F1): punkty dla pierwszej ósemki, bez pole i najszybszego okrążenia
+export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1];
+export const isSprint = (race) => race?.kind === 'sprint';
+
 export const STATUSES = [
   { id: 'FIN', label: 'Ukończył' },
   { id: 'DNF', label: 'DNF — nie ukończył' },
@@ -119,7 +123,8 @@ export function computeRace(race, season, results, penalties) {
     flHolder = eligible.filter((r) => r.best_lap_ms).sort((a, b) => a.best_lap_ms - b.best_lap_ms)[0];
   }
 
-  const P = season?.points?.length ? season.points : DEFAULT_POINTS;
+  const sprint = isSprint(race);
+  const P = sprint ? SPRINT_POINTS : season?.points?.length ? season.points : DEFAULT_POINTS;
   const leaderTime = classified[0]?.adjTime ?? null;
   // czasy względne: znamy tylko straty do zwycięzcy (zwycięzca ma 0), nie całkowity czas wyścigu
   const relativeTimes = rows.some((r) => r.time_ms != null && Number(r.time_ms) === 0);
@@ -128,13 +133,14 @@ export function computeRace(race, season, results, penalties) {
   return [...classified, ...others].map((r, i) => {
     const finished = r.status === 'FIN';
     const finalPos = finished ? i + 1 : null;
-    const hasFastestLap = flHolder?.id === r.id;
-    const hasPole = Number(r.grid) === 1;
+    // w sprincie nie ma punktów za pole i najszybsze okrążenie — nie oznaczamy ich
+    const hasFastestLap = !sprint && flHolder?.id === r.id;
+    const hasPole = !sprint && Number(r.grid) === 1;
     let points = 0;
     if (counts) {
       if (finished) {
         points += P[finalPos - 1] || 0;
-        points += Number(season?.finish_bonus) || 0;
+        if (!sprint) points += Number(season?.finish_bonus) || 0;
         if (hasFastestLap && (!season?.fl_top10 || finalPos <= 10)) points += Number(season?.fl_point) || 0;
       }
       if (hasPole && r.status !== 'DSQ') points += Number(season?.pole_point) || 0;
@@ -194,10 +200,16 @@ export function teamPointsResolver({ season, entries, rosterChanges }) {
   };
 }
 
-/** Klasyfikacja kierowców i konstruktorów + macierz wyników runda po rundzie. */
-export function computeStandings({ season, races, results, penalties, entries, rosterChanges }) {
+/** Kolejność sesji w sezonie: wg rundy, a w rundzie sprint przed wyścigiem głównym. */
+export const sessionOrder = (a, b) => a.round - b.round || Number(isSprint(b)) - Number(isSprint(a));
+
+/**
+ * Klasyfikacja kierowców i konstruktorów + macierz wyników runda po rundzie.
+ * Sprinty (sprints) dodają punkty; wygrane, podia, pole, NO, starty i remisy liczą się z wyścigów głównych.
+ */
+export function computeStandings({ season, races, sprints = [], results, penalties, entries, rosterChanges }) {
   const teamOf = teamPointsResolver({ season, entries, rosterChanges });
-  const done = races.filter((r) => r.status === 'completed').sort((a, b) => a.round - b.round);
+  const done = [...races, ...sprints].filter((r) => r.status === 'completed').sort(sessionOrder);
   const drivers = new Map();
   const teams = new Map();
   const getD = (id) => {
@@ -212,9 +224,20 @@ export function computeStandings({ season, races, results, penalties, entries, r
   for (const race of done) {
     for (const row of computeRace(race, season, results, penalties)) {
       const d = getD(row.driver_id);
+      const sprint = isSprint(race);
       d.points += row.points;
       d.team_id = row.team_id || d.team_id;
       if (row.team_id && !d.teamIds.includes(row.team_id)) d.teamIds.push(row.team_id); // wszystkie zespoły, dla których jechał
+      d.perRound[race.id] = { pos: row.finalPos, status: row.status, points: row.points, fl: row.hasFastestLap, pole: row.hasPole };
+      const teamId = teamOf(race, row);
+      if (sprint) {
+        if (teamId) {
+          const t = getT(teamId);
+          t.points += row.points;
+          t.perRound[race.id] = (t.perRound[race.id] || 0) + row.points;
+        }
+        continue;
+      }
       if (row.status !== 'DNS') d.starts++;
       if (row.hasPole) d.poles++;
       if (row.hasFastestLap) d.fls++;
@@ -224,9 +247,7 @@ export function computeStandings({ season, races, results, penalties, entries, r
         if (row.finalPos <= 3) d.podiums++;
         d.best = d.best ? Math.min(d.best, row.finalPos) : row.finalPos;
       }
-      d.perRound[race.id] = { pos: row.finalPos, status: row.status, points: row.points, fl: row.hasFastestLap, pole: row.hasPole };
 
-      const teamId = teamOf(race, row);
       if (teamId) {
         const t = getT(teamId);
         t.points += row.points;
@@ -242,7 +263,8 @@ export function computeStandings({ season, races, results, penalties, entries, r
 
   const sort = (arr) => arr.sort((a, b) => b.points - a.points || countback(a, b));
   return {
-    races: done,
+    races: done, // wszystkie rozegrane sesje (wyścigi i sprinty) — kolumny „runda po rundzie”
+    rounds: done.filter((r) => !isSprint(r)).length,
     drivers: sort([...drivers.values()]),
     teams: sort([...teams.values()]),
   };

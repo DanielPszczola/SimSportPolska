@@ -1,28 +1,30 @@
 import { useMemo } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import {
-  html, seriesBase, unit, teamHref, teamListHref, useAsync, loadSeasonBundle, Flag, TeamTag, TeamLogo, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, roleInTeam, ROLE_LABEL,
+  html, seriesBase, unit, teamHref, teamListHref, useAsync, loadSeasonBundle, Flag, TeamTag, TeamLogo, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, sessionLabel, roleInTeam, ROLE_LABEL,
 } from '../ui.js';
-import { computeRace, computeStandings, carClass, teamPointsResolver } from '../scoring.js';
+import { computeRace, computeStandings, carClass, teamPointsResolver, isSprint } from '../scoring.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
 
 /** Punkty, starty i najlepszy wynik każdego kierowcy w barwach danego zespołu w sezonie. */
 function teamDriverStats(b) {
   const map = new Map();
-  for (const race of b.races.filter((r) => r.status === 'completed')) {
+  // sprinty dodają punkty; starty, wygrane i podia liczą się z wyścigów głównych
+  for (const race of b.sessions.filter((r) => r.status === 'completed')) {
     for (const row of computeRace(race, b.season, b.results, b.penalties)) {
       if (!row.team_id) continue;
       if (!map.has(row.team_id)) map.set(row.team_id, new Map());
       const m = map.get(row.team_id);
       const d = m.get(row.driver_id) || { driver_id: row.driver_id, points: 0, starts: 0, best: null, wins: 0, podiums: 0 };
       d.points += row.points;
+      m.set(row.driver_id, d);
+      if (isSprint(race)) continue;
       d.starts++;
       if (row.finalPos) {
         d.best = d.best ? Math.min(d.best, row.finalPos) : row.finalPos;
         if (row.finalPos === 1) d.wins++;
         if (row.finalPos <= 3) d.podiums++;
       }
-      m.set(row.driver_id, d);
     }
   }
   return map;
@@ -196,7 +198,7 @@ function TeamProfile({ team, b }) {
         ${rounds.map(({ race, rows, points }) => {
           const t = b.trackById.get(race.track_id);
           return html`<tr>
-            <td class="nowrap"><a href=${`${seriesBase(b.season.series)}/wyniki/${race.id}`}><span class="muted">R${race.round}</span> <${Flag} code=${t?.country_code} size=${18} /> ${t?.name}</a></td>
+            <td class="nowrap"><a href=${`${seriesBase(b.season.series)}/wyniki/${race.id}`}><span class="muted">${sessionLabel(race, true)}</span> <${Flag} code=${t?.country_code} size=${18} /> ${t?.name}</a></td>
             <td><div class="round-results">
               ${rows.length ? rows.map((r) => html`<span class="rr"><${PosBadge} pos=${r.finalPos} status=${r.status} /> ${b.driverById.get(r.driver_id)?.nick}</span>`) : html`<span class="muted">—</span>`}
             </div></td>

@@ -1,8 +1,8 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, unit, Flag, TeamLogo, attempt, formatDate } from '../ui.js';
+import { html, unit, sprintOf, Flag, TeamLogo, attempt, formatDate } from '../ui.js';
 import { WEATHER } from '../race-conditions.js';
-import { DEFAULT_POINTS, LMU_CLASSES, seasonClasses, carClass, TEAM_POINTS_MODES } from '../scoring.js';
+import { DEFAULT_POINTS, LMU_CLASSES, seasonClasses, carClass, TEAM_POINTS_MODES, SPRINT_POINTS } from '../scoring.js';
 import { categoriesForSeries } from '../tracks-seed.js';
 import { F1_TEAMS_2026, LMU_CARS, LOGO_PRESETS, CAR_PRESETS } from '../team-assets.js';
 import { StepBar, NextStep, ImageField, ClassSelect, toLocalInput, fromLocalInput } from './common.js';
@@ -130,8 +130,8 @@ export function SeasonForm({ season, onCancel, onSaved }) {
 
 function CalendarEditor({ b, reload }) {
   const season = b.season;
-  const [add, setAdd] = useState({ track_id: '', race_date: '', laps: '', weather: '', game_time: '' });
-  const races = b.races;
+  const [add, setAdd] = useState({ track_id: '', race_date: '', laps: '', weather: '', game_time: '', sprint: false, sprint_date: '' });
+  const races = b.races; // wyścigi główne — sprint (weekend sprinterski) ma ten sam numer rundy
   // pogoda i pora dnia w grze — tylko liga LMU (ustawienia serwera, niezależne od terminu zawodów)
   const lmu = season.series === 'lmu';
   const weatherOptions = () => html`<option value="">— nie ustalono —</option>
@@ -147,37 +147,77 @@ function CalendarEditor({ b, reload }) {
     e.preventDefault();
     if (!add.track_id) return;
     const round = races.reduce((m, r) => Math.max(m, r.round), 0) + 1;
-    const ok = await attempt(() => db.insert('races', {
-      season_id: season.id, round, track_id: add.track_id, race_date: fromLocalInput(add.race_date),
-      laps: add.laps ? Number(add.laps) : null, status: 'scheduled', counts: true, notes: '',
+    const base = {
+      season_id: season.id, round, track_id: add.track_id, status: 'scheduled', counts: true, notes: '',
       ...(lmu ? { weather: add.weather || null, game_time: add.game_time || null } : {}),
-    }), `Dodano rundę ${round}`);
+    };
+    const ok = await attempt(async () => {
+      await db.insert('races', { ...base, race_date: fromLocalInput(add.race_date), laps: add.laps ? Number(add.laps) : null });
+      if (lmu && add.sprint) await db.insert('races', { ...base, kind: 'sprint', race_date: fromLocalInput(add.sprint_date || add.race_date), laps: null });
+    }, `Dodano rundę ${round}${lmu && add.sprint ? ' (weekend sprinterski)' : ''}`);
     if (ok) {
-      setAdd({ ...add, track_id: '', laps: '', weather: '', game_time: '' });
+      setAdd({ ...add, track_id: '', laps: '', weather: '', game_time: '', sprint: false, sprint_date: '' });
       reload();
     }
   };
   const patch = async (race, p) => (await attempt(() => db.update('races', race.id, p))) && reload();
+  // tor i „do klasyfikacji” są wspólne dla całego weekendu — zmiana obejmuje też sprint
+  const patchRound = async (race, p) => {
+    const sprint = sprintOf(b, race);
+    const ok = await attempt(async () => {
+      await db.update('races', race.id, p);
+      if (sprint) await db.update('races', sprint.id, p);
+    });
+    if (ok) reload();
+  };
   const move = async (i, dir) => {
     const a = races[i];
     const c = races[i + dir];
     if (!c) return;
+    const sa = sprintOf(b, a);
+    const sc = sprintOf(b, c);
     await attempt(async () => {
       await db.update('races', a.id, { round: c.round });
       await db.update('races', c.id, { round: a.round });
+      if (sa) await db.update('races', sa.id, { round: c.round });
+      if (sc) await db.update('races', sc.id, { round: a.round });
     });
     reload();
   };
+  const dropSession = async (race) => {
+    await db.removeWhere('results', { race_id: race.id });
+    await db.removeWhere('penalties', { race_id: race.id });
+    await db.remove('races', race.id);
+  };
   const remove = async (race) => {
     const t = b.trackById.get(race.track_id);
-    if (!confirm(`Usunąć rundę ${race.round} (${t?.name}) wraz z jej wynikami i karami?`)) return;
+    const sprint = sprintOf(b, race);
+    if (!confirm(`Usunąć rundę ${race.round} (${t?.name})${sprint ? ' razem ze sprintem' : ''} wraz z wynikami i karami?`)) return;
     const ok = await attempt(async () => {
-      await db.removeWhere('results', { race_id: race.id });
-      await db.removeWhere('penalties', { race_id: race.id });
-      await db.remove('races', race.id);
+      if (sprint) await dropSession(sprint);
+      await dropSession(race);
     }, 'Runda usunięta');
     if (ok) reload();
   };
+  // weekend sprinterski: włączenie dodaje sprint (ta sama runda i tor), wyłączenie go usuwa
+  const toggleSprint = async (race, on) => {
+    const sprint = sprintOf(b, race);
+    if (on && !sprint) {
+      const ok = await attempt(() => db.insert('races', {
+        season_id: season.id, round: race.round, track_id: race.track_id, kind: 'sprint', race_date: race.race_date,
+        laps: null, status: 'scheduled', counts: race.counts !== false, notes: '', weather: race.weather || null, game_time: race.game_time || null,
+      }), `Runda ${race.round}: dodano sprint — ustaw jego datę i godzinę`);
+      if (ok) reload();
+    } else if (!on && sprint) {
+      const hasResults = b.results.some((r) => r.race_id === sprint.id);
+      if (!confirm(`Usunąć sprint z rundy ${race.round}${hasResults ? ' wraz z jego wynikami i karami' : ''}?`)) return reload();
+      if (await attempt(() => dropSession(sprint), 'Sprint usunięty')) reload();
+    }
+  };
+  const statusBadge = (r) => (r.status === 'completed' ? html`<span class="badge badge-ok">Zatwierdzony</span>` : html`<span class="badge">Zaplanowany</span>`);
+  const weatherCells = (r) => html`
+    <td><select value=${r.weather || ''} onChange=${(e) => patch(r, { weather: e.target.value || null })}>${weatherOptions()}</select></td>
+    <td><input type="time" value=${(r.game_time || '').slice(0, 5)} onChange=${(e) => patch(r, { game_time: e.target.value || null })} /></td>`;
 
   return html`
     <h3>Kalendarz — ${races.length} ${races.length === 1 ? 'wyścig' : 'wyścigów'}</h3>
@@ -196,7 +236,10 @@ function CalendarEditor({ b, reload }) {
             <select value=${add.weather} onChange=${(e) => setAdd({ ...add, weather: e.target.value })}>${weatherOptions()}</select>
           </label>
           <label class="field"><span>Pora dnia w grze (godzina startu)</span><input type="time" value=${add.game_time} onInput=${(e) => setAdd({ ...add, game_time: e.target.value })} /></label>
-          <p class="hint span2">Pogoda i pora dnia to ustawienia wyścigu w grze — nie mają związku z datą i godziną zawodów.</p>` : null}
+          <p class="hint span2">Pogoda i pora dnia to ustawienia wyścigu w grze — nie mają związku z datą i godziną zawodów.</p>
+          <label class="check-inline span2"><input type="checkbox" checked=${add.sprint} onChange=${(e) => setAdd({ ...add, sprint: e.target.checked })} />
+            Weekend sprinterski — oprócz wyścigu głównego jest sprint (punkty ${SPRINT_POINTS.join('-')} jak w F1)</label>
+          ${add.sprint ? html`<label class="field"><span>Data i godzina sprintu</span><input type="datetime-local" value=${add.sprint_date} onInput=${(e) => setAdd({ ...add, sprint_date: e.target.value })} /></label>` : null}` : null}
       </div>
       <div class="form-actions">
         <button class="btn btn-accent">+ Dodaj rundę</button>
@@ -205,28 +248,40 @@ function CalendarEditor({ b, reload }) {
     </form>
 
     ${!races.length ? html`<p class="muted">Kalendarz jest pusty.</p>` : html`<div class="table-wrap"><table class="table edit-table">
-      <thead><tr><th class="c">Runda</th><th>Tor</th><th>Data</th><th class="c">Okr.</th>${lmu ? html`<th title="Ustawienie w grze">Pogoda (gra)</th><th title="Godzina startu w grze">Pora dnia (gra)</th>` : null}<th class="c" title="Liczy się do klasyfikacji">Do klasyf.</th><th>Status</th><th class="r"></th></tr></thead>
+      <thead><tr><th class="c">Runda</th><th>Tor</th><th>Data</th><th class="c">Okr.</th>${lmu ? html`<th title="Ustawienie w grze">Pogoda (gra)</th><th title="Godzina startu w grze">Pora dnia (gra)</th><th class="c" title="Weekend sprinterski: sprint + wyścig główny">Sprint</th>` : null}<th class="c" title="Liczy się do klasyfikacji">Do klasyf.</th><th>Status</th><th class="r"></th></tr></thead>
       <tbody>
-        ${races.map((r, i) => html`<tr key=${r.id}>
+        ${races.map((r, i) => {
+          const sprint = sprintOf(b, r);
+          return html`${sprint ? html`<tr key=${sprint.id} class="sprint-row">
+          <td class="c"><span class="badge badge-sprint">Sprint</span></td>
+          <td class="muted small">tor jak w wyścigu głównym · punkty ${SPRINT_POINTS.join('-')}</td>
+          <td><input type="datetime-local" value=${toLocalInput(sprint.race_date)} onChange=${(e) => patch(sprint, { race_date: fromLocalInput(e.target.value) })} title=${formatDate(sprint.race_date)} /></td>
+          <td class="c"><input class="w-num" type="number" min="1" value=${sprint.laps ?? ''} onChange=${(e) => patch(sprint, { laps: e.target.value ? Number(e.target.value) : null })} /></td>
+          ${weatherCells(sprint)}
+          <td></td><td></td>
+          <td>${statusBadge(sprint)}</td>
+          <td></td>
+        </tr>` : null}
+        <tr key=${r.id}>
           <td class="c"><b>${r.round}</b></td>
           <td class="nowrap"><${Flag} code=${b.trackById.get(r.track_id)?.country_code} />
-            <select value=${r.track_id} onChange=${(e) => patch(r, { track_id: e.target.value })}>
+            <select value=${r.track_id} onChange=${(e) => patchRound(r, { track_id: e.target.value })}>
               ${trackOptions()}
             </select>
           </td>
           <td><input type="datetime-local" value=${toLocalInput(r.race_date)} onChange=${(e) => patch(r, { race_date: fromLocalInput(e.target.value) })} title=${formatDate(r.race_date)} /></td>
           <td class="c"><input class="w-num" type="number" min="1" value=${r.laps ?? ''} onChange=${(e) => patch(r, { laps: e.target.value ? Number(e.target.value) : null })} /></td>
-          ${lmu ? html`
-            <td><select value=${r.weather || ''} onChange=${(e) => patch(r, { weather: e.target.value || null })}>${weatherOptions()}</select></td>
-            <td><input type="time" value=${(r.game_time || '').slice(0, 5)} onChange=${(e) => patch(r, { game_time: e.target.value || null })} /></td>` : null}
-          <td class="c"><input type="checkbox" checked=${r.counts !== false} onChange=${(e) => patch(r, { counts: e.target.checked })} /></td>
-          <td>${r.status === 'completed' ? html`<span class="badge badge-ok">Zatwierdzony</span>` : html`<span class="badge">Zaplanowany</span>`}</td>
+          ${lmu ? html`${weatherCells(r)}
+            <td class="c"><input type="checkbox" checked=${!!sprint} onChange=${(e) => toggleSprint(r, e.target.checked)} title="Weekend sprinterski" /></td>` : null}
+          <td class="c"><input type="checkbox" checked=${r.counts !== false} onChange=${(e) => patchRound(r, { counts: e.target.checked })} /></td>
+          <td>${statusBadge(r)}</td>
           <td class="r actions">
             <button class="btn btn-sm" disabled=${i === 0} onClick=${() => move(i, -1)} title="W górę">↑</button>
             <button class="btn btn-sm" disabled=${i === races.length - 1} onClick=${() => move(i, 1)} title="W dół">↓</button>
             <button class="btn btn-sm btn-danger" onClick=${() => remove(r)}>Usuń</button>
           </td>
-        </tr>`)}
+        </tr>`;
+        })}
       </tbody>
     </table></div>`}
   `;

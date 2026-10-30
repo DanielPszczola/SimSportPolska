@@ -202,6 +202,7 @@ create table if not exists public.races (
   counts boolean not null default true,  -- czy liczy się do klasyfikacji
   weather text,                          -- liga LMU: pogoda ustawiona w grze (js/race-conditions.js → WEATHER)
   game_time text,                        -- liga LMU: pora dnia w grze, godzina startu "HH:MM" (nie termin zawodów)
+  kind text not null default 'race' check (kind in ('race', 'sprint')),  -- 'sprint' = sprint w tej samej rundzie co wyścig główny (punkty 8-1)
   notes text default '',
   created_at timestamptz not null default now()
 );
@@ -258,6 +259,7 @@ alter table public.races add column if not exists weather text;
 alter table public.races add column if not exists game_time text;
 alter table public.endurance_crews add column if not exists car_id uuid references public.endurance_cars (id) on delete set null;
 alter table public.seasons add column if not exists team_points text not null default 'final' check (team_points in ('lineup', 'final', 'result'));
+alter table public.races add column if not exists kind text not null default 'race' check (kind in ('race', 'sprint'));
 
 -- ---------- bezpieczeństwo (Row Level Security) ----------
 -- Każdy może czytać dane ligi. Zapis danych ligi: admin i moderator (rangi i konta Discord — tylko admin).

@@ -1,5 +1,5 @@
 import { useState, useMemo } from '../../vendor/preact-htm.js';
-import { html, useAsync, loadCurrentBundle, Loader, SeasonWip, seasonReady, seriesBase, Flag, TeamTag, DriverLink, PosBadge, Countdown, formatDate, shortDate } from '../ui.js';
+import { html, useAsync, loadCurrentBundle, Loader, SeasonWip, seasonReady, sessionLabel, seriesBase, Flag, TeamTag, DriverLink, PosBadge, Countdown, formatDate, shortDate } from '../ui.js';
 import { computeStandings, carClass, seasonClasses } from '../scoring.js';
 import { classBundle } from './league.js';
 import { loadEndurance, ClassBadge } from './endurance.js';
@@ -51,14 +51,16 @@ function relative(iso) {
 function leagueItems(b, series, type) {
   if (!b) return [];
   const now = new Date();
-  return b.races
+  // sprinty to osobne pozycje (weekend sprinterski: sprint, potem wyścig główny)
+  return b.sessions
     .filter((r) => r.status !== 'completed' && (!r.race_date || new Date(r.race_date) > now))
-    .slice(0, 3)
+    .slice(0, 4)
     .map((r) => {
       const t = b.trackById.get(r.track_id);
       return {
-        key: r.id, type, date: r.race_date, href: `${seriesBase(series)}/kalendarz/${r.id}`,
-        title: `Runda ${r.round} — ${t?.name ?? 'tor'}`, flag: t?.country_code,
+        // kafelek kalendarza jest jeden na rundę (sprint pokazany w kafelku wyścigu głównego)
+        key: r.id, type, date: r.race_date, href: `${seriesBase(series)}/kalendarz/${(b.races.find((x) => x.round === r.round) || r).id}`,
+        title: `${sessionLabel(r)} — ${t?.name ?? 'tor'}`, flag: t?.country_code,
         sub: b.season.name, classes: seasonClasses(b.season),
       };
     });
@@ -139,7 +141,7 @@ function F1Results({ b }) {
   return html`<div class="card home-card">
     <div class="home-card-head">
       <span class="series-chip">F1</span>
-      <div><b>Formuła 1</b> <span class="muted">· ${b.season.name} · po ${st.races.length} rundach</span></div>
+      <div><b>Formuła 1</b> <span class="muted">· ${b.season.name} · po ${st.rounds} rundach</span></div>
     </div>
     <div class="home-card-cols">
       <div>

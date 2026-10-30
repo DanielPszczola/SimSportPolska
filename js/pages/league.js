@@ -1,9 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from '../../vendor/preact-htm.js';
 import {
   html, useAsync, loadSeasonBundle, listSeasons, pickSeason, rememberSeason,
-  seriesBase, unit, Flag, TeamTag, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, seasonReady, Tabs, Countdown, formatDate, shortDate, SeatCell, driverSeat, TrackMedia, VideoEmbed, youtubeId,
+  seriesBase, unit, Flag, TeamTag, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, seasonReady, sprintOf, sessionLabel, Tabs, Countdown, formatDate, shortDate, SeatCell, driverSeat, TrackMedia, VideoEmbed, youtubeId,
 } from '../ui.js';
-import { computeRace, computeStandings, penaltyLabel, formatDuration, resultClass, carClass, seasonClasses } from '../scoring.js';
+import { computeRace, computeStandings, penaltyLabel, formatDuration, resultClass, carClass, seasonClasses, isSprint, SPRINT_POINTS } from '../scoring.js';
 import { TeamsGrid, TeamPage } from './teams.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
 import { EnduranceSection } from './endurance.js';
@@ -112,13 +112,16 @@ export function nextRace(b) {
 }
 
 function NextRaceStrip({ b }) {
-  const race = nextRace(b);
-  if (!race) return null;
+  const main = nextRace(b);
+  if (!main) return null;
+  // weekend sprinterski: najpierw sprint, potem wyścig główny
+  const sprint = sprintOf(b, main);
+  const race = sprint && sprint.status !== 'completed' ? sprint : main;
   const track = b.trackById.get(race.track_id);
   return html`<div class="next-strip">
     <div class="wrap next-strip-inner">
       <div>
-        <div class="eyebrow">Następny wyścig · Runda ${race.round}</div>
+        <div class="eyebrow">${isSprint(race) ? 'Następny: sprint' : 'Następny wyścig'} · Runda ${race.round}${sprint && !isSprint(race) ? ' · weekend sprinterski' : ''}</div>
         <div class="next-name"><${Flag} code=${track?.country_code} /> ${track?.name ?? 'Tor'} <span class="muted">· ${formatDate(race.race_date)}</span></div>
         ${b.season.series === 'lmu' ? html`<${RaceConditions} race=${race} compact />` : null}
       </div>
@@ -138,7 +141,7 @@ function Standings({ b }) {
   }
   return html`
     <div class="page-head">
-      <h2>Klasyfikacja${b.carClass ? ` — ${carClass(b.carClass)?.label}` : ''} po ${st.races.length} ${st.races.length === 1 ? 'rundzie' : 'rundach'}</h2>
+      <h2>Klasyfikacja${b.carClass ? ` — ${carClass(b.carClass)?.label}` : ''} po ${st.rounds} ${st.rounds === 1 ? 'rundzie' : 'rundach'}</h2>
       <${Tabs} value=${tab} onChange=${setTab} tabs=${[
         { id: 'drivers', label: 'Kierowcy' },
         // w lidze LMU klasyfikacja zespołów nie jest prowadzona
@@ -244,7 +247,7 @@ function Matrix({ b, st }) {
           <th class="c">P</th><th class="sticky">Kierowca</th>
           ${st.races.map((r) => {
             const t = b.trackById.get(r.track_id);
-            return html`<th class="c" title=${t?.name}><a href=${`${base}/wyniki/${r.id}`}><${Flag} code=${t?.country_code} size=${18} /><small>R${r.round}</small></a></th>`;
+            return html`<th class=${`c ${isSprint(r) ? 'mx-sprint-col' : ''}`} title=${`${t?.name ?? ''}${isSprint(r) ? ' — sprint' : ''}`}><a href=${`${base}/wyniki/${r.id}`}><${Flag} code=${t?.country_code} size=${18} /><small>${sessionLabel(r, true)}</small></a></th>`;
           })}
           <th class="r">Pkt</th>
         </tr></thead>
@@ -254,7 +257,7 @@ function Matrix({ b, st }) {
             <td class="sticky"><${DriverLink} driver=${b.driverById.get(d.driver_id)} />${driverSeat(b, d.driver_id).reserve ? html`<span class="badge badge-reserve" title="Rezerwa">R</span>` : null}</td>
             ${st.races.map((r) => {
               const c = d.perRound[r.id];
-              return html`<td class=${`c mx ${cellClass(c)}`} title=${c ? `${c.points} pkt` : ''}>
+              return html`<td class=${`c mx ${cellClass(c)} ${isSprint(r) ? 'mx-sprint-col' : ''}`} title=${c ? `${c.points} pkt` : ''}>
                 ${c ? (c.pos ?? c.status) : ''}${c?.fl ? html`<sup class="fl-dot" title="Najszybsze okrążenie">●</sup>` : null}
               </td>`;
             })}
@@ -267,25 +270,33 @@ function Matrix({ b, st }) {
       <span><i class="mx-p1"></i>1.</span><span><i class="mx-p2"></i>2.</span><span><i class="mx-p3"></i>3.</span>
       <span><i class="mx-pts"></i>Punkty</span><span><i class="mx-nopts"></i>Bez punktów</span><span><i class="mx-out"></i>DNF / DSQ</span>
       <span><sup class="fl-dot">●</sup> Najszybsze okrążenie</span>
+      ${st.races.some(isSprint) ? html`<span><b>S</b> Sprint (punkty ${SPRINT_POINTS.join('-')})</span>` : null}
     </div>`;
 }
 
 // ---------- wyniki wyścigu ----------
 
 function ResultsPage({ b, raceId }) {
-  const done = b.races.filter((r) => r.status === 'completed');
-  const race = (raceId && b.races.find((r) => r.id === raceId)) || done[done.length - 1];
+  const done = b.sessions.filter((r) => r.status === 'completed');
+  const race = (raceId && b.sessions.find((r) => r.id === raceId)) || done[done.length - 1];
   if (!race && !b.races.length) return html`<${SeasonWip} />`;
   if (!race) return html`<${Empty}>Żaden wyścig nie został jeszcze rozegrany.<//>`;
   const base = baseOf(b);
+  const main = b.races.find((r) => r.round === race.round);
+  const sprint = sprintOf(b, main);
   return html`
     <div class="round-strip">
       ${b.races.map((r) => {
         const t = b.trackById.get(r.track_id);
-        const cls = `${r.id === race.id ? 'active' : ''} ${r.status === 'completed' ? '' : 'future'}`;
-        return html`<a href=${`${base}/wyniki/${r.id}`} class=${cls} title=${t?.name}><${Flag} code=${t?.country_code} size=${18} /><span>R${r.round}</span></a>`;
+        const cls = `${r.round === race.round ? 'active' : ''} ${r.status === 'completed' || sprintOf(b, r)?.status === 'completed' ? '' : 'future'}`;
+        return html`<a href=${`${base}/wyniki/${r.id}`} class=${cls} title=${t?.name}><${Flag} code=${t?.country_code} size=${18} /><span>R${r.round}</span>${sprintOf(b, r) ? html`<i class="rs-sprint" title="Weekend sprinterski">S</i>` : null}</a>`;
       })}
     </div>
+    ${sprint ? html`<div class="session-tabs" role="tablist">
+      ${[sprint, main].map((r) => html`<a role="tab" aria-selected=${r.id === race.id} href=${`${base}/wyniki/${r.id}`} class=${`session-tab ${r.id === race.id ? 'active' : ''}`}>
+        ${isSprint(r) ? 'Sprint' : 'Wyścig główny'}${r.status === 'completed' ? '' : html` <span class="muted small">· zaplanowany</span>`}
+      </a>`)}
+    </div>` : null}
     <${RaceResult} b=${b} race=${race} />`;
 }
 
@@ -297,13 +308,14 @@ export function RaceResult({ b, race, compact = false }) {
   const pens = published ? b.penalties.filter((p) => p.race_id === race.id) : [];
   return html`<section class="race">
     ${compact ? null : html`<div class="race-head">
-      <div class="race-round">Runda ${race.round}${b.carClass ? html` · <span class="class-badge" style=${{ '--cls': carClass(b.carClass)?.color }}>${carClass(b.carClass)?.label}</span>` : ''}</div>
+      <div class="race-round">${sessionLabel(race)}${b.carClass ? html` · <span class="class-badge" style=${{ '--cls': carClass(b.carClass)?.color }}>${carClass(b.carClass)?.label}</span>` : ''}</div>
       <h2><${Flag} code=${track?.country_code} size=${28} /> ${track?.name ?? 'Tor'}</h2>
       <div class="race-meta">
         <span>📅 ${formatDate(race.race_date)}</span>
         ${track?.length_km ? html`<span>📏 ${track.length_km} km</span>` : null}
         ${race.laps ? html`<span>🔁 ${race.laps} okr.</span>` : null}
         ${race.counts === false ? html`<span class="badge badge-warn">Nie liczy się do klasyfikacji</span>` : null}
+        ${isSprint(race) ? html`<span class="badge badge-sprint" title="Punkty dla pierwszej ósemki">Sprint · punkty ${SPRINT_POINTS.join('-')}</span>` : null}
       </div>
       ${b.season.series === 'lmu' ? html`<${RaceConditions} race=${race} />` : null}
       ${race.notes ? html`<p class="muted">${race.notes}</p>` : null}
@@ -443,6 +455,8 @@ function Calendar({ b, focusId }) {
         const done = r.status === 'completed';
         const winner = done ? computeRace(r, b.season, b.results, b.penalties)[0] : null;
         const isNext = next?.id === r.id;
+        const sprint = sprintOf(b, r);
+        const sprintWinner = sprint?.status === 'completed' ? computeRace(sprint, b.season, b.results, b.penalties)[0] : null;
         return html`<article class=${`cal-tile ${done ? 'done' : ''} ${isNext ? 'next' : ''} ${i === active ? 'active' : ''}`}>
           <header class="cal-tile-head">
             <div class="cal-tile-round">
@@ -452,6 +466,11 @@ function Calendar({ b, focusId }) {
             <h3><${Flag} code=${t?.country_code} size=${28} /> ${t?.name ?? '—'}</h3>
             <div class="cal-tile-meta muted">${[t?.country, t?.length_km ? `${t.length_km} km` : null, r.laps ? `${r.laps} okr.` : null].filter(Boolean).join(' · ')}</div>
             ${b.season.series === 'lmu' ? html`<${RaceConditions} race=${r} />` : null}
+            ${sprint ? html`<div class="cal-sprint">
+              <span class="badge badge-sprint">Weekend sprinterski</span>
+              <span class="muted">Sprint: ${sprint.race_date ? formatDate(sprint.race_date) : 'termin do ustalenia'}${sprint.laps ? ` · ${sprint.laps} okr.` : ''}</span>
+              ${sprintWinner?.finalPos === 1 ? html`<a class="cal-winner" href=${`${baseOf(b)}/wyniki/${sprint.id}`}>🏁 ${b.driverById.get(sprintWinner.driver_id)?.nick}</a>` : null}
+            </div>` : null}
             <div class="cal-tile-status">
               ${isNext ? html`<span class="badge badge-next">Następny wyścig</span>` : null}
               ${done ? html`<span class="badge badge-ok">Rozegrany</span>` : !isNext ? html`<span class="badge">Zaplanowany</span>` : null}

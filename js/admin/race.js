@@ -1,12 +1,13 @@
 import { useState, useMemo } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, unit, Flag, TeamTag, TeamLogo, PosBadge, attempt, formatDate } from '../ui.js';
+import { html, unit, sessionLabel, Flag, TeamTag, TeamLogo, PosBadge, attempt, formatDate } from '../ui.js';
 import {
   computeRaceByClass, computeStandings, parseTime, formatDuration, penaltyLabel, carClass,
-  STATUSES, PENALTY_TYPES, CAR_CLASSES, LMU_CLASSES, seasonClasses,
+  STATUSES, PENALTY_TYPES, CAR_CLASSES, LMU_CLASSES, seasonClasses, isSprint, SPRINT_POINTS,
 } from '../scoring.js';
 import { lineupAt, teamSeats, reserveSeats } from '../lineup.js';
 import { StepBar, NextStep } from './common.js';
+import { classBundle } from '../pages/league.js';
 
 // ---------- kafelek wyścigu ----------
 
@@ -14,14 +15,17 @@ export function RacePanel({ b, race, step, nav, reload }) {
   const track = b.trackById.get(race.track_id);
   const results = b.results.filter((r) => r.race_id === race.id);
   const pens = b.penalties.filter((p) => p.race_id === race.id);
+  const sprint = isSprint(race);
   const changes = b.rosterChanges.filter((c) => c.from_round === race.round + 1);
-  const unapprovedBefore = b.races.filter((r) => r.round < race.round && r.status !== 'completed');
+  const idxInSeason = b.sessions.findIndex((r) => r.id === race.id);
+  const unapprovedBefore = b.sessions.slice(0, idxInSeason).filter((r) => r.status !== 'completed');
   const done = race.status === 'completed';
 
   const steps = [
     { id: 'wyniki', label: 'Wyniki', note: results.length ? `${results.length} kierowców` : 'do wpisania', state: results.length ? 'done' : 'todo' },
     { id: 'kary', label: 'Kary', note: pens.length ? `${pens.length} decyzji` : 'brak kar', state: !results.length ? 'todo' : pens.length ? 'done' : 'info' },
-    { id: 'sklady', label: b.season.series === 'lmu' ? 'Zmiany aut' : 'Zmiany w składach', note: changes.length ? `${changes.length} od R${race.round + 1}` : 'bez zmian', state: changes.length ? 'done' : 'info' },
+    // zmiany w składach wprowadza się po wyścigu głównym — w sprincie ten krok pomijamy
+    ...(sprint ? [] : [{ id: 'sklady', label: b.season.series === 'lmu' ? 'Zmiany aut' : 'Zmiany w składach', note: changes.length ? `${changes.length} od R${race.round + 1}` : 'bez zmian', state: changes.length ? 'done' : 'info' }]),
     { id: 'zatwierdzenie', label: 'Zatwierdzenie', note: done ? 'opublikowany' : 'nieopublikowany', state: done ? 'done' : 'todo' },
   ];
   const current = steps.some((s) => s.id === step) ? step : !results.length ? 'wyniki' : done ? 'zatwierdzenie' : 'kary';
@@ -33,14 +37,15 @@ export function RacePanel({ b, race, step, nav, reload }) {
       <div class="panel-title">
         <${Flag} code=${track?.country_code} size=${36} />
         <div>
-          <span class="eyebrow">Runda ${race.round} z ${b.races.length}</span>
-          <h2>${track?.name ?? 'Tor'}</h2>
+          <span class="eyebrow">Runda ${race.round} z ${b.races.length}${sprint ? ' · Sprint' : ''}</span>
+          <h2>${track?.name ?? 'Tor'}${sprint ? html` <span class="badge badge-sprint">Sprint</span>` : null}</h2>
           <div class="muted">${formatDate(race.race_date)}${race.laps ? ` · ${race.laps} okr.` : ''}${race.counts === false ? ' · nie liczy się do klasyfikacji' : ''}</div>
         </div>
       </div>
       <span class=${`tile-state ${done ? 'st-done' : results.length ? 'st-draft' : 'st-next'}`}>${done ? '✓ Zatwierdzony' : results.length ? 'Do zatwierdzenia' : 'Bez wyników'}</span>
     </div>
-    ${unapprovedBefore.length ? html`<p class="hint warn">Uwaga: niezatwierdzone wcześniejsze rundy: ${unapprovedBefore.map((r) => `R${r.round}`).join(', ')}. Skład na ten wyścig może się jeszcze zmienić.</p>` : null}
+    ${unapprovedBefore.length ? html`<p class="hint warn">Uwaga: niezatwierdzone wcześniejsze wyścigi: ${unapprovedBefore.map((r) => sessionLabel(r, true)).join(', ')}. Skład na ten wyścig może się jeszcze zmienić.</p>` : null}
+    ${sprint ? html`<p class="hint">Sprint: punkty ${SPRINT_POINTS.join('-')} dla pierwszej ósemki${b.season.series === 'lmu' ? ' w każdej klasie' : ''}, bez punktów za pole i najszybsze okrążenie. Kierowcy jadą w składzie z rundy ${race.round}.</p>` : null}
     <${StepBar} steps=${steps} value=${current} onChange=${go} />
     <div class="panel-body">
       ${current === 'wyniki' ? html`<${ResultsForm} key=${race.id + results.length} b=${b} race=${race} onSaved=${reload} />` : null}
@@ -587,19 +592,26 @@ function RosterAfterRace({ b, race, reload }) {
 function RaceSummary({ b, race, nav, reload }) {
   const results = b.results.filter((r) => r.race_id === race.id);
   const pens = b.penalties.filter((p) => p.race_id === race.id);
+  const sprint = isSprint(race);
   const changes = b.rosterChanges.filter((c) => c.from_round === race.round + 1);
   const done = race.status === 'completed';
-  const next = b.races.find((r) => r.round === race.round + 1);
+  const idx = b.sessions.findIndex((r) => r.id === race.id);
+  const next = b.sessions[idx + 1] || null; // po sprincie — wyścig główny tej rundy
+  const nextName = (r) => (isSprint(r) ? `sprintu rundy ${r.round}` : `rundy ${r.round}`);
+  const thisName = sprint ? `sprint rundy ${race.round}` : `rundę ${race.round}`;
   const multiClass = b.season.series !== 'f1';
   const nick = (id) => b.driverById.get(id)?.nick ?? '?';
 
   const rows = byClass(computeRaceByClass(race, b.season, b.results, b.penalties));
   // klasyfikacja po tej rundzie (ten wyścig liczony tak, jakby był już zatwierdzony)
-  const races = b.races.filter((r) => r.round <= race.round).map((r) => (r.id === race.id ? { ...r, status: 'completed' } : r));
-  const st = computeStandings({ ...b, races });
+  const upto = b.sessions.slice(0, idx + 1).map((r) => (r.id === race.id ? { ...r, status: 'completed' } : r));
+  const sb = { ...b, races: upto.filter((r) => !isSprint(r)), sprints: upto.filter(isSprint) };
+  const st = computeStandings(sb);
+  // liga LMU: klasyfikacja osobno w każdej klasie (jak na stronie)
+  const classTables = multiClass ? seasonClasses(b.season).map((cls) => ({ cls, st: computeStandings(classBundle(sb, cls)) })) : [];
 
   const approve = async () => {
-    if (await attempt(() => db.update('races', race.id, { status: 'completed' }), `Runda ${race.round} zatwierdzona i opublikowana`)) {
+    if (await attempt(() => db.update('races', race.id, { status: 'completed' }), `${sessionLabel(race)} — zatwierdzono i opublikowano`)) {
       reload();
       if (next) nav(next.id, 'wyniki');
     }
@@ -613,7 +625,7 @@ function RaceSummary({ b, race, nav, reload }) {
     <div class="checklist">
       <div class=${results.length ? 'ok' : 'bad'}>${results.length ? '✓' : '✕'} Wyniki: ${results.length} kierowców</div>
       <div class="ok">⚖️ Kary: ${pens.length || 'brak'}</div>
-      <div class="ok">🔁 Zmiany w składzie od R${race.round + 1}: ${changes.length || 'brak'}</div>
+      ${sprint ? null : html`<div class="ok">🔁 Zmiany w składzie od R${race.round + 1}: ${changes.length || 'brak'}</div>`}
     </div>
 
     ${!results.length ? html`<div class="empty">Bez wyników nie można zatwierdzić wyścigu.</div>` : html`
@@ -632,15 +644,20 @@ function RaceSummary({ b, race, nav, reload }) {
           </table></div>
         </div>
         <div>
-          <h3>Klasyfikacja po rundzie ${race.round}</h3>
-          <div class="table-wrap"><table class="table">
-            <thead><tr><th class="c">P</th><th>Kierowca</th><th class="r">Pkt</th></tr></thead>
-            <tbody>${st.drivers.slice(0, 10).map((d, i) => html`<tr><td class="c">${i + 1}</td><td>${nick(d.driver_id)}</td><td class="r pts">${d.points}</td></tr>`)}</tbody>
-          </table></div>
-          <h3>Konstruktorzy</h3>
-          <div class="table-wrap"><table class="table">
-            <tbody>${st.teams.slice(0, 5).map((t, i) => html`<tr><td class="c">${i + 1}</td><td><${TeamTag} team=${b.teamById.get(t.team_id)} link=${false} /></td><td class="r pts">${t.points}</td></tr>`)}</tbody>
-          </table></div>
+          <h3>Klasyfikacja po: ${sessionLabel(race)}</h3>
+          ${multiClass ? classTables.map(({ cls, st: cst }) => html`
+            <div class="eyebrow">${carClass(cls)?.label ?? cls}</div>
+            <div class="table-wrap"><table class="table">
+              <tbody>${cst.drivers.slice(0, 5).map((d, i) => html`<tr><td class="c">${i + 1}</td><td>${nick(d.driver_id)}</td><td class="r pts">${d.points}</td></tr>`)}</tbody>
+            </table></div>`) : html`
+            <div class="table-wrap"><table class="table">
+              <thead><tr><th class="c">P</th><th>Kierowca</th><th class="r">Pkt</th></tr></thead>
+              <tbody>${st.drivers.slice(0, 10).map((d, i) => html`<tr><td class="c">${i + 1}</td><td>${nick(d.driver_id)}</td><td class="r pts">${d.points}</td></tr>`)}</tbody>
+            </table></div>
+            <h3>Konstruktorzy</h3>
+            <div class="table-wrap"><table class="table">
+              <tbody>${st.teams.slice(0, 5).map((t, i) => html`<tr><td class="c">${i + 1}</td><td><${TeamTag} team=${b.teamById.get(t.team_id)} link=${false} /></td><td class="r pts">${t.points}</td></tr>`)}</tbody>
+            </table></div>`}
         </div>
       </div>
 
@@ -649,11 +666,11 @@ function RaceSummary({ b, race, nav, reload }) {
           <span class="badge badge-ok">✓ Wyścig zatwierdzony i widoczny na stronie</span>
           <span class="spacer"></span>
           <button class="btn btn-danger" onClick=${unapprove}>Cofnij zatwierdzenie</button>
-          ${next ? html`<button class="btn btn-accent" onClick=${() => nav(next.id, 'wyniki')}>Przejdź do rundy ${next.round} →</button>` : null}
+          ${next ? html`<button class="btn btn-accent" onClick=${() => nav(next.id, 'wyniki')}>Przejdź do ${nextName(next)} →</button>` : null}
         ` : html`
           <span class="muted">Zatwierdzenie publikuje wyniki na stronie i wlicza je do klasyfikacji. Kary i składy możesz zmieniać także później.</span>
           <span class="spacer"></span>
-          <button class="btn btn-accent btn-big" onClick=${approve}>✓ Zatwierdź rundę ${race.round}${next ? ` i przejdź do rundy ${next.round}` : ''}</button>
+          <button class="btn btn-accent btn-big" onClick=${approve}>✓ Zatwierdź ${thisName}${next ? ` i przejdź do ${nextName(next)}` : ''}</button>
         `}
       </div>
     `}
