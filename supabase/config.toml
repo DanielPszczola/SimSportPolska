@@ -1,0 +1,41 @@
+# Konfiguracja LOKALNEJ bazy Supabase (pre-prod w Dockerze, uruchamiany przez preprod.bat).
+# Nie wpływa na projekt w chmurze (produkcję) — ten projekt nie jest z nim „podlinkowany”.
+project_id = "SimSportPolska"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+
+# Dane wgrywane przy pierwszym starcie i przy „preprod.bat reset” (w tej kolejności):
+# schemat → dane startowe sezonów F1 → lokalne konto admina (admin / admin).
+[db.seed]
+enabled = true
+sql_paths = ["./schema.sql", "./seed.sql", "./local/admin.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+site_url = "http://localhost:8000"
+additional_redirect_urls = ["http://localhost:8000", "http://127.0.0.1:8000"]
+
+# Logowanie przez Discord lokalnie (opcjonalnie): w aplikacji Discord dodaj Redirect
+# http://127.0.0.1:54321/auth/v1/callback, odkomentuj poniższe i ustaw zmienne środowiskowe
+# DISCORD_CLIENT_ID oraz DISCORD_SECRET przed uruchomieniem preprod.bat.
+# [auth.external.discord]
+# enabled = true
+# client_id = "env(DISCORD_CLIENT_ID)"
+# secret = "env(DISCORD_SECRET)"
+
+# usługi niepotrzebne stronie — mniej kontenerów, szybszy start
+[realtime]
+enabled = false
+
+[analytics]
+enabled = false
+
+[edge_runtime]
+enabled = false

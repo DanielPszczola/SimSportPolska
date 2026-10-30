@@ -8,6 +8,7 @@ import { TeamsGrid, TeamPage } from './teams.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
 import { EnduranceSection } from './endurance.js';
 import { SERIES_INFO, SectionHead, LmuTopNav } from './section.js';
+import { RaceConditions } from '../race-conditions.js';
 
 
 const subnavFor = (series) => [
@@ -120,6 +121,7 @@ function NextRaceStrip({ b }) {
       <div>
         <div class="eyebrow">Następny wyścig · Runda ${race.round}</div>
         <div class="next-name"><${Flag} code=${track?.country_code} /> ${track?.name ?? 'Tor'} <span class="muted">· ${formatDate(race.race_date)}</span></div>
+        ${b.season.series === 'lmu' ? html`<${RaceConditions} race=${race} compact />` : null}
       </div>
       ${race.race_date ? html`<${Countdown} to=${race.race_date} />` : null}
     </div>
@@ -302,6 +304,7 @@ export function RaceResult({ b, race, compact = false }) {
         ${race.laps ? html`<span>🔁 ${race.laps} okr.</span>` : null}
         ${race.counts === false ? html`<span class="badge badge-warn">Nie liczy się do klasyfikacji</span>` : null}
       </div>
+      ${b.season.series === 'lmu' ? html`<${RaceConditions} race=${race} />` : null}
       ${race.notes ? html`<p class="muted">${race.notes}</p>` : null}
     </div>`}
     ${compact ? null : html`<${TrackMedia} track=${track} />`}
@@ -447,6 +450,7 @@ function Calendar({ b, focusId }) {
             </div>
             <h3><${Flag} code=${t?.country_code} size=${28} /> ${t?.name ?? '—'}</h3>
             <div class="cal-tile-meta muted">${[t?.country, t?.length_km ? `${t.length_km} km` : null, r.laps ? `${r.laps} okr.` : null].filter(Boolean).join(' · ')}</div>
+            ${b.season.series === 'lmu' ? html`<${RaceConditions} race=${r} />` : null}
             <div class="cal-tile-status">
               ${isNext ? html`<span class="badge badge-next">Następny wyścig</span>` : null}
               ${done ? html`<span class="badge badge-ok">Rozegrany</span>` : !isNext ? html`<span class="badge">Zaplanowany</span>` : null}

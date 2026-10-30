@@ -115,6 +115,43 @@ Build command zostaw pusty, a jako katalog publikacji wskaż katalog główny.
 
 Na każdym z tych hostingów możesz potem podpiąć własną domenę.
 
+## Lokalny pre-prod (`preprod.bat`)
+
+Kopia strony z **własną, lokalną bazą Supabase** (w Dockerze) — do testowania zmian bez ryzyka dla produkcji.
+
+- Wymaga **Docker Desktop** (https://www.docker.com/products/docker-desktop/ albo `winget install Docker.DockerDesktop`) i Pythona.
+  Supabase CLI pobiera się samo do `tools/bin` (bez Node.js).
+- `preprod.bat` → menu: **Start** (baza + strona na http://localhost:8000), **Stop**, **Reset** (czyści lokalną bazę i wgrywa dane od nowa), **Status**.
+- Lokalna baza dostaje: `supabase/schema.sql` → `supabase/seed.sql` (sezony F1) → konto admina **admin / admin** (`supabase/local/admin.sql`).
+  Konfiguracja: `supabase/config.toml`. Panel bazy (Studio): http://127.0.0.1:54323.
+- Po starcie powstaje `js/config.local.js` — strona otwierana na `localhost` łączy się wtedy z lokalną bazą.
+  „Stop” usuwa ten plik, więc podgląd lokalny (`python tools/serve.py`) znów korzysta z produkcji. Plik nie trafia do repozytorium ani na Vercel.
+- Produkcja nie jest w żaden sposób używana: projekt nie jest „podlinkowany” z Supabase w chmurze.
+- Za pierwszym razem start trwa kilka minut (Docker pobiera obrazy, kilka GB); kolejne — kilkanaście sekund. Dane lokalne zostają między uruchomieniami.
+
+## Logowanie przez Discord
+
+Kierowcy logują się kontem Discord (link **Zaloguj** w nagłówku → `#/konto`). Admini mogą dalej używać loginu i hasła.
+
+**Jak działa:**
+- pierwsze logowanie: jeśli w bazie jest kierowca z takim samym nickiem (bez konta), powstaje **prośba o powiązanie** — admin zatwierdza ją w *Panel → Baza danych → Konta Discord*; w przeciwnym razie automatycznie powstaje **nowy kierowca** z nickiem z Discorda,
+- kierowca, który startował pod innym nickiem, może na stronie *Moje konto* wskazać swój stary profil (prośba do admina),
+- admin może powiązać dowolnego kierowcę z kontem Discord (kolumna *Discord* w bazie kierowców albo karta *Konta Discord*); profil założony automatycznie zostaje wtedy **scalony** z wybranym kierowcą — wyniki, składy i kary przechodzą na niego,
+- po powiązaniu nick i awatar kierowcy są odświeżane z Discorda przy każdym logowaniu (nazwa wyświetlana na Discordzie).
+
+**Konfiguracja (jednorazowo):**
+1. Supabase → SQL Editor: uruchom `supabase/migrations/2026-10-30_discord.sql` (nic nie kasuje).
+2. https://discord.com/developers/applications → *New Application* (np. „Sim Sport Polska”) → zakładka **OAuth2**:
+   skopiuj **Client ID**, kliknij *Reset Secret* i skopiuj **Client Secret**, w *Redirects* dodaj
+   `https://<id-projektu>.supabase.co/auth/v1/callback` i zapisz.
+3. Supabase → *Authentication → Sign In / Providers → Discord*: włącz, wklej Client ID i Client Secret, zapisz.
+   (Sekret wpisujesz **tylko tutaj** — nigdy w plikach strony ani w repozytorium.)
+4. Supabase → *Authentication → URL Configuration*: **Site URL** = adres strony (np. `https://twoja-strona.vercel.app`),
+   w **Redirect URLs** dodaj adres strony oraz `http://localhost:8000` (podgląd lokalny).
+
+Admin z kontem Discord: zaloguj się raz przez Discord, a potem w SQL Editor nadaj uprawnienia
+(`insert into admins (user_id) values ('<id z ekranu „Brak uprawnień”>');`).
+
 ## Panel administratora (`#/admin`)
 
 Panel ma cztery zakładki: **Formuła 1**, **LMU Liga**, **LMU Endurance** i **Baza danych**. W bazie są tory i kierowcy,

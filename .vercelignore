@@ -5,3 +5,5 @@ supabase/
 wyniki_ligi.json
 README.md
 _*.html
+preprod.bat
+js/config.local.js

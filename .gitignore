@@ -1,3 +1,9 @@
 _*.html
 .DS_Store
 Thumbs.db
+
+# lokalny pre-prod (preprod.bat)
+js/config.local.js
+tools/bin/
+supabase/.temp/
+supabase/.branches/

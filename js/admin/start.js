@@ -1,6 +1,7 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, unit, Flag, TeamLogo, attempt, formatDate } from '../ui.js';
+import { WEATHER } from '../race-conditions.js';
 import { DEFAULT_POINTS, LMU_CLASSES, seasonClasses, carClass, TEAM_POINTS_MODES } from '../scoring.js';
 import { categoriesForSeries } from '../tracks-seed.js';
 import { F1_TEAMS_2026, LMU_CARS, LOGO_PRESETS, CAR_PRESETS } from '../team-assets.js';
@@ -129,8 +130,12 @@ export function SeasonForm({ season, onCancel, onSaved }) {
 
 function CalendarEditor({ b, reload }) {
   const season = b.season;
-  const [add, setAdd] = useState({ track_id: '', race_date: '', laps: '' });
+  const [add, setAdd] = useState({ track_id: '', race_date: '', laps: '', weather: '', game_time: '' });
   const races = b.races;
+  // pogoda i pora dnia w grze — tylko liga LMU (ustawienia serwera, niezależne od terminu zawodów)
+  const lmu = season.series === 'lmu';
+  const weatherOptions = () => html`<option value="">— nie ustalono —</option>
+    ${WEATHER.map((w) => html`<option value=${w.id}>${w.icon} ${w.label}</option>`)}`;
   // tylko tory z kategorii tej serii (F1 -> F1, LMU -> Hypercar / LMP / GT3), pogrupowane wg kategorii
   const cats = categoriesForSeries(season.series);
   const trackOptions = () => cats.map((c) => html`<optgroup label=${c.label}>
@@ -145,9 +150,10 @@ function CalendarEditor({ b, reload }) {
     const ok = await attempt(() => db.insert('races', {
       season_id: season.id, round, track_id: add.track_id, race_date: fromLocalInput(add.race_date),
       laps: add.laps ? Number(add.laps) : null, status: 'scheduled', counts: true, notes: '',
+      ...(lmu ? { weather: add.weather || null, game_time: add.game_time || null } : {}),
     }), `Dodano rundę ${round}`);
     if (ok) {
-      setAdd({ ...add, track_id: '', laps: '' });
+      setAdd({ ...add, track_id: '', laps: '', weather: '', game_time: '' });
       reload();
     }
   };
@@ -185,6 +191,12 @@ function CalendarEditor({ b, reload }) {
         </label>
         <label class="field"><span>Data i godzina</span><input type="datetime-local" value=${add.race_date} onInput=${(e) => setAdd({ ...add, race_date: e.target.value })} /></label>
         <label class="field"><span>Okrążenia</span><input type="number" min="1" value=${add.laps} onInput=${(e) => setAdd({ ...add, laps: e.target.value })} /></label>
+        ${lmu ? html`
+          <label class="field"><span>Pogoda w grze</span>
+            <select value=${add.weather} onChange=${(e) => setAdd({ ...add, weather: e.target.value })}>${weatherOptions()}</select>
+          </label>
+          <label class="field"><span>Pora dnia w grze (godzina startu)</span><input type="time" value=${add.game_time} onInput=${(e) => setAdd({ ...add, game_time: e.target.value })} /></label>
+          <p class="hint span2">Pogoda i pora dnia to ustawienia wyścigu w grze — nie mają związku z datą i godziną zawodów.</p>` : null}
       </div>
       <div class="form-actions">
         <button class="btn btn-accent">+ Dodaj rundę</button>
@@ -193,7 +205,7 @@ function CalendarEditor({ b, reload }) {
     </form>
 
     ${!races.length ? html`<p class="muted">Kalendarz jest pusty.</p>` : html`<div class="table-wrap"><table class="table edit-table">
-      <thead><tr><th class="c">Runda</th><th>Tor</th><th>Data</th><th class="c">Okr.</th><th class="c" title="Liczy się do klasyfikacji">Do klasyf.</th><th>Status</th><th class="r"></th></tr></thead>
+      <thead><tr><th class="c">Runda</th><th>Tor</th><th>Data</th><th class="c">Okr.</th>${lmu ? html`<th title="Ustawienie w grze">Pogoda (gra)</th><th title="Godzina startu w grze">Pora dnia (gra)</th>` : null}<th class="c" title="Liczy się do klasyfikacji">Do klasyf.</th><th>Status</th><th class="r"></th></tr></thead>
       <tbody>
         ${races.map((r, i) => html`<tr key=${r.id}>
           <td class="c"><b>${r.round}</b></td>
@@ -204,6 +216,9 @@ function CalendarEditor({ b, reload }) {
           </td>
           <td><input type="datetime-local" value=${toLocalInput(r.race_date)} onChange=${(e) => patch(r, { race_date: fromLocalInput(e.target.value) })} title=${formatDate(r.race_date)} /></td>
           <td class="c"><input class="w-num" type="number" min="1" value=${r.laps ?? ''} onChange=${(e) => patch(r, { laps: e.target.value ? Number(e.target.value) : null })} /></td>
+          ${lmu ? html`
+            <td><select value=${r.weather || ''} onChange=${(e) => patch(r, { weather: e.target.value || null })}>${weatherOptions()}</select></td>
+            <td><input type="time" value=${(r.game_time || '').slice(0, 5)} onChange=${(e) => patch(r, { game_time: e.target.value || null })} /></td>` : null}
           <td class="c"><input type="checkbox" checked=${r.counts !== false} onChange=${(e) => patch(r, { counts: e.target.checked })} /></td>
           <td>${r.status === 'completed' ? html`<span class="badge badge-ok">Zatwierdzony</span>` : html`<span class="badge">Zaplanowany</span>`}</td>
           <td class="r actions">

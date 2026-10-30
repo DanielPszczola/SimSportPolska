@@ -8,6 +8,7 @@
 // remove(table, id), removeWhere(table, eq)
 // uploadImage(blob, folder) -> publiczny URL obrazka
 // seasonBundle(seasonId | null, series) -> wszystkie dane sezonu jednym zapytaniem (albo null, gdy niedostępne)
+// rpc(name, args) -> wynik funkcji z bazy (np. discord_login)
 //
 // Po każdym zapisie wysyłane jest zdarzenie 'ssp-db-write' — czyści pamięć podręczną danych (ui.js).
 import { SUPABASE_URL, SUPABASE_ANON_KEY, loginToEmail } from './config.js';
@@ -36,11 +37,18 @@ const AUTH_ERRORS = {
 
 async function createSupabaseDb() {
   const { createClient } = await loadSupabaseLib();
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // PKCE: po logowaniu przez Discord wracamy z ?code=… w adresie (a nie w #), więc nie koliduje to z routerem strony
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { flowType: 'pkce' } });
   const check = ({ data, error }) => {
     if (error) throw new Error(error.message);
     return data;
   };
+  const params = new URLSearchParams(location.search);
+  if (params.has('code') || params.has('error')) {
+    await sb.auth.getSession(); // Supabase wymienia kod z Discorda na sesję
+    if (params.get('error_description')) sessionStorage.setItem('ssp_auth_error', params.get('error_description'));
+    history.replaceState(history.state, '', location.pathname + location.hash);
+  }
 
   return {
     mode: 'supabase',
@@ -83,6 +91,9 @@ async function createSupabaseDb() {
       }
       return data;
     },
+    async rpc(name, args = {}) {
+      return check(await sb.rpc(name, args));
+    },
     async uploadImage(blob, folder) {
       const ext = blob.type === 'image/png' ? 'png' : 'webp';
       const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -99,6 +110,19 @@ async function createSupabaseDb() {
         const { error } = await sb.auth.signInWithPassword({ email: loginToEmail(login), password });
         if (error) throw new Error(AUTH_ERRORS[error.message] || error.message);
       },
+      async signInWithDiscord() {
+        try { sessionStorage.setItem('ssp_return_hash', location.hash || '#/konto'); } catch { /* tryb prywatny */ }
+        const { error } = await sb.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: location.origin + location.pathname } });
+        if (error) throw new Error(error.message);
+      },
+      /** Adres (#…), na który wracamy po zalogowaniu przez Discord — jednorazowo. */
+      takeReturnHash() {
+        try {
+          const h = sessionStorage.getItem('ssp_return_hash');
+          sessionStorage.removeItem('ssp_return_hash');
+          return h;
+        } catch { return null; }
+      },
       async signOut() {
         await sb.auth.signOut();
       },
@@ -114,7 +138,7 @@ let bundleRpcMissing = false;
 
 /** Po każdym udanym zapisie powiadamiamy stronę, żeby wyczyściła pamięć podręczną danych. */
 function withWriteEvents(adapter) {
-  for (const m of ['insert', 'update', 'remove', 'removeWhere']) {
+  for (const m of ['insert', 'update', 'remove', 'removeWhere', 'rpc']) {
     const fn = adapter[m].bind(adapter);
     adapter[m] = async (...args) => {
       const r = await fn(...args);

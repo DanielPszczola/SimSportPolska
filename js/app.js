@@ -1,5 +1,6 @@
 import { html, render, useState, useEffect } from '../vendor/preact-htm.js';
 import { db } from './db.js';
+import { useSession, isDiscordUser, userLabel } from './session.js';
 import { Toasts } from './ui.js';
 import { LEAGUE_NAME } from './config.js';
 import { HomePage } from './pages/home.js';
@@ -7,6 +8,7 @@ import { F1Section, LmuSection } from './pages/league.js';
 import { DriverPage } from './pages/driver.js';
 import { HallOfFamePage } from './pages/halloffame.js';
 import { AdminPage } from './admin/admin.js';
+import { AccountPage } from './pages/account.js';
 
 function parseHash() {
   const h = location.hash.replace(/^#\/?/, '');
@@ -29,15 +31,10 @@ function useRoute() {
 
 function Header({ section }) {
   const [open, setOpen] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false);
+  const s = useSession();
   useEffect(() => setOpen(false), [section]);
-  // dyskretny link: „Zaloguj” dla gości, „Panel” po zalogowaniu (sprawdzane przy każdej zmianie sekcji)
-  useEffect(() => {
-    const check = () => db.auth.user().then((u) => setLoggedIn(!!u)).catch(() => setLoggedIn(false));
-    check();
-    window.addEventListener('ssp-auth', check); // zalogowanie / wylogowanie w panelu
-    return () => window.removeEventListener('ssp-auth', check);
-  }, [section]);
+  const discord = isDiscordUser(s.user);
+  const avatar = s.account?.avatar_url || s.user?.user_metadata?.avatar_url;
   const link = (href, id, label) => html`<a href=${href} class=${section === id ? 'active' : ''} onClick=${() => setOpen(false)}>${label}</a>`;
   return html`<header class="site-header">
     <div class="wrap header-inner">
@@ -48,7 +45,11 @@ function Header({ section }) {
         ${link('#/f1', 'f1', 'F1')}
         ${link('#/lmu', 'lmu', 'Le Mans Ultimate')}
         ${link('#/galeria', 'galeria', 'Galeria sław')}
-        <a href="#/admin" class=${`nav-admin ${section === 'admin' ? 'active' : ''}`} title="Panel administratora">${loggedIn ? 'Panel' : 'Zaloguj'}</a>
+        ${s.isAdmin ? html`<a href="#/admin" class=${`nav-admin ${section === 'admin' ? 'active' : ''}`} title="Panel administratora">Panel</a>` : null}
+        ${discord
+          ? html`<a href="#/konto" class=${`nav-user ${section === 'konto' ? 'active' : ''}`} title="Moje konto">
+              ${avatar ? html`<img src=${avatar} alt="" />` : null}<span>${userLabel(s.user, s.account)}</span></a>`
+          : !s.user ? html`<a href="#/konto" class=${`nav-admin ${section === 'konto' ? 'active' : ''}`} title="Zaloguj się">Zaloguj</a>` : null}
       </nav>
     </div>
   </header>`;
@@ -73,6 +74,7 @@ function App() {
   else if (section === 'kierowca') page = html`<${DriverPage} driverId=${rest[0]} />`;
   else if (section === 'galeria') page = html`<${HallOfFamePage} />`;
   else if (section === 'admin') page = html`<${AdminPage} parts=${rest} />`;
+  else if (section === 'konto') page = html`<${AccountPage} />`;
   else page = html`<div class="wrap page"><h1>404</h1><p>Nie ma takiej strony. <a href="#/">Wróć na start</a></p></div>`;
 
   return html`

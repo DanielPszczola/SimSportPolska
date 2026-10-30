@@ -9,8 +9,17 @@
 //                        Klucz jest publiczny i może być w repo — bezpieczeństwo zapewniają reguły RLS
 //                        z pliku supabase/schema.sql. NIGDY nie wpisuj tu klucza "Secret" / "service_role".
 //                        Uwaga: to nie jest identyfikator projektu (20 znaków z adresu).
-export const SUPABASE_URL = 'https://sdlkqrwxbqhvnxoflpjh.supabase.co';
-export const SUPABASE_ANON_KEY = 'sb_publishable_vP4XYKzoxGsTbifaHacRmQ_LdBdSkEn';
+const PROD_URL = 'https://sdlkqrwxbqhvnxoflpjh.supabase.co';
+const PROD_KEY = 'sb_publishable_vP4XYKzoxGsTbifaHacRmQ_LdBdSkEn';
+
+// Lokalny pre-prod (preprod.bat): na localhost plik js/config.local.js — jeśli istnieje — przełącza stronę
+// na lokalną bazę w Dockerze. Plik jest generowany automatycznie i nie trafia do repozytorium ani na serwer.
+const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname)
+  ? await import('./config.local.js').catch(() => null)
+  : null;
+
+export const SUPABASE_URL = LOCAL?.SUPABASE_URL ?? PROD_URL;
+export const SUPABASE_ANON_KEY = LOCAL?.SUPABASE_ANON_KEY ?? PROD_KEY;
 
 export const LEAGUE_NAME = 'Sim Sport Polska';
 

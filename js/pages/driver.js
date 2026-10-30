@@ -27,6 +27,7 @@ export function DriverPage({ driverId }) {
       <div class="wrap section-head-inner">
         <div class="section-title">
           <span class="series-chip admin">KIEROWCA</span>
+          ${driver?.avatar_url ? html`<img class="driver-avatar" src=${driver.avatar_url} alt="" />` : null}
           ${driver ? html`<${Flag} code=${driver.country_code} size=${32} />` : null}
           <h1>${driver?.number != null && driver?.number !== '' ? html`<span class="num big">${driver.number}</span> ` : null}${driver?.nick ?? 'Profil kierowcy'}</h1>
         </div>

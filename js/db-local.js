@@ -94,6 +94,9 @@ export function createLocalDb() {
         r.readAsDataURL(blob);
       });
     },
+    async rpc() {
+      throw new Error('Ta funkcja wymaga podłączenia Supabase (nie działa w trybie demo)');
+    },
     reset() {
       storage.del(KEY);
       storage.del(AUTH_KEY);
@@ -107,6 +110,12 @@ export function createLocalDb() {
       async signIn(login, password) {
         if (password !== 'admin') throw new Error('W trybie demo hasło to: admin');
         storage.set(AUTH_KEY, loginToEmail(login || 'admin'));
+      },
+      async signInWithDiscord() {
+        throw new Error('Logowanie przez Discord wymaga podłączenia Supabase (nie działa w trybie demo)');
+      },
+      takeReturnHash() {
+        return null;
       },
       async signOut() {
         storage.del(AUTH_KEY);
