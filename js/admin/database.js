@@ -11,7 +11,7 @@ const TABS = [
 ];
 
 // konta Discord (tabela z supabase/migrations/2026-10-30_discord.sql); bez niej / w demo — pusta lista
-const loadAccounts = () => (db.mode === 'demo' ? Promise.resolve({ rows: [], missing: true })
+const loadAccounts = (enabled = true) => (db.mode === 'demo' || !enabled ? Promise.resolve({ rows: [], missing: true })
   : db.list('discord_accounts', { order: ['created_at'] }).then((rows) => ({ rows }), () => ({ rows: [], missing: true })));
 
 /** Powiązanie konta Discord z kierowcą (funkcja discord_link w bazie; scala profil założony automatycznie). */
@@ -31,21 +31,23 @@ function DiscordChip({ acc }) {
   </span>`;
 }
 
-export function DatabaseAdmin({ tab }) {
-  const current = TABS.some(([id]) => id === tab) ? tab : 'tory';
+export function DatabaseAdmin({ tab, isAdmin = true }) {
+  // konta Discord (powiązania, scalanie kierowców) — tylko admin
+  const tabs = isAdmin ? TABS : TABS.filter(([id]) => id !== 'discord');
+  const current = tabs.some(([id]) => id === tab) ? tab : 'tory';
   return html`
     <div class="db-tabs">
-      ${TABS.map(([id, label]) => html`<a href=${`#/admin/baza/${id}`} class=${`btn btn-sm ${current === id ? 'btn-accent' : ''}`}>${label}</a>`)}
+      ${tabs.map(([id, label]) => html`<a href=${`#/admin/baza/${id}`} class=${`btn btn-sm ${current === id ? 'btn-accent' : ''}`}>${label}</a>`)}
     </div>
     ${current === 'tory' ? html`<${TracksAdmin} />` : null}
-    ${current === 'kierowcy' ? html`<${DriversCard} />` : null}
+    ${current === 'kierowcy' ? html`<${DriversCard} isAdmin=${isAdmin} />` : null}
     ${current === 'discord' ? html`<${DiscordCard} />` : null}
   `;
 }
 
-function DriversCard() {
+function DriversCard({ isAdmin }) {
   const data = useAsync(() => db.list('drivers', { order: ['nick'] }), []);
-  const accounts = useAsync(loadAccounts, []);
+  const accounts = useAsync(() => loadAccounts(isAdmin), [isAdmin]);
   const [nd, setNd] = useState({ nick: '', country_code: 'PL', number: '' });
   const [q, setQ] = useState('');
   if ((data.loading && !data.data) || (accounts.loading && !accounts.data)) return html`<${Loader} />`;

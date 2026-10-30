@@ -6,23 +6,27 @@ import { DiscordButton } from '../pages/account.js';
 import { SeriesAdmin } from './series.js';
 import { DatabaseAdmin } from './database.js';
 import { EnduranceAdmin } from './endurance.js';
+import { UsersAdmin, roleLabel } from './users.js';
+import { rolePerms } from '../session.js';
 
+// [id, nazwa, znaczek, dla kogo]: staff = admin i moderator (zarządzanie ligą), admin = tylko admin (rangi)
 const SECTIONS = [
-  ['f1', 'Formuła 1', 'F1'],
-  ['lmu', 'LMU Liga', 'LMU'],
-  ['endurance', 'LMU Endurance', 'END'],
-  ['baza', 'Baza danych', '🗂'],
+  ['f1', 'Formuła 1', 'F1', 'staff'],
+  ['lmu', 'LMU Liga', 'LMU', 'staff'],
+  ['endurance', 'LMU Endurance', 'END', 'staff'],
+  ['baza', 'Baza danych', '🗂', 'staff'],
+  ['uzytkownicy', 'Użytkownicy', '👥', 'admin'],
 ];
 
 export function AdminPage({ parts }) {
   const auth = useAsync(async () => {
     const user = await db.auth.user();
-    return { user, isAdmin: user ? await db.auth.isAdmin() : false };
+    return { user, ...rolePerms(user ? await db.auth.role() : null) };
   }, []);
 
   if (auth.loading) return html`<div class="wrap page"><${Loader} /></div>`;
   if (auth.error) return html`<div class="wrap page"><${ErrorBox} error=${auth.error} /></div>`;
-  const { user, isAdmin } = auth.data;
+  const { user, role, isAdmin, isStaff } = auth.data;
   if (!user) return html`<${Login} onDone=${auth.reload} />`;
 
   const logout = async () => {
@@ -31,33 +35,34 @@ export function AdminPage({ parts }) {
     auth.reload();
   };
 
-  if (!isAdmin) {
+  if (!isStaff) {
     return html`<div class="wrap page narrow">
       <div class="card">
         <h2>Brak uprawnień</h2>
-        <p>Jesteś zalogowany jako <b>${userLabel(user)}</b>, ale to konto nie jest administratorem.</p>
-        <p class="muted">Aby nadać uprawnienia, w Supabase → SQL Editor wykonaj:</p>
-        <pre class="code">insert into admins (user_id) values ('${user.id}');</pre>
+        <p>Jesteś zalogowany jako <b>${userLabel(user)}</b> z rangą <b>${roleLabel(role)}</b> — panel jest dostępny dla administratorów i moderatorów.</p>
+        <p class="muted">Rangę nadaje administrator w panelu (Użytkownicy).</p>
         <button class="btn" onClick=${logout}>Wyloguj</button>
       </div>
     </div>`;
   }
 
-  const section = SECTIONS.some(([id]) => id === parts[0]) ? parts[0] : 'f1';
+  const allowed = SECTIONS.filter(([, , , who]) => who === 'staff' || isAdmin);
+  const section = allowed.some(([id]) => id === parts[0]) ? parts[0] : 'f1';
   return html`<div class="admin">
     <div class="section-head">
       <div class="wrap section-head-inner">
         <div class="section-title"><span class="series-chip admin">ADMIN</span><h1>Panel administratora</h1></div>
-        <div class="admin-user"><span class="muted">${userLabel(user)}</span><button class="btn btn-sm" onClick=${logout}>Wyloguj</button></div>
+        <div class="admin-user"><span class="muted">${userLabel(user)} · <span class=${`role-badge role-${role}`}>${roleLabel(role)}</span></span><button class="btn btn-sm" onClick=${logout}>Wyloguj</button></div>
       </div>
       <nav class="wrap subnav admin-sections">
-        ${SECTIONS.map(([id, label, chip]) => html`<a href=${`#/admin/${id}`} class=${section === id ? 'active' : ''}>
+        ${allowed.map(([id, label, chip]) => html`<a href=${`#/admin/${id}`} class=${section === id ? 'active' : ''}>
           <span class=${`mini-chip mini-${id}`}>${chip}</span>${label}
         </a>`)}
       </nav>
     </div>
     <div class="wrap page">
-      ${section === 'baza' ? html`<${DatabaseAdmin} tab=${parts[1]} />`
+      ${section === 'baza' ? html`<${DatabaseAdmin} tab=${parts[1]} isAdmin=${isAdmin} />`
+        : section === 'uzytkownicy' ? html`<${UsersAdmin} me=${user.id} />`
         : section === 'endurance' ? html`<${EnduranceAdmin} tab=${parts[1]} />`
         : html`<${SeriesAdmin} key=${section} series=${section} parts=${parts} />`}
     </div>

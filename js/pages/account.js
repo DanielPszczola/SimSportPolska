@@ -2,6 +2,7 @@ import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, useAsync, Loader, attempt } from '../ui.js';
 import { useSession, setAccount, isDiscordUser, userLabel } from '../session.js';
+import { roleLabel } from '../admin/users.js';
 
 // Moje konto: logowanie przez Discord i powiązanie konta z profilem kierowcy.
 
@@ -56,9 +57,9 @@ function Guest() {
 function PasswordUser({ s }) {
   return html`<div class="card account-card">
     <h2>Konto administratora</h2>
-    <p>Jesteś zalogowany jako <b>${userLabel(s.user)}</b>.</p>
+    <p>Jesteś zalogowany jako <b>${userLabel(s.user)}</b> · <span class=${`role-badge role-${s.role}`}>${roleLabel(s.role)}</span></p>
     <div class="form-actions">
-      ${s.isAdmin ? html`<a class="btn btn-accent" href="#/admin">Panel administratora →</a>` : null}
+      ${s.isStaff ? html`<a class="btn btn-accent" href="#/admin">Panel administratora →</a>` : null}
       <button class="btn" onClick=${logout}>Wyloguj</button>
     </div>
   </div>`;
@@ -74,6 +75,7 @@ function DiscordAccount({ s }) {
       <div>
         <h2>${name}</h2>
         ${a.username ? html`<div class="muted small">Discord: @${a.username}</div>` : null}
+        <span class=${`role-badge role-${s.role}`}>${roleLabel(s.role)}</span>
       </div>
     </div>
 
@@ -100,7 +102,7 @@ function DiscordAccount({ s }) {
     ${a.status && a.status !== 'error' && !a.claim_driver_id && (a.status === 'unlinked' || a.auto_driver) ? html`<${ClaimForm} own=${a.driver_id} first=${a.status === 'unlinked'} />` : null}
 
     <div class="form-actions">
-      ${s.isAdmin ? html`<a class="btn btn-accent" href="#/admin">Panel administratora →</a>` : null}
+      ${s.isStaff ? html`<a class="btn btn-accent" href="#/admin">Panel administratora →</a>` : null}
       <span class="spacer"></span>
       <button class="btn" onClick=${logout}>Wyloguj</button>
     </div>

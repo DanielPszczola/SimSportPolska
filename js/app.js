@@ -45,7 +45,7 @@ function Header({ section }) {
         ${link('#/f1', 'f1', 'F1')}
         ${link('#/lmu', 'lmu', 'Le Mans Ultimate')}
         ${link('#/galeria', 'galeria', 'Galeria sław')}
-        ${s.isAdmin ? html`<a href="#/admin" class=${`nav-admin ${section === 'admin' ? 'active' : ''}`} title="Panel administratora">Panel</a>` : null}
+        ${s.isStaff ? html`<a href="#/admin" class=${`nav-admin ${section === 'admin' ? 'active' : ''}`} title="Panel administratora">Panel</a>` : null}
         ${discord
           ? html`<a href="#/konto" class=${`nav-user ${section === 'konto' ? 'active' : ''}`} title="Moje konto">
               ${avatar ? html`<img src=${avatar} alt="" />` : null}<span>${userLabel(s.user, s.account)}</span></a>`

@@ -5,7 +5,14 @@ import { useState, useEffect } from '../vendor/preact-htm.js';
 import { db } from './db.js';
 import { emailToLogin } from './config.js';
 
-const state = { ready: false, user: null, account: null, isAdmin: false };
+const state = { ready: false, user: null, account: null, role: null, isOwner: false, isAdmin: false, isStaff: false };
+
+/** Uprawnienia wynikające z rangi: konto główne > admin > moderator > użytkownik. */
+export function rolePerms(role) {
+  const isOwner = role === 'owner';
+  const isAdmin = isOwner || role === 'admin';
+  return { role, isOwner, isAdmin, isStaff: isAdmin || role === 'moderator' };
+}
 
 export const isDiscordUser = (u) => !!u && (u.app_metadata?.provider === 'discord' || (u.app_metadata?.providers || []).includes('discord'));
 
@@ -26,10 +33,10 @@ export async function refreshSession() {
       // utworzenie / odświeżenie konta i profilu kierowcy (funkcja discord_login w bazie)
       try { account = await db.rpc('discord_login'); } catch (e) { account = { status: 'error', error: e.message }; }
     }
-    const isAdmin = user ? await db.auth.isAdmin() : false;
-    Object.assign(state, { ready: true, user, account, isAdmin });
+    const role = user ? await db.auth.role() : null;
+    Object.assign(state, { ready: true, user, account, ...rolePerms(role) });
   } catch {
-    Object.assign(state, { ready: true, user: null, account: null, isAdmin: false });
+    Object.assign(state, { ready: true, user: null, account: null, ...rolePerms(null) });
   }
   emit();
   // powrót z Discorda: wracamy na stronę, z której kliknięto „Zaloguj przez Discord”

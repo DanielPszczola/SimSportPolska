@@ -130,6 +130,12 @@ async function createSupabaseDb() {
         const { data, error } = await sb.rpc('is_admin');
         return !error && data === true;
       },
+      /** 'owner' | 'admin' | 'moderator' | 'user' (funkcja my_role; bez niej — po staremu przez is_admin). */
+      async role() {
+        const { data, error } = await sb.rpc('my_role');
+        if (!error) return data || 'user';
+        return (await this.isAdmin()) ? 'admin' : 'user';
+      },
     },
   };
 }

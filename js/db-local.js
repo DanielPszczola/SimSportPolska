@@ -123,6 +123,9 @@ export function createLocalDb() {
       async isAdmin() {
         return !!storage.get(AUTH_KEY);
       },
+      async role() {
+        return storage.get(AUTH_KEY) ? 'owner' : null;
+      },
     },
   };
 }

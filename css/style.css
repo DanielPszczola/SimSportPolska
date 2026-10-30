@@ -742,6 +742,16 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
 .account-claim .inline-form { margin: 0; }
 .account-claim-toggle { align-self: flex-start; }
 .driver-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, .25); }
+.role-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .72rem; font-weight: 700; letter-spacing: .03em; border: 1px solid var(--line); background: var(--bg-2); color: var(--muted); white-space: nowrap; }
+.role-badge.role-owner { background: rgba(198, 244, 50, .15); border-color: var(--accent); color: var(--accent); }
+.role-badge.role-admin { background: rgba(232, 0, 45, .15); border-color: rgba(232, 0, 45, .6); color: #ff6b86; }
+.role-badge.role-moderator { background: rgba(59, 130, 246, .15); border-color: rgba(59, 130, 246, .6); color: #8ab4ff; }
+.roles-legend { list-style: none; padding: 0; margin: 0 0 8px; display: flex; flex-direction: column; gap: 6px; font-size: .9rem; }
+.role-select.role-admin { border-color: rgba(232, 0, 45, .6); }
+.role-select.role-moderator { border-color: rgba(59, 130, 246, .6); }
+.user-cell { display: flex; align-items: center; gap: 10px; }
+.user-cell img, .user-cell .dot { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none; }
+.user-cell .dot { display: inline-flex; align-items: center; justify-content: center; background: var(--bg-2); border: 1px solid var(--line); font-weight: 800; }
 .discord-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 2px; border-radius: 999px; background: rgba(88, 101, 242, .18); border: 1px solid rgba(88, 101, 242, .5); font-size: .8rem; white-space: nowrap; }
 .discord-chip img, .discord-chip .dot { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; background: #5865F2; }
 .discord-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }

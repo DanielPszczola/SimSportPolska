@@ -152,6 +152,19 @@ Kierowcy logują się kontem Discord (link **Zaloguj** w nagłówku → `#/konto
 Admin z kontem Discord: zaloguj się raz przez Discord, a potem w SQL Editor nadaj uprawnienia
 (`insert into admins (user_id) values ('<id z ekranu „Brak uprawnień”>');`).
 
+## Rangi użytkowników
+
+| Ranga | Dostęp |
+|---|---|
+| **Konto główne** (login `admin`, e-mail `admin@ssp.example.com`) | zawsze admin; jego rangi nie da się zmienić |
+| **Admin** | pełny dostęp: zarządzanie ligą + rangi użytkowników (*Panel → Użytkownicy*) + konta Discord |
+| **Moderator** | zarządzanie ligą: sezony, kalendarz, zespoły, składy, wyniki i czasy, kary, kierowcy, tory, Endurance, grafiki |
+| **Użytkownik** | domyślnie każde nowe konto (np. z Discorda) — bez dostępu do panelu |
+
+Rangi są sprawdzane w bazie (reguły RLS), a nie tylko na stronie — nie da się ich obejść z przeglądarki.
+Admin nie może zmienić własnej rangi ani rangi konta głównego, więc nikt przypadkiem nie odetnie wszystkich od panelu.
+Aktualizacja bazy: `supabase/migrations/2026-10-30_rangi.sql` (dotychczasowi admini z tabeli `admins` zostają adminami).
+
 ## Panel administratora (`#/admin`)
 
 Panel ma cztery zakładki: **Formuła 1**, **LMU Liga**, **LMU Endurance** i **Baza danych**. W bazie są tory i kierowcy,
