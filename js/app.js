@@ -71,7 +71,7 @@ function App() {
   if (!section) page = html`<${HomePage} />`;
   else if (section === 'f1') page = html`<${F1Section} parts=${rest} query=${query} />`;
   else if (section === 'lmu') page = html`<${LmuSection} parts=${rest} />`;
-  else if (section === 'kierowca') page = html`<${DriverPage} driverId=${rest[0]} />`;
+  else if (section === 'kierowca') page = html`<${DriverPage} driverId=${rest[0]} tab=${rest[1]} />`;
   else if (section === 'galeria') page = html`<${HallOfFamePage} />`;
   else if (section === 'admin') page = html`<${AdminPage} parts=${rest} />`;
   else if (section === 'konto') page = html`<${AccountPage} />`;

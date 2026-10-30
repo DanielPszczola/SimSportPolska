@@ -35,15 +35,10 @@ export function AdminPage({ parts }) {
     auth.reload();
   };
 
+  // zwykły użytkownik (np. po zalogowaniu przez Discord) nie widzi panelu — trafia na swoje konto
   if (!isStaff) {
-    return html`<div class="wrap page narrow">
-      <div class="card">
-        <h2>Brak uprawnień</h2>
-        <p>Jesteś zalogowany jako <b>${userLabel(user)}</b> z rangą <b>${roleLabel(role)}</b> — panel jest dostępny dla administratorów i moderatorów.</p>
-        <p class="muted">Rangę nadaje administrator w panelu (Użytkownicy).</p>
-        <button class="btn" onClick=${logout}>Wyloguj</button>
-      </div>
-    </div>`;
+    location.replace('#/konto');
+    return null;
   }
 
   const allowed = SECTIONS.filter(([, , , who]) => who === 'staff' || isAdmin);

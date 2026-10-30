@@ -48,8 +48,9 @@ Uwaga: plik `index.html` otwarty bezpośrednio z dysku (file://) nie zadziała. 
    insert into public.admins (user_id) values ('WKLEJ-UID');
    ```
    Kolejnych adminów dodajesz tak samo.
-6. **Authentication → Sign In / Providers**: wyłącz *Allow new users to sign up*, żeby nikt obcy nie zakładał kont.
-   Nawet bez tego obce konto nie mogłoby niczego zmienić, ale tak jest czyściej.
+6. **Authentication → Sign In / Providers**: zostaw **włączone** *Allow new users to sign up* — inaczej nowi kierowcy
+   nie zalogują się przez Discord („Signups not allowed for this instance”). Każde nowe konto ma rangę Użytkownik
+   (bez dostępu do panelu), więc obce konto niczego nie zmieni. Zostaw też włączone *Confirm email*.
 7. **Project Settings → API**: skopiuj *Project URL* i klucz *anon / publishable* do `js/config.js`:
    ```js
    export const SUPABASE_URL = 'https://xxxx.supabase.co';
@@ -149,8 +150,11 @@ Kierowcy logują się kontem Discord (link **Zaloguj** w nagłówku → `#/konto
 4. Supabase → *Authentication → URL Configuration*: **Site URL** = adres strony (np. `https://twoja-strona.vercel.app`),
    w **Redirect URLs** dodaj adres strony oraz `http://localhost:8000` (podgląd lokalny).
 
-Admin z kontem Discord: zaloguj się raz przez Discord, a potem w SQL Editor nadaj uprawnienia
-(`insert into admins (user_id) values ('<id z ekranu „Brak uprawnień”>');`).
+5. Supabase → *Authentication → Sign In / Providers*: *Allow new users to sign up* musi być **włączone** — każdy nowy
+   kierowca logujący się przez Discord to nowe konto w Supabase.
+
+Admin lub moderator z kontem Discord: niech zaloguje się raz przez Discord, a potem konto główne „admin” nada mu rangę
+w *Panel → Użytkownicy*.
 
 ## Rangi użytkowników
 
@@ -160,6 +164,9 @@ Admin z kontem Discord: zaloguj się raz przez Discord, a potem w SQL Editor nad
 | **Admin** | pełny dostęp: zarządzanie ligą + rangi użytkowników (*Panel → Użytkownicy*) + konta Discord |
 | **Moderator** | zarządzanie ligą: sezony, kalendarz, zespoły, składy, wyniki i czasy, kary, kierowcy, tory, Endurance, grafiki |
 | **Użytkownik** | domyślnie każde nowe konto (np. z Discorda) — bez dostępu do panelu |
+
+Do panelu wchodzisz adresem `https://<adres-strony>/#/admin`. Na stronie nie ma do niego linku dla gości, a przycisk *Panel*
+w nagłówku widzą tylko admini i moderatorzy. Zwykły użytkownik, który wpisze ten adres po zalogowaniu, trafia na swoje konto.
 
 Rangi są sprawdzane w bazie (reguły RLS), a nie tylko na stronie — nie da się ich obejść z przeglądarki.
 Admin nie może zmienić własnej rangi ani rangi konta głównego, więc nikt przypadkiem nie odetnie wszystkich od panelu.

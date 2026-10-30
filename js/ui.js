@@ -208,6 +208,26 @@ export function Empty({ children }) {
   return html`<div class="empty">${children}</div>`;
 }
 
+/** Czego brakuje w sezonie (pusty kalendarz / brak zespołów) — wtedy pokazujemy „Trwają prace nad sezonem”. */
+export function seasonGaps(b) {
+  return { calendar: !b?.races?.length, teams: !b?.teams?.length };
+}
+
+/** Opis do „Trwają prace nad sezonem”: co zostanie ogłoszone (kalendarz, zespoły / samochody). */
+export function wipText(series, { calendar = true, teams = true } = {}) {
+  const many = unit(series).many.toLowerCase();
+  if (calendar && teams) return `Kalendarz i ${many} zostaną ogłoszone wkrótce.`;
+  if (calendar) return 'Kalendarz zostanie ogłoszony wkrótce.';
+  return `${many[0].toUpperCase()}${many.slice(1)} zostaną ogłoszone wkrótce.`;
+}
+
+export function SeasonWip({ children, compact = false }) {
+  return html`<div class=${`season-wip ${compact ? 'compact' : ''}`}>
+    <span class="season-wip-icon" aria-hidden="true">🛠️</span>
+    <div><b>Trwają prace nad sezonem</b>${children ? html`<div class="muted">${children}</div>` : null}</div>
+  </div>`;
+}
+
 export function Tabs({ tabs, value, onChange }) {
   return html`<div class="tabs" role="tablist">
     ${tabs.map((t) => html`<button role="tab" aria-selected=${value === t.id} class=${value === t.id ? 'active' : ''} onClick=${() => onChange(t.id)}>${t.label}</button>`)}

@@ -1,7 +1,7 @@
 import { useMemo } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import {
-  html, seriesBase, unit, teamHref, teamListHref, useAsync, loadSeasonBundle, Flag, TeamTag, TeamLogo, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, roleInTeam, ROLE_LABEL,
+  html, seriesBase, unit, teamHref, teamListHref, useAsync, loadSeasonBundle, Flag, TeamTag, TeamLogo, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, seasonGaps, wipText, roleInTeam, ROLE_LABEL,
 } from '../ui.js';
 import { computeRace, computeStandings, carClass, teamPointsResolver } from '../scoring.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
@@ -57,7 +57,7 @@ export function TeamsGrid({ b }) {
   const st = useMemo(() => computeStandings(b), [b]);
   const stats = useMemo(() => teamDriverStats(b), [b]);
   const u = unit(b.season.series);
-  if (!b.teams.length) return html`<${Empty}>Brak: ${u.many.toLowerCase()} w tym sezonie nie zostały dodane.<//>`;
+  if (!b.teams.length) return html`<${SeasonWip}>${wipText(b.season.series, seasonGaps(b))}<//>`;
 
   // w lidze LMU nie ma klasyfikacji zespołów — bez pozycji i punktów zespołu
   const ranked = b.season.series === 'f1';

@@ -32,6 +32,7 @@ const IMAGE_BUCKET = 'images'; // Supabase Storage, tworzony w supabase/schema.s
 const AUTH_ERRORS = {
   'Invalid login credentials': 'Nieprawidłowy login lub hasło',
   'Email not confirmed': 'Konto nie jest potwierdzone. W Supabase: SQL Editor → update auth.users set email_confirmed_at = now() where email = \'<login>@<domena>\'; (albo załóż konto z „Auto Confirm User”)',
+  'Signups not allowed for this instance': 'Supabase nie pozwala zakładać nowych kont. Admin musi włączyć w Supabase → Authentication → Sign In / Providers opcję „Allow new users to sign up”',
   'Invalid API key': 'Nieprawidłowy klucz API w js/config.js — wklej klucz „Publishable” (sb_publishable_…) z Supabase → Project Settings → API Keys',
 };
 
@@ -44,10 +45,13 @@ async function createSupabaseDb() {
     return data;
   };
   const params = new URLSearchParams(location.search);
-  if (params.has('code') || params.has('error')) {
-    await sb.auth.getSession(); // Supabase wymienia kod z Discorda na sesję
-    if (params.get('error_description')) sessionStorage.setItem('ssp_auth_error', params.get('error_description'));
-    history.replaceState(history.state, '', location.pathname + location.hash);
+  // błąd logowania Supabase dopisuje też po # (#error=…) — router strony pokazałby wtedy 404
+  const hashError = /^#error/.test(location.hash) ? new URLSearchParams(location.hash.slice(1)) : null;
+  if (params.has('code') || params.has('error') || hashError) {
+    if (params.has('code')) await sb.auth.getSession(); // Supabase wymienia kod z Discorda na sesję
+    const err = params.get('error_description') || hashError?.get('error_description') || params.get('error') || hashError?.get('error');
+    if (err) sessionStorage.setItem('ssp_auth_error', AUTH_ERRORS[err] || err);
+    history.replaceState(history.state, '', location.pathname + (hashError ? '#/konto' : location.hash));
   }
 
   return {

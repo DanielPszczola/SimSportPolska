@@ -1,5 +1,5 @@
 import { useState, useMemo } from '../../vendor/preact-htm.js';
-import { html, useAsync, loadCurrentBundle, Loader, seriesBase, Flag, TeamTag, DriverLink, PosBadge, Countdown, formatDate, shortDate } from '../ui.js';
+import { html, useAsync, loadCurrentBundle, Loader, SeasonWip, seasonGaps, wipText, seriesBase, Flag, TeamTag, DriverLink, PosBadge, Countdown, formatDate, shortDate } from '../ui.js';
 import { computeStandings, carClass, seasonClasses } from '../scoring.js';
 import { classBundle } from './league.js';
 import { loadEndurance, ClassBadge } from './endurance.js';
@@ -30,9 +30,8 @@ export function HomePage() {
         </section>
         <section class="home-col">
           <div class="page-head"><h2>Bieżące sezony</h2></div>
-          ${d.f1 ? html`<${F1Results} b=${d.f1} />` : null}
-          ${d.lmu ? html`<${LmuResults} b=${d.lmu} />` : null}
-          ${!d.f1 && !d.lmu ? html`<div class="empty">Brak sezonów.</div>` : null}
+          ${isReady(d.f1) ? html`<${F1Results} b=${d.f1} />` : html`<${WipCard} series="f1" b=${d.f1} />`}
+          ${isReady(d.lmu) ? html`<${LmuResults} b=${d.lmu} />` : html`<${WipCard} series="lmu" b=${d.lmu} />`}
         </section>
       </div>` : null}
     </div>
@@ -83,7 +82,14 @@ function Upcoming({ d }) {
     }),
   ].sort((a, c) => (a.date ? new Date(a.date) : Infinity) - (c.date ? new Date(c.date) : Infinity)).slice(0, 10);
 
-  if (!items.length) return html`<div class="empty">Brak zaplanowanych wydarzeń.</div>`;
+  // ligi, których bieżący sezon nie ma jeszcze kalendarza
+  const wip = [['f1', 'Formuła 1'], ['lmu', 'Liga LMU']].filter(([s]) => seasonGaps(d[s]).calendar);
+  const wipNote = wip.length ? html`<p class="up-wip">🛠️ <b>${wip.map(([, l]) => l).join(' i ')}</b> — trwają prace nad sezonem, kalendarz wkrótce.</p>` : null;
+  if (!items.length) {
+    return wip.length
+      ? html`<${SeasonWip}>${wip.map(([, l]) => l).join(' i ')}: kalendarz wydarzeń zostanie ogłoszony wkrótce.<//>`
+      : html`<div class="empty">Brak zaplanowanych wydarzeń.</div>`;
+  }
   const TYPE = { f1: ['F1', 'Formuła 1'], lmu: ['LMU', 'Liga LMU'], end: ['END', 'Endurance'] };
   const first = items[0];
   const highlight = first.date && new Date(first.date) > new Date();
@@ -110,10 +116,29 @@ function Upcoming({ d }) {
         </a></li>`;
       })}
     </ul>
+    ${wipNote}
   `;
 }
 
 // ---------- wyniki bieżących sezonów ----------
+
+// sezon gotowy do pokazania wyników: jest kalendarz i zespoły / samochody
+const isReady = (b) => b && !seasonGaps(b).calendar && !seasonGaps(b).teams;
+
+const CARD_HEAD = { f1: ['', 'F1', 'Formuła 1'], lmu: ['lmu', 'LMU', 'Liga LMU'] };
+
+/** Karta ligi, której sezon jest dopiero przygotowywany (brak sezonu, kalendarza albo zespołów). */
+function WipCard({ series, b }) {
+  const [chipClass, chip, title] = CARD_HEAD[series];
+  return html`<div class="card home-card">
+    <div class="home-card-head">
+      <span class=${`series-chip ${chipClass}`}>${chip}</span>
+      <div><b>${title}</b>${b ? html` <span class="muted">· ${b.season.name}</span>` : null}</div>
+    </div>
+    <${SeasonWip} compact>${b ? wipText(series, seasonGaps(b)) : 'Szczegóły nowego sezonu zostaną ogłoszone wkrótce.'}<//>
+    <a class="more" href=${`${seriesBase(series)}/kalendarz`}>${series === 'f1' ? 'Sekcja F1' : 'Sekcja Liga LMU'} →</a>
+  </div>`;
+}
 
 function MiniStandings({ rows, empty }) {
   if (!rows.length) return html`<p class="muted small">${empty}</p>`;

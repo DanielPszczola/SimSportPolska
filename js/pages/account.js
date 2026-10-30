@@ -50,13 +50,12 @@ function Guest() {
     <p>Zaloguj się kontem Discord. Twoje konto zostanie powiązane z profilem kierowcy, a nick na stronie będzie zawsze taki jak na Discordzie.</p>
     ${db.mode === 'demo' ? html`<p class="hint warn">W trybie demo logowanie przez Discord nie działa — wymaga podłączenia Supabase.</p>` : null}
     <${DiscordButton} />
-    <a class="muted small account-admin-link" href="#/admin">Logowanie administratora (login i hasło) →</a>
   </div>`;
 }
 
 function PasswordUser({ s }) {
   return html`<div class="card account-card">
-    <h2>Konto administratora</h2>
+    <h2>${s.isStaff ? 'Konto administratora' : 'Twoje konto'}</h2>
     <p>Jesteś zalogowany jako <b>${userLabel(s.user)}</b> · <span class=${`role-badge role-${s.role}`}>${roleLabel(s.role)}</span></p>
     <div class="form-actions">
       ${s.isStaff ? html`<a class="btn btn-accent" href="#/admin">Panel administratora →</a>` : null}
@@ -75,7 +74,7 @@ function DiscordAccount({ s }) {
       <div>
         <h2>${name}</h2>
         ${a.username ? html`<div class="muted small">Discord: @${a.username}</div>` : null}
-        <span class=${`role-badge role-${s.role}`}>${roleLabel(s.role)}</span>
+        ${s.isStaff ? html`<span class=${`role-badge role-${s.role}`}>${roleLabel(s.role)}</span>` : null}
       </div>
     </div>
 

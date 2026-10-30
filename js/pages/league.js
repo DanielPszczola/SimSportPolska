@@ -1,13 +1,13 @@
 import { useState, useMemo, useRef, useEffect } from '../../vendor/preact-htm.js';
 import {
   html, useAsync, loadSeasonBundle, listSeasons, pickSeason, rememberSeason,
-  seriesBase, unit, Flag, TeamTag, DriverLink, PosBadge, Loader, ErrorBox, Empty, Tabs, Countdown, formatDate, shortDate, SeatCell, driverSeat, TrackMedia, VideoEmbed, youtubeId,
+  seriesBase, unit, Flag, TeamTag, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, seasonGaps, wipText, Tabs, Countdown, formatDate, shortDate, SeatCell, driverSeat, TrackMedia, VideoEmbed, youtubeId,
 } from '../ui.js';
 import { computeRace, computeStandings, penaltyLabel, formatDuration, resultClass, carClass, seasonClasses } from '../scoring.js';
 import { TeamsGrid, TeamPage } from './teams.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
 import { EnduranceSection } from './endurance.js';
-import { SERIES_INFO, SectionHead, LmuTopNav } from './section.js';
+import { SectionHead, LmuTopNav } from './section.js';
 import { RaceConditions } from '../race-conditions.js';
 
 
@@ -46,7 +46,6 @@ const baseOf = (b) => seriesBase(b.season.series);
 
 /** Sekcja ligi (F1 albo LMU): klasyfikacje, wyniki, kalendarz, zespoły; w LMU z podziałem na klasy. */
 export function LeagueSection({ series, parts, top }) {
-  const info = SERIES_INFO[series];
   const base = seriesBase(series);
   const seasons = useAsync(() => listSeasons(series), [series]);
   const [seasonId, setSeasonId] = useState(null);
@@ -68,7 +67,7 @@ export function LeagueSection({ series, parts, top }) {
   let body;
   if (seasons.loading || bundle.loading) body = html`<${Loader} />`;
   else if (seasons.error || bundle.error) body = html`<${ErrorBox} error=${seasons.error || bundle.error} />`;
-  else if (!season) body = html`<${Empty}>Nie utworzono jeszcze żadnego sezonu ${info.title}. Administrator może to zrobić w panelu admina.<//>`;
+  else if (!season) body = html`<${SeasonWip}>Szczegóły sezonu — kalendarz i składy — zostaną ogłoszone wkrótce.<//>`;
   else if (sub === 'klasyfikacja') body = html`<${Standings} b=${b} />`;
   else if (sub === 'wyniki') body = html`<${ResultsPage} b=${b} raceId=${arg} />`;
   else if (sub === 'kalendarz') body = html`<${Calendar} b=${b} focusId=${arg} />`;
@@ -134,6 +133,8 @@ function Standings({ b }) {
   const [tab, setTab] = useState('drivers');
   const st = useMemo(() => computeStandings(b), [b]);
   if (!st.races.length) {
+    const gaps = seasonGaps(b);
+    if (gaps.calendar || gaps.teams) return html`<${SeasonWip}>${wipText(b.season.series, gaps)}<//>`;
     return html`<${Empty}>Klasyfikacja pojawi się po pierwszym rozegranym wyścigu.<//>`;
   }
   return html`
@@ -275,6 +276,7 @@ function Matrix({ b, st }) {
 function ResultsPage({ b, raceId }) {
   const done = b.races.filter((r) => r.status === 'completed');
   const race = (raceId && b.races.find((r) => r.id === raceId)) || done[done.length - 1];
+  if (!race && !b.races.length) return html`<${SeasonWip}>${wipText(b.season.series, seasonGaps(b))}<//>`;
   if (!race) return html`<${Empty}>Żaden wyścig nie został jeszcze rozegrany.<//>`;
   const base = baseOf(b);
   return html`
@@ -416,7 +418,7 @@ function Calendar({ b, focusId }) {
     if (best !== active) setActive(best);
   };
 
-  if (!b.races.length) return html`<${Empty}>Kalendarz sezonu nie został jeszcze ułożony.<//>`;
+  if (!b.races.length) return html`<${SeasonWip}>${wipText(b.season.series, seasonGaps(b))}<//>`;
 
   return html`
     <div class="page-head">
