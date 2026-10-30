@@ -208,23 +208,14 @@ export function Empty({ children }) {
   return html`<div class="empty">${children}</div>`;
 }
 
-/** Czego brakuje w sezonie (pusty kalendarz / brak zespołów) — wtedy pokazujemy „Trwają prace nad sezonem”. */
-export function seasonGaps(b) {
-  return { calendar: !b?.races?.length, teams: !b?.teams?.length };
-}
+/** Sezon gotowy do pokazania: ma kalendarz i zespoły / samochody. Inaczej — „Trwają prace nad sezonem”. */
+export const seasonReady = (b) => !!(b?.races?.length && b?.teams?.length);
 
-/** Opis do „Trwają prace nad sezonem”: co zostanie ogłoszone (kalendarz, zespoły / samochody). */
-export function wipText(series, { calendar = true, teams = true } = {}) {
-  const many = unit(series).many.toLowerCase();
-  if (calendar && teams) return `Kalendarz i ${many} zostaną ogłoszone wkrótce.`;
-  if (calendar) return 'Kalendarz zostanie ogłoszony wkrótce.';
-  return `${many[0].toUpperCase()}${many.slice(1)} zostaną ogłoszone wkrótce.`;
-}
-
-export function SeasonWip({ children, compact = false }) {
+/** Ogólny komunikat dla odwiedzających — bez wyliczania, czego jeszcze brakuje. */
+export function SeasonWip({ compact = false }) {
   return html`<div class=${`season-wip ${compact ? 'compact' : ''}`}>
     <span class="season-wip-icon" aria-hidden="true">🛠️</span>
-    <div><b>Trwają prace nad sezonem</b>${children ? html`<div class="muted">${children}</div>` : null}</div>
+    <div><b>Trwają prace nad sezonem</b><div class="muted">Szczegóły zostaną ogłoszone wkrótce.</div></div>
   </div>`;
 }
 

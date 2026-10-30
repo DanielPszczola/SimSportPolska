@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from '../../vendor/preact-htm.js';
+import { useEffect, useRef } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, useAsync, cached, Loader, ErrorBox, Empty, Flag, DriverLink, Countdown, formatDate, VideoEmbed, youtubeId } from '../ui.js';
 import { carClass } from '../scoring.js';
@@ -46,7 +46,7 @@ export function EnduranceSection({ parts }) {
     body = html`
       <div class="page-head"><h2>${tab === 'kalendarz' ? 'Kalendarz wyścigów długodystansowych' : 'Wyniki wyścigów długodystansowych'}</h2></div>
       <p class="muted">Zespoły Sim Sport Polska w wyścigach długodystansowych Le Mans Ultimate — wszystkie auta jadą w barwach ligi.
-        Rozwiń event, aby zobaczyć nitkę toru i przejazd w klasie każdego zespołu.</p>
+        Przy każdym evencie znajdziesz nitkę toru, a w kafelku zespołu — film z przejazdu autem jego klasy.</p>
       ${list.length
         ? html`<div class="end-list">${list.map((ev) => html`<${EnduranceEvent} key=${ev.id} ev=${ev} d=${d} focused=${ev.id === focusId} />`)}</div>`
         : html`<${Empty}>${tab === 'kalendarz' ? 'Brak zaplanowanych wyścigów długodystansowych.' : 'Wyniki pojawią się po pierwszym zakończonym evencie.'}<//>`}
@@ -79,7 +79,17 @@ function CrewResult({ crew }) {
   </div>`;
 }
 
-export function CrewCard({ crew, d, showResult }) {
+/** Wersja toru dla klasy auta — każda klasa ma osobny wpis toru (własna nitka i film z przejazdu). */
+const trackFor = (d, base, cls) => (base && d.tracks.find((x) => x.name === base.name && x.category === cls)) || null;
+
+/** Jedna nitka toru dla eventu: tor przypisany do eventu, a gdy nie ma nitki — pierwsza wersja z nitką. */
+function eventLayout(d, ev) {
+  const base = d.trackById.get(ev.track_id);
+  if (!base || base.layout_url) return base || null;
+  return CLASS_ORDER.map((c) => trackFor(d, base, c)).find((t) => t?.layout_url) || base;
+}
+
+export function CrewCard({ crew, d, showResult, video }) {
   return html`<div class="crew-card" style=${{ '--cls': carClass(crew.car_class)?.color || 'var(--accent)' }}>
     <div class="crew-car">
       ${crew.car_image_url ? html`<img src=${crew.car_image_url} alt=${crew.car_model || crew.name} loading="lazy" />` : html`<div class="cal-nodata">Brak zdjęcia auta</div>`}
@@ -95,47 +105,22 @@ export function CrewCard({ crew, d, showResult }) {
         ${(crew.driver_ids || []).map((id) => html`<li><${DriverLink} driver=${d.driverById.get(id)} /></li>`)}
         ${!crew.driver_ids?.length ? html`<li class="muted">Skład do ustalenia</li>` : null}
       </ul>
+      ${youtubeId(video?.video_url) ? html`<div class="crew-video">
+        <span class="field-label">Przejazd${carClass(crew.car_class) ? ` — ${carClass(crew.car_class).label}` : ''}</span>
+        <${VideoEmbed} url=${video.video_url} title=${`${video.name}${carClass(crew.car_class) ? ` — ${carClass(crew.car_class).label}` : ''}`} />
+      </div>` : null}
       ${showResult ? html`<${CrewResult} crew=${crew} />` : null}
     </div>
   </div>`;
 }
 
-/** Szczegóły toru w wersji dla każdej klasy jadącej w evencie (każda klasa ma osobny wpis toru z własną nitką i filmem). */
-function TrackPerClass({ ev, crews, d }) {
-  const base = d.trackById.get(ev.track_id);
-  if (!base) return html`<p class="muted">Tor nie został jeszcze wybrany.</p>`;
-  const classes = CLASS_ORDER.filter((c) => crews.some((x) => x.car_class === c));
-  if (!classes.length) return html`<p class="muted">Szczegóły pojawią się po ogłoszeniu zespołów.</p>`;
-  return html`<div class="end-details-list">
-    ${classes.map((cls) => {
-      const t = d.tracks.find((x) => x.name === base.name && x.category === cls);
-      const teamNames = crews.filter((x) => x.car_class === cls).map((x) => x.name).join(', ');
-      return html`<div class="end-detail" style=${{ '--cls': carClass(cls)?.color }}>
-        <div class="end-detail-head"><${ClassBadge} id=${cls} /> <span class="muted">${teamNames}</span></div>
-        <div class="cal-tile-media">
-          <figure class="cal-media-box">
-            <figcaption>Nitka toru — ${carClass(cls)?.label}</figcaption>
-            ${t?.layout_url ? html`<div class="cal-layout-img"><img src=${t.layout_url} alt=${`Nitka toru ${t.name}`} loading="lazy" /></div>` : html`<div class="cal-nodata">Brak danych</div>`}
-          </figure>
-          <figure class="cal-media-box">
-            <figcaption>Przejazd — ${carClass(cls)?.label}</figcaption>
-            ${youtubeId(t?.video_url) ? html`<${VideoEmbed} url=${t.video_url} title=${`${t.name} — ${carClass(cls)?.label}`} />` : html`<div class="cal-nodata">Brak danych</div>`}
-          </figure>
-        </div>
-      </div>`;
-    })}
-  </div>`;
-}
-
 export function EnduranceEvent({ ev, d, focused = false }) {
-  const [open, setOpen] = useState(focused);
   const ref = useRef(null);
   useEffect(() => {
-    if (!focused) return;
-    setOpen(true);
-    ref.current?.scrollIntoView({ block: 'start' });
+    if (focused) ref.current?.scrollIntoView({ block: 'start' });
   }, [focused]);
   const track = d.trackById.get(ev.track_id);
+  const layout = eventLayout(d, ev);
   const crews = d.crewsOf(ev.id);
   const finished = ev.status === 'finished';
   const future = ev.start_at && new Date(ev.start_at) > new Date();
@@ -156,13 +141,17 @@ export function EnduranceEvent({ ev, d, focused = false }) {
       </div>
     </header>
     ${ev.notes ? html`<p class="muted end-notes">${ev.notes}</p>` : null}
-    <div class="crew-grid">
-      ${crews.map((c) => html`<${CrewCard} crew=${c} d=${d} showResult=${finished} />`)}
-      ${!crews.length ? html`<p class="muted">Zespoły zostaną ogłoszone wkrótce.</p>` : null}
+    <div class="end-body">
+      <figure class="end-layout">
+        <figcaption>Nitka toru${layout ? ` — ${layout.name}` : ''}</figcaption>
+        ${layout?.layout_url
+          ? html`<div class="end-layout-img"><img src=${layout.layout_url} alt=${`Nitka toru ${layout.name}`} loading="lazy" /></div>`
+          : html`<div class="cal-nodata">${layout ? 'Brak nitki toru' : 'Tor do ustalenia'}</div>`}
+      </figure>
+      <div class="crew-grid">
+        ${crews.map((c) => html`<${CrewCard} key=${c.id} crew=${c} d=${d} showResult=${finished} video=${trackFor(d, track, c.car_class)} />`)}
+        ${!crews.length ? html`<p class="muted">Zespoły zostaną ogłoszone wkrótce.</p>` : null}
+      </div>
     </div>
-    <button class="end-toggle" onClick=${() => setOpen(!open)} aria-expanded=${open}>
-      ${open ? '▲ Ukryj szczegóły toru' : '▼ Szczegóły: nitka toru i przejazd w klasie każdego zespołu'}
-    </button>
-    ${open ? html`<div class="end-details"><${TrackPerClass} ev=${ev} crews=${crews} d=${d} /></div>` : null}
   </article>`;
 }
