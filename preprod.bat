@@ -1,6 +1,6 @@
 @echo off
 rem Lokalny pre-prod: baza Supabase w Dockerze + podglad strony (http://localhost:8000).
-rem Uzycie: preprod.bat [start | stop | reset | status]  (bez parametru - menu)
+rem Uzycie: preprod.bat [start | stop | reset | status | login [owner|admin|moderator|user|guest]]  (bez parametru - menu)
 chcp 65001 >nul
 cd /d "%~dp0"
 
@@ -23,8 +23,10 @@ echo   1. Start  - baza w Dockerze + strona na http://localhost:8000
 echo   2. Stop   - zatrzymaj lokalna baze (dane zostaja)
 echo   3. Reset  - wyczysc LOKALNA baze i wgraj dane startowe od nowa
 echo   4. Status - adresy i klucze lokalnej bazy
+echo   5. Login  - otworz strone zalogowana jako: owner / admin / moderator / user / guest
 echo.
-choice /c 1234 /n /m "Wybierz [1-4]: "
+choice /c 12345 /n /m "Wybierz [1-5]: "
+if errorlevel 5 python tools\preprod.py login & goto :end
 if errorlevel 4 python tools\preprod.py status & goto :end
 if errorlevel 3 python tools\preprod.py reset & goto :end
 if errorlevel 2 python tools\preprod.py stop & goto :end

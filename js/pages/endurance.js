@@ -1,6 +1,6 @@
 import { useEffect, useRef } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, useAsync, cached, Loader, ErrorBox, Empty, Flag, DriverLink, Countdown, formatDate, VideoEmbed, youtubeId } from '../ui.js';
+import { html, useAsync, cached, Loader, ErrorBox, Empty, Flag, DriverLink, Countdown, formatDate, formatHours, VideoEmbed, youtubeId, timeState, LiveBadge } from '../ui.js';
 import { carClass } from '../scoring.js';
 import { SectionHead, LmuTopNav } from './section.js';
 
@@ -60,7 +60,7 @@ export function EnduranceSection({ parts }) {
   </div>`;
 }
 
-const hours = (h) => (h ? `${Number(h)} h` : null);
+const hours = (h) => (h ? formatHours(h) : null);
 
 export function ClassBadge({ id }) {
   const c = carClass(id);
@@ -124,10 +124,11 @@ export function EnduranceEvent({ ev, d, focused = false }) {
   const crews = d.crewsOf(ev.id);
   const finished = ev.status === 'finished';
   const future = ev.start_at && new Date(ev.start_at) > new Date();
+  const live = !finished && timeState(ev.start_at, (Number(ev.duration_hours) || 2) * 60) === 'live';
   return html`<article ref=${ref} class=${`end-event ${finished ? 'finished' : ''} ${focused ? 'focused' : ''}`} id=${`event-${ev.id}`}>
     <header class="end-head">
       <div>
-        <div class="eyebrow">${finished ? 'Zakończony' : 'Endurance'}${hours(ev.duration_hours) ? ` · ${hours(ev.duration_hours)}` : ''}</div>
+        <div class="eyebrow">${finished ? 'Zakończony' : live ? html`<${LiveBadge} />` : 'Endurance'}${hours(ev.duration_hours) ? ` · ${hours(ev.duration_hours)}` : ''}</div>
         <h3>${ev.name}</h3>
         <div class="end-meta">
           ${track ? html`<span><${Flag} code=${track.country_code} size=${18} /> ${track.name}</span>` : null}
@@ -137,7 +138,7 @@ export function EnduranceEvent({ ev, d, focused = false }) {
       </div>
       <div class="end-actions">
         ${!finished && future ? html`<${Countdown} to=${ev.start_at} />` : null}
-        ${ev.stream_url ? html`<a class="btn btn-accent" href=${ev.stream_url} target="_blank" rel="noopener">▶ ${finished ? 'Powtórka' : 'Oglądaj na żywo'}</a>` : null}
+        ${ev.stream_url ? html`<a class="btn btn-accent" href=${ev.stream_url} target="_blank" rel="noopener">▶ ${finished ? 'Powtórka' : live ? 'Oglądaj' : 'Oglądaj na żywo'}</a>` : null}
       </div>
     </header>
     ${ev.notes ? html`<p class="muted end-notes">${ev.notes}</p>` : null}

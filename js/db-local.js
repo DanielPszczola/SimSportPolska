@@ -2,7 +2,7 @@
 import { buildDemoData } from './demo-data.js';
 import { loginToEmail } from './config.js';
 
-const KEY = 'ssp_demo_db_v11'; // zmiana wersji = nowe dane demo
+const KEY = 'ssp_demo_db_v14'; // zmiana wersji = nowe dane demo
 const AUTH_KEY = 'ssp_demo_auth';
 
 const storage = {

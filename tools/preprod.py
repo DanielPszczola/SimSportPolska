@@ -5,6 +5,8 @@ Lokalny pre-prod: baza Supabase w Dockerze + podgląd strony. Uruchamiany przez 
     python tools/preprod.py stop     -> zatrzymuje lokalną bazę (dane zostają)
     python tools/preprod.py reset    -> czyści LOKALNĄ bazę i wgrywa dane startowe od nowa
     python tools/preprod.py status   -> adresy i klucze lokalnej bazy
+    python tools/preprod.py login [owner|admin|moderator|user|guest]
+                                     -> otwiera stronę zalogowaną jako wybrany typ użytkownika (konta testowe)
 
 Wymaga Docker Desktop. Supabase CLI pobiera się samo do tools/bin (bez Node.js).
 Produkcja nie jest tu w ogóle używana: projekt nie jest „podlinkowany” z Supabase w chmurze,
@@ -12,6 +14,7 @@ więc żadne polecenie z tego skryptu nie może zmienić danych na produkcji.
 """
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -27,6 +30,16 @@ BIN = ROOT / 'tools' / 'bin'
 LOCAL_CONFIG = ROOT / 'js' / 'config.local.js'
 CLI_URL = 'https://github.com/supabase/cli/releases/latest/download/supabase_windows_amd64.tar.gz'
 PORT = 8000
+
+# konta testowe lokalnej bazy (supabase/local/admin.sql i users.sql): typ -> (login, hasło, strona po zalogowaniu, opis)
+LOGINS = {
+    'owner': ('admin', 'admin', '#/admin', 'konto główne (pełny dostęp)'),
+    'admin': ('test-admin', 'test', '#/admin', 'administrator'),
+    'moderator': ('test-mod', 'test', '#/admin', 'moderator (bez rang i kont Discord)'),
+    'user': ('test-discord', 'test', '#/konto', 'zwykły użytkownik zalogowany przez Discord'),
+    'guest': (None, None, '#/', 'gość — wylogowany'),
+}
+LOCAL_SQL = [ROOT / 'supabase' / 'schema.sql', ROOT / 'supabase' / 'local' / 'admin.sql', ROOT / 'supabase' / 'local' / 'users.sql']
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
@@ -112,12 +125,30 @@ def write_local_config(env):
     key = env.get('PUBLISHABLE_KEY') or env.get('ANON_KEY')
     if not key:
         fail('Nie udało się odczytać klucza lokalnej bazy (supabase status).')
+    logins = ''.join(f"  {kind}: ['{login}', '{pw}', '{page}'],\n" for kind, (login, pw, page, _) in LOGINS.items() if login)
     LOCAL_CONFIG.write_text(
         "// Wygenerowane przez preprod.bat — strona uruchomiona LOKALNIE korzysta z LOKALNEJ bazy (Docker).\n"
         "// Plik nie trafia do repozytorium ani na serwer. Usuwa go „preprod.bat stop”.\n"
         f"export const SUPABASE_URL = '{url}';\n"
-        f"export const SUPABASE_ANON_KEY = '{key}';\n",
+        f"export const SUPABASE_ANON_KEY = '{key}';\n"
+        "// konta testowe lokalnej bazy — „preprod.bat login <typ>” otwiera #/preprod/<typ>\n"
+        f"export const PREPROD_LOGINS = {{\n{logins}}};\n",
         encoding='utf-8')
+
+
+def db_container():
+    m = re.search(r'^project_id\s*=\s*"([^"]+)"', (ROOT / 'supabase' / 'config.toml').read_text(encoding='utf-8'), re.M)
+    return f"supabase_db_{m.group(1) if m else ROOT.name}"
+
+
+def update_local_db():
+    """Aktualny schemat (supabase/schema.sql — niczego nie kasuje) i konta testowe w LOKALNEJ bazie (Docker)."""
+    for path in LOCAL_SQL:
+        r = subprocess.run(['docker', 'exec', '-i', '-e', 'PGOPTIONS=--client-min-messages=warning', db_container(),
+                            'psql', '-U', 'postgres', '-d', 'postgres', '-q', '-v', 'ON_ERROR_STOP=1'],
+                           input=path.read_bytes(), capture_output=True)
+        if r.returncode:
+            fail(f'Nie udało się wczytać {path.relative_to(ROOT)} do lokalnej bazy:\n{r.stderr.decode("utf-8", "replace")}')
 
 
 def info(env):
@@ -128,7 +159,10 @@ def info(env):
     say(f'  │ Strona (pre-prod):     http://localhost:{PORT}')
     say(f'  │ Panel bazy (Studio):   {studio}')
     say(f'  │ Poczta testowa:        {mail}')
-    say( '  │ Admin strony:          login admin / hasło admin')
+    say( '  │ Konta testowe (preprod.bat login <typ> loguje od razu):')
+    for kind, (login, pw, _, desc) in LOGINS.items():
+        if login:
+            say(f'  │   {kind:<10} {login} / {pw:<6} — {desc}')
     say( '  │ Dane: kopia startowa (sezony F1 z seed.sql) — produkcja nietknięta')
     say('  └──────────────────────────────────────────────────────────────')
     say()
@@ -145,13 +179,58 @@ def start():
     if not env:
         fail('Baza wystartowała, ale nie udało się odczytać jej adresu (supabase status).')
     write_local_config(env)
+    say('Aktualizuję lokalną bazę (schema.sql + konta testowe)…')
+    update_local_db()
     info(env)
+    serve(f'http://localhost:{PORT}')
+
+
+def site_running():
+    try:
+        urllib.request.urlopen(f'http://localhost:{PORT}/index.html', timeout=2)
+        return True
+    except Exception:
+        return False
+
+
+def serve(url):
+    """Otwiera przeglądarkę i uruchamia podgląd strony w tym oknie."""
     say('Strona działa w tym oknie — Ctrl+C zatrzymuje stronę (baza działa dalej; „preprod.bat stop” ją zatrzyma).')
-    threading.Timer(1.5, lambda: webbrowser.open(f'http://localhost:{PORT}')).start()
+    threading.Timer(1.5, lambda: webbrowser.open(url)).start()
     try:
         subprocess.call([sys.executable, str(ROOT / 'tools' / 'serve.py'), str(PORT)], cwd=ROOT)
     except KeyboardInterrupt:
         pass
+
+
+def login(kind=None):
+    if not kind:
+        say()
+        say('  Zaloguj na pre-prodzie jako:')
+        kinds = list(LOGINS)
+        for i, k in enumerate(kinds, 1):
+            say(f'   {i}. {k:<10} — {LOGINS[k][3]}')
+        pick = input(f'Wybierz [1-{len(kinds)}]: ').strip()
+        kind = kinds[int(pick) - 1] if pick.isdigit() and 1 <= int(pick) <= len(kinds) else pick
+    kind = {'mod': 'moderator', 'discord': 'user', 'uzytkownik': 'user', 'gosc': 'guest'}.get(kind, kind)
+    if kind not in LOGINS:
+        fail(f'Nieznany typ użytkownika: {kind}. Dostępne: {", ".join(LOGINS)}')
+    ensure_docker()
+    env = local_env()
+    if not env:
+        fail('Lokalna baza nie działa — uruchom najpierw: preprod.bat start')
+    write_local_config(env)
+    update_local_db()
+    url = f'http://localhost:{PORT}/#/preprod/{kind}'
+    login_name = LOGINS[kind][0]
+    say(f'Pre-prod: {kind} — {LOGINS[kind][3]}' + (f' (login {login_name})' if login_name else ''))
+    say(f'Adres: {url}')
+    say('Sesja jest wspólna dla kart tej przeglądarki. Dwóch użytkowników naraz: wklej adres w oknie prywatnym (Ctrl+Shift+N).')
+    if site_running():
+        webbrowser.open(url)
+    else:
+        say('Podgląd strony nie działa — uruchamiam go w tym oknie.')
+        serve(url)
 
 
 def stop():
@@ -183,4 +262,7 @@ def status():
 
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'start'
-    {'start': start, 'stop': stop, 'reset': reset, 'status': status}.get(cmd, lambda: fail(f'Nieznane polecenie: {cmd}'))()
+    if cmd == 'login':
+        login(sys.argv[2] if len(sys.argv) > 2 else None)
+    else:
+        {'start': start, 'stop': stop, 'reset': reset, 'status': status}.get(cmd, lambda: fail(f'Nieznane polecenie: {cmd}'))()

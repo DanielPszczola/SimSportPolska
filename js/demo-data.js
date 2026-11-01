@@ -21,18 +21,20 @@ export function buildDemoData(uid) {
 
   const f1Races = SEED.races.map(({ track_name, gp, ...r }) => stamp({ ...r, track_id: trackByName(track_name).id }));
   const lmu = buildLmuDemo({ uid, now, tracks, trackByName });
+  const other = buildOtherEventsDemo({ uid, now, tracks, trackByName, drivers: lmu.drivers });
 
   return {
     tracks,
-    seasons: [...SEED.seasons, lmu.season],
-    teams: [...SEED.teams.map(stamp), ...lmu.teams],
+    seasons: [...SEED.seasons, lmu.season, ...other.seasons],
+    teams: [...SEED.teams.map(stamp), ...lmu.teams, ...other.teams],
     drivers: [...SEED.drivers.map(stamp), ...lmu.drivers],
-    entries: [...SEED.entries.map(stamp), ...lmu.entries],
-    races: [...f1Races, ...lmu.races],
-    results: [...SEED.results.map(stamp), ...lmu.results],
+    entries: [...SEED.entries.map(stamp), ...lmu.entries, ...other.entries],
+    races: [...f1Races, ...lmu.races, ...other.races],
+    results: [...SEED.results.map(stamp), ...lmu.results, ...other.results],
     penalties: [],
     roster_changes: [],
     ...buildEnduranceDemo({ uid, now, trackByName, drivers: lmu.drivers }),
+    ...buildOtherDemo({ uid, now }),
   };
 }
 
@@ -131,5 +133,106 @@ function buildEnduranceDemo({ uid, now, trackByName, drivers }) {
       crew(lemans, 3, 'GT3', 'Ford Mustang GT3', ids('Demo_GT3', 'Demo_GT4')),
       crew(bahrain, 1, 'GT3', 'BMW M4 GT3', ids('Demo_GT1', 'Demo_GT2', 'Demo_GT4')),
     ],
+  };
+}
+
+// ---------- open lobby i ogłoszenia (fikcyjne) ----------
+
+function buildOtherDemo({ uid, now }) {
+  const hour = 3600000;
+  const iso = (offsetHours) => new Date(Date.now() + offsetHours * hour).toISOString();
+  const lobby = (title, game, cars, start, extra = {}) => ({
+    id: uid(), created_at: now, title, game, cars, start_at: start, duration_minutes: 120, description: '', status: 'auto',
+    youtube_url: null, twitch_url: null, tiktok_url: null, discord_url: null, ...extra,
+  });
+  return {
+    lobbies: [
+      lobby('Czwartkowe open lobby GT3', 'Le Mans Ultimate', 'GT3', iso(-0.5), {
+        description: 'Spa-Francorchamps, 3 × 30 minut. Wejście przez kanał głosowy na Discordzie.',
+        youtube_url: 'https://www.youtube.com/watch?v=4xDzrJKXOOY', twitch_url: 'https://www.twitch.tv/', discord_url: 'https://discord.com/',
+      }),
+      lobby('Niedzielne open lobby F1', 'F1 25', 'Dowolny zespół', iso(24 * 3 + 2), { twitch_url: 'https://www.twitch.tv/', tiktok_url: 'https://www.tiktok.com/' }),
+      lobby('Open lobby Hypercar', 'Le Mans Ultimate', 'Hypercar', iso(-24 * 7), { youtube_url: 'https://www.youtube.com/' }),
+    ],
+    posts: [
+      {
+        id: uid(), created_at: new Date(Date.now() - 2 * 86400000).toISOString(), title: 'Witamy na nowej stronie ligi!', image_url: 'assets/hero.jpg', pinned: true, author: 'admin',
+        body: 'Tutaj będą pojawiać się ogłoszenia ligi: zapisy na wydarzenia, zmiany w regulaminie i inne informacje.\nRegulamin i kalendarze znajdziecie w zakładkach F1 i Le Mans Ultimate.',
+      },
+      {
+        id: uid(), created_at: new Date(Date.now() - 5 * 86400000).toISOString(), title: 'Open lobby co czwartek', image_url: null, pinned: false, author: 'admin',
+        body: 'Od teraz w każdy czwartek o 20:00 zapraszamy na open lobby w Le Mans Ultimate. Szczegóły w zakładce Eventy → Open lobby.',
+      },
+    ],
+  };
+}
+
+// ---------- wydarzenia „Inne” (fikcyjne): seria F2 (zespoły) i pojedyncze wydarzenie z własnymi klasami (auta) ----------
+
+function buildOtherEventsDemo({ uid, now, tracks, trackByName, drivers }) {
+  const rand = rng(77);
+  const day = 86400000;
+  const at = (offsetDays) => {
+    const d = new Date(Date.now() + offsetDays * day);
+    d.setHours(20, 0, 0, 0);
+    return d.toISOString();
+  };
+  const seasonBase = { created_at: now, is_current: false, format: 'league', classes: ['HY', 'LMP', 'GT3'], fl_top10: true, pole_point: 0, finish_bonus: 0, team_points: 'final' };
+
+  // seria F2: 4 zespoły po 2 kierowców, 3 rundy (2 rozegrane)
+  const f2 = {
+    ...seasonBase, id: uid(), series: 'inne', name: 'Puchar F2 — jesień', points: DEFAULT_POINTS, fl_point: 1,
+    event_format: 'series', roster_mode: 'teams', class_defs: [{ id: 'F2', label: 'F2', color: '#0090d0' }],
+    description: 'Krótka seria w bolidach F2 — trzy rundy, klasyfikacja kierowców i zespołów.',
+  };
+  const f2Teams = [['Prema', '#e30613'], ['ART Grand Prix', '#9ca3af'], ['Hitech', '#f8fafc'], ['Campos', '#f59e0b']]
+    .map(([name, color]) => ({ id: uid(), created_at: now, season_id: f2.id, name, color, logo_url: '', car_url: '', car_class: null }));
+  const f2Drivers = drivers.slice(0, 8);
+  const f2Entries = f2Drivers.map((d, i) => ({ id: uid(), created_at: now, season_id: f2.id, driver_id: d.id, team_id: f2Teams[Math.floor(i / 2)].id, is_reserve: false }));
+  const f2Races = [['Monza', -14, 'completed'], ['Imola', -4, 'completed'], ['Silverstone', 6, 'scheduled']].map(([n, offset, status], i) => ({
+    id: uid(), created_at: now, season_id: f2.id, round: i + 1, track_id: trackByName(n, 'F1').id, race_date: at(offset),
+    laps: 20, status, counts: true, notes: '', kind: 'race', duration_minutes: 90,
+  }));
+  // runda 3 trwa właśnie teraz (od 20 minut), z transmisją — sekcja „Trwa teraz” na stronie głównej
+  Object.assign(f2Races[2], {
+    race_date: new Date(Date.now() - 20 * 60000).toISOString(),
+    youtube_url: 'https://www.youtube.com/live/4xDzrJKXOOY', twitch_url: 'https://www.twitch.tv/',
+  });
+  const results = [];
+  for (const race of f2Races.filter((r) => r.status === 'completed')) {
+    const track = tracks.find((t) => t.id === race.track_id);
+    const lapMs = (track.length_km / 0.062) * 1000;
+    let time = Math.round(race.laps * lapMs);
+    f2Entries.map((e) => ({ e, v: rand() })).sort((a, b) => b.v - a.v).forEach(({ e }, k) => {
+      if (k) time += Math.round(1500 + rand() * 9000);
+      results.push({
+        id: uid(), created_at: now, race_id: race.id, driver_id: e.driver_id, team_id: e.team_id, car_class: 'F2',
+        position: k + 1, grid: k + 1, status: 'FIN', laps_down: 0, time_ms: time, best_lap_ms: Math.round(lapMs * (0.96 + rand() * 0.02)),
+        fastest_lap: k === 2, pit_stops: 1,
+      });
+    });
+  }
+
+  // pojedyncze wydarzenie: własne klasy GT3 i GT4, auta z przypisanymi kierowcami
+  const cup = {
+    ...seasonBase, id: uid(), series: 'inne', name: 'Charytatywne 2h Spa', points: DEFAULT_POINTS, fl_point: 0,
+    event_format: 'single', roster_mode: 'cars',
+    class_defs: [{ id: 'GT3', label: 'GT3', color: '#f97316' }, { id: 'GT4', label: 'GT4', color: '#22c55e' }],
+    description: 'Jednorazowy wyścig dwóch klas — GT3 i GT4.',
+  };
+  const cupTeams = [['Porsche 911 GT3 R', '#d5001c', 'GT3'], ['BMW M4 GT3', '#1c69d4', 'GT3'], ['Aston Martin Vantage GT4', '#00665e', 'GT4'], ['Toyota GR Supra GT4', '#e5e7eb', 'GT4']]
+    .map(([name, color, car_class]) => ({ id: uid(), created_at: now, season_id: cup.id, name, color, logo_url: '', car_url: '', car_class }));
+  const cupEntries = drivers.slice(4, 12).map((d, i) => ({ id: uid(), created_at: now, season_id: cup.id, driver_id: d.id, team_id: cupTeams[Math.floor(i / 2)].id, is_reserve: false }));
+  const cupRace = {
+    id: uid(), created_at: now, season_id: cup.id, round: 1, track_id: trackByName('Spa-Francorchamps', 'GT3').id, race_date: at(9),
+    laps: null, status: 'scheduled', counts: true, notes: '', kind: 'race', weather: null, game_time: null,
+  };
+
+  return {
+    seasons: [f2, cup],
+    teams: [...f2Teams, ...cupTeams],
+    entries: [...f2Entries, ...cupEntries],
+    races: [...f2Races, cupRace],
+    results,
   };
 }

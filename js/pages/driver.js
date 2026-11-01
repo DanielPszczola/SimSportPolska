@@ -1,16 +1,18 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, seriesBase, unit, teamHref, useAsync, loadSeasonBundle, driverSeat, sessionLabel, Flag, TeamTag, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, formatDate } from '../ui.js';
-import { computeRaceByClass, computeStandings, CAR_CLASSES, carClass, isSprint } from '../scoring.js';
+import { html, seasonBase, seasonTeamHref, unit, useAsync, loadSeasonBundle, driverSeat, sessionLabel, Flag, TeamTag, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, formatDate, formatHours } from '../ui.js';
+import { computeRaceByClass, computeStandings, CAR_CLASSES, carClass, seasonStyle, isSprint } from '../scoring.js';
 import { classBundle } from './league.js';
 import { loadEndurance, ClassBadge as EndClassBadge } from './endurance.js';
 
-// Profil kierowcy — wspólny dla wszystkich serii: Liga F1, Liga LMU (podział na sezony i auta) oraz Endurance (przejazdy).
-// Adres: #/kierowca/<id>[/f1|lmu|endurance]
+// Profil kierowcy — wspólny dla wszystkich serii: Liga F1, Liga LMU (podział na sezony i auta), Inne (wydarzenia
+// i serie spoza lig) oraz Endurance (przejazdy).
+// Adres: #/kierowca/<id>[/f1|lmu|inne|endurance]
 
 const SERIES = [
   { id: 'f1', label: 'Liga F1', color: '#e10600' },
   { id: 'lmu', label: 'Liga LMU', color: '#0a6cff' },
+  { id: 'inne', label: 'Eventy', color: '#f97316' },
   { id: 'endurance', label: 'Endurance', color: 'var(--accent)' },
 ];
 
@@ -103,7 +105,7 @@ function seasonsOf(items, driverId) {
     const teamIds = [...new Set(list.map((h) => h.row.team_id).filter(Boolean))];
     const teams = teamIds.length ? teamIds.map((id) => b.teamById.get(id)).filter(Boolean) : [driverSeat(b, driverId).team].filter(Boolean);
     // miejsce w klasyfikacji (w LMU osobno w każdej klasie, w której jechał)
-    const classes = b.season.series === 'lmu' ? [...new Set(list.map((h) => h.row.carClass))] : [null];
+    const classes = seasonStyle(b.season) === 'lmu' ? [...new Set(list.map((h) => h.row.carClass))] : [null];
     const places = classes.map((cls) => {
       const st = computeStandings(classBundle(b, cls));
       const i = st.drivers.findIndex((x) => x.driver_id === driverId);
@@ -120,15 +122,17 @@ function Profile({ bundles, end, driverId, initial }) {
   const bySeries = {
     f1: history.filter((h) => h.b.season.series === 'f1'),
     lmu: history.filter((h) => h.b.season.series === 'lmu'),
+    inne: history.filter((h) => h.b.season.series === 'inne'),
   };
   const runs = collectRuns(end, driverId);
   const starts = (items) => items.filter((h) => !isSprint(h.race)).length; // sprinty nie są osobnymi startami
-  const count = { f1: starts(bySeries.f1), lmu: starts(bySeries.lmu), endurance: runs.length };
+  const count = { f1: starts(bySeries.f1), lmu: starts(bySeries.lmu), inne: starts(bySeries.inne), endurance: runs.length };
 
   // domyślnie seria z najświeższym startem
   const last = {
     f1: bySeries.f1.at(-1)?.race.race_date,
     lmu: bySeries.lmu.at(-1)?.race.race_date,
+    inne: bySeries.inne.at(-1)?.race.race_date,
     endurance: runs.find((r) => r.ev.status === 'finished')?.ev.start_at || runs[0]?.ev.start_at,
   };
   const fallback = SERIES.filter((x) => count[x.id]).sort((a, c) => new Date(last[c.id] || 0) - new Date(last[a.id] || 0))[0]?.id || 'f1';
@@ -184,30 +188,38 @@ const Place = ({ p, lmu }) => (p.pos
   ? html`<span class="season-place"><b>P${p.pos}</b>${lmu && p.cls ? html` <${ClassBadge} id=${p.cls} />` : null} <span class="muted">/ ${p.of}</span></span>`
   : html`<span class="muted">—</span>`);
 
-/** Liga F1 / Liga LMU: wszystkie sezony albo wybrany sezon (auto / zespół, statystyki, wyścigi). */
+// słownictwo zakładki: F1 — zespoły, LMU — auta, Inne — wydarzenia (zespoły albo auta, zależnie od wydarzenia)
+const WORDS = {
+  f1: { car: 'Zespół', seasons: 'Sezony', all: 'Wszystkie sezony', in: 'w sezonie' },
+  lmu: { car: 'Auto', seasons: 'Sezony', all: 'Wszystkie sezony', in: 'w sezonie' },
+  inne: { car: 'Zespół / auto', seasons: 'Wydarzenia', all: 'Wszystkie wydarzenia', in: 'w wydarzeniu' },
+};
+
+/** Liga F1 / Liga LMU / Inne: wszystkie sezony albo wybrany sezon (auto / zespół, statystyki, wyścigi). */
 function LeagueView({ series, items, driverId }) {
   const seasons = seasonsOf(items, driverId);
   const [sel, setSel] = useState(seasons[0]?.season.id || 'ALL');
-  const lmu = series === 'lmu';
-  const u = unit(series);
+  const lmu = series !== 'f1'; // podział na klasy (Inne: klasa = typ aut wydarzenia)
+  const u = { ...unit(series === 'inne' ? 'f1' : series), ...(series === 'inne' ? { profile: 'Szczegóły' } : {}) };
+  const w = WORDS[series];
   const current = seasons.find((x) => x.season.id === sel);
 
   return html`
     <div class="season-pills" role="tablist">
-      <button role="tab" aria-selected=${sel === 'ALL'} class=${`season-pill ${sel === 'ALL' ? 'active' : ''}`} onClick=${() => setSel('ALL')}>Wszystkie sezony</button>
+      <button role="tab" aria-selected=${sel === 'ALL'} class=${`season-pill ${sel === 'ALL' ? 'active' : ''}`} onClick=${() => setSel('ALL')}>${w.all}</button>
       ${seasons.map((x) => html`<button role="tab" aria-selected=${sel === x.season.id} class=${`season-pill ${sel === x.season.id ? 'active' : ''}`} onClick=${() => setSel(x.season.id)}>
         ${x.season.name}${x.season.is_current ? html` <span class="dot-live" title="Bieżący sezon"></span>` : null}
       </button>`)}
     </div>
 
-    ${current ? html`<${SeasonView} x=${current} lmu=${lmu} u=${u} />` : html`
+    ${current ? html`<${SeasonView} x=${current} lmu=${lmu} u=${u} w=${w} />` : html`
       <${StatGrid} s=${summarize(items)} />
       ${lmu ? html`<p class="hint">Pozycje, wygrane i podia liczone są w obrębie klasy.</p>` : null}
 
-      <h3>Sezony</h3>
+      <h3>${w.seasons}</h3>
       <div class="table-wrap"><table class="table table-click">
         <thead><tr>
-          <th>Sezon</th><th>${lmu ? 'Auto' : 'Zespół'}</th><th class="c">Miejsce</th><th class="c">Starty</th><th class="c">Wygr.</th><th class="c">Podia</th>
+          <th>${series === 'inne' ? 'Wydarzenie' : 'Sezon'}</th><th>${w.car}</th><th class="c">Miejsce</th><th class="c">Starty</th><th class="c">Wygr.</th><th class="c">Podia</th>
           <th class="c hide-sm">Pole</th><th class="c hide-sm">NO</th><th class="r">Pkt</th>
         </tr></thead>
         <tbody>
@@ -230,25 +242,28 @@ function LeagueView({ series, items, driverId }) {
   `;
 }
 
-function SeasonView({ x, lmu, u }) {
+function SeasonView({ x, lmu, u, w }) {
   const { b, season, teams, places, s } = x;
-  const base = seriesBase(season.series);
+  const base = seasonBase(season);
+  const word = season.series === 'inne' ? (seasonStyle(season) === 'lmu' ? 'Auto' : 'Zespół') : w.car;
   const many = teams.length > 1;
   return html`
     <div class="season-cars">
-      ${teams.map((t) => html`<a class="season-car" href=${teamHref(season.series, t.id)} style=${{ '--team': t.color || carClass(t.car_class)?.color || '#888' }}>
+      ${teams.map((t) => html`<a class="season-car" href=${seasonTeamHref(season, t.id)} style=${{ '--team': t.color || carClass(t.car_class)?.color || '#888' }}>
         <div class="season-car-img"><${TeamCar} team=${t} /></div>
         <div class="season-car-body">
-          <span class="field-label">${many ? (lmu ? 'Auto' : 'Zespół') : (lmu ? `Auto w sezonie ${season.name}` : `Zespół w sezonie ${season.name}`)}</span>
+          <span class="field-label">${many ? word : `${word} ${w.in} ${season.name}`}</span>
           <b>${t.name}</b>
           ${lmu && t.car_class ? html`<${ClassBadge} id=${t.car_class} long />` : null}
           <span class="muted small">${plural(x.items.filter((h) => h.row.team_id === t.id && !isSprint(h.race)).length, 'wyścig', 'wyścigi', 'wyścigów')} · ${u.profile} →</span>
         </div>
       </a>`)}
       <div class="season-place-card">
-        <span class="field-label">Klasyfikacja</span>
+        <span class="field-label">${season.event_format === 'single' ? 'Wynik' : 'Klasyfikacja'}</span>
         ${places.map((p) => html`<div><${Place} p=${p} lmu=${lmu} /></div>`)}
-        <a class="small" href=${`${base}/klasyfikacja`}>Pełna klasyfikacja →</a>
+        ${season.event_format === 'single'
+          ? html`<a class="small" href=${`${base}/wyniki`}>Pełne wyniki →</a>`
+          : html`<a class="small" href=${`${base}/klasyfikacja`}>Pełna klasyfikacja →</a>`}
       </div>
     </div>
 
@@ -258,7 +273,7 @@ function SeasonView({ x, lmu, u }) {
     <div class="table-wrap"><table class="table">
       <thead><tr>
         <th class="c">R</th><th class="hide-sm">Data</th><th>Tor</th>${lmu ? html`<th class="c">Klasa</th>` : null}
-        ${many || !lmu ? html`<th class="hide-sm">${lmu ? 'Auto' : 'Zespół'}</th>` : null}
+        ${many || !lmu ? html`<th class="hide-sm">${word}</th>` : null}
         <th class="c">Start</th><th class="c" title=${lmu ? 'Pozycja w klasie' : 'Pozycja na mecie'}>Meta</th><th class="r">Pkt</th>
       </tr></thead>
       <tbody>
@@ -269,7 +284,7 @@ function SeasonView({ x, lmu, u }) {
             <td class="muted hide-sm nowrap">${formatDate(race.race_date, false)}</td>
             <td><a href=${`${base}/wyniki/${race.id}`}><${Flag} code=${t?.country_code} size=${18} /> ${t?.name ?? '?'}</a>${isSprint(race) ? html` <span class="badge badge-sprint">Sprint</span>` : null}</td>
             ${lmu ? html`<td class="c"><${ClassBadge} id=${row.carClass} /></td>` : null}
-            ${many || !lmu ? html`<td class="hide-sm"><${TeamTag} team=${b.teamById.get(row.team_id)} base=${base} /></td>` : null}
+            ${many || !lmu ? html`<td class="hide-sm"><${TeamTag} team=${b.teamById.get(row.team_id)} season=${season} /></td>` : null}
             <td class="c">${row.grid || '—'}</td>
             <td class="c"><${PosBadge} pos=${row.classPos} status=${row.status} />${row.hasFastestLap ? html` <span class="badge badge-fl" title="Najszybsze okrążenie">NO</span>` : null}</td>
             <td class="r pts">${row.points}</td>
@@ -350,7 +365,7 @@ function EnduranceRuns({ runs, end, driverId }) {
       <div class="run-body">
         <div class="run-head">
           <a class="run-event" href=${`#/lmu/endurance/${finished ? 'wyniki' : 'kalendarz'}/${ev.id}`}>${ev.name}</a>
-          <span class="muted small">${ev.start_at ? formatDate(ev.start_at, false) : 'termin do ustalenia'}${ev.duration_hours ? ` · ${Number(ev.duration_hours)} h` : ''}</span>
+          <span class="muted small">${ev.start_at ? formatDate(ev.start_at, false) : 'termin do ustalenia'}${ev.duration_hours ? ` · ${formatHours(ev.duration_hours)}` : ''}</span>
         </div>
         ${track ? html`<div class="muted small"><${Flag} code=${track.country_code} size=${16} /> ${track.name}</div>` : null}
         <div class="run-crew">

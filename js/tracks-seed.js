@@ -10,8 +10,8 @@ export const TRACK_CATEGORIES = [
   { id: 'GT3', label: 'GT3', series: 'lmu' },
 ];
 
-/** Kategorie torów dostępne w danej serii (F1 -> F1, LMU -> HY/LMP/GT3). */
-export const categoriesForSeries = (series) => TRACK_CATEGORIES.filter((c) => c.series === series);
+/** Kategorie torów dostępne w danej serii (F1 -> F1, LMU -> HY/LMP/GT3, Inne -> wszystkie). */
+export const categoriesForSeries = (series) => (series === 'inne' ? TRACK_CATEGORIES : TRACK_CATEGORIES.filter((c) => c.series === series));
 
 // [nazwa, kraj, kod ISO, długość km, jest w F1 25, jest w Le Mans Ultimate]
 const BASE = [

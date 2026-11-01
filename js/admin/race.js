@@ -1,12 +1,12 @@
 import { useState, useMemo } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, unit, sessionLabel, Flag, TeamTag, TeamLogo, PosBadge, attempt, formatDate } from '../ui.js';
+import { html, seasonUnit, sessionLabel, Flag, TeamTag, PosBadge, attempt, formatDate, raceTimeState, DEFAULT_RACE_MINUTES, formatMinutes, STREAMS } from '../ui.js';
 import {
   computeRaceByClass, computeStandings, parseTime, formatDuration, penaltyLabel, carClass,
-  STATUSES, PENALTY_TYPES, CAR_CLASSES, LMU_CLASSES, seasonClasses, isSprint, SPRINT_POINTS,
+  STATUSES, PENALTY_TYPES, CAR_CLASSES, seasonClasses, seasonStyle, seasonCarType, isSprint, SPRINT_POINTS,
 } from '../scoring.js';
-import { lineupAt, teamSeats, reserveSeats } from '../lineup.js';
-import { StepBar, NextStep } from './common.js';
+import { lineupAt, teamSeats } from '../lineup.js';
+import { StepBar, NextStep, DurationInput } from './common.js';
 import { classBundle } from '../pages/league.js';
 
 // ---------- kafelek wyścigu ----------
@@ -16,19 +16,21 @@ export function RacePanel({ b, race, step, nav, reload }) {
   const results = b.results.filter((r) => r.race_id === race.id);
   const pens = b.penalties.filter((p) => p.race_id === race.id);
   const sprint = isSprint(race);
-  const changes = b.rosterChanges.filter((c) => c.from_round === race.round + 1);
   const idxInSeason = b.sessions.findIndex((r) => r.id === race.id);
   const unapprovedBefore = b.sessions.slice(0, idxInSeason).filter((r) => r.status !== 'completed');
   const done = race.status === 'completed';
 
+  const streams = STREAMS.filter(([k]) => race[k]).length;
+  const timing = raceTimeState(race);
   const steps = [
+    { id: 'przed', label: 'Przed wyścigiem', note: streams ? `${streams} ${streams === 1 ? 'transmisja' : 'transmisje'}` : 'transmisja, czas', state: streams ? 'done' : 'info' },
     { id: 'wyniki', label: 'Wyniki', note: results.length ? `${results.length} kierowców` : 'do wpisania', state: results.length ? 'done' : 'todo' },
     { id: 'kary', label: 'Kary', note: pens.length ? `${pens.length} decyzji` : 'brak kar', state: !results.length ? 'todo' : pens.length ? 'done' : 'info' },
-    // zmiany w składach wprowadza się po wyścigu głównym — w sprincie ten krok pomijamy
-    ...(sprint ? [] : [{ id: 'sklady', label: b.season.series === 'lmu' ? 'Zmiany aut' : 'Zmiany w składach', note: changes.length ? `${changes.length} od R${race.round + 1}` : 'bez zmian', state: changes.length ? 'done' : 'info' }]),
     { id: 'zatwierdzenie', label: 'Zatwierdzenie', note: done ? 'opublikowany' : 'nieopublikowany', state: done ? 'done' : 'todo' },
   ];
-  const current = steps.some((s) => s.id === step) ? step : !results.length ? 'wyniki' : done ? 'zatwierdzenie' : 'kary';
+  // przed startem — konfiguracja transmisji; w trakcie i po wyścigu — wyniki
+  const current = steps.some((s) => s.id === step) ? step
+    : !results.length ? (timing === 'upcoming' || timing === 'unscheduled' ? 'przed' : 'wyniki') : done ? 'zatwierdzenie' : 'kary';
   const idx = steps.findIndex((s) => s.id === current);
   const go = (id) => nav(race.id, id);
 
@@ -42,19 +44,50 @@ export function RacePanel({ b, race, step, nav, reload }) {
           <div class="muted">${formatDate(race.race_date)}${race.laps ? ` · ${race.laps} okr.` : ''}${race.counts === false ? ' · nie liczy się do klasyfikacji' : ''}</div>
         </div>
       </div>
-      <span class=${`tile-state ${done ? 'st-done' : results.length ? 'st-draft' : 'st-next'}`}>${done ? '✓ Zatwierdzony' : results.length ? 'Do zatwierdzenia' : 'Bez wyników'}</span>
+      <span class=${`tile-state ${done ? 'st-done' : results.length ? 'st-draft' : timing === 'live' ? 'st-live' : timing === 'over' ? 'st-over' : 'st-next'}`}>${done ? '✓ Zatwierdzony' : results.length ? 'Do zatwierdzenia' : timing === 'live' ? '🔴 Trwa' : timing === 'over' ? 'Czeka na wyniki' : 'Bez wyników'}</span>
     </div>
+    ${!done && timing === 'over' ? html`<p class="hint warn">Czas wyścigu minął — na stronie nie jest już „trwający”. Wpisz wyniki i zatwierdź je, żeby stały się oficjalne.</p>` : null}
     ${unapprovedBefore.length ? html`<p class="hint warn">Uwaga: niezatwierdzone wcześniejsze wyścigi: ${unapprovedBefore.map((r) => sessionLabel(r, true)).join(', ')}. Skład na ten wyścig może się jeszcze zmienić.</p>` : null}
-    ${sprint ? html`<p class="hint">Sprint: punkty ${SPRINT_POINTS.join('-')} dla pierwszej ósemki${b.season.series === 'lmu' ? ' w każdej klasie' : ''}, bez punktów za pole i najszybsze okrążenie. Kierowcy jadą w składzie z rundy ${race.round}.</p>` : null}
+    ${sprint ? html`<p class="hint">Sprint: punkty ${SPRINT_POINTS.join('-')} dla pierwszej ósemki${seasonClasses(b.season).length > 1 ? ' w każdej klasie' : ''}, bez punktów za pole i najszybsze okrążenie. Kierowcy jadą w składzie z rundy ${race.round}.</p>` : null}
     <${StepBar} steps=${steps} value=${current} onChange=${go} />
     <div class="panel-body">
+      ${current === 'przed' ? html`<${PreRace} key=${race.id} race=${race} reload=${reload} />` : null}
       ${current === 'wyniki' ? html`<${ResultsForm} key=${race.id + results.length} b=${b} race=${race} onSaved=${reload} />` : null}
       ${current === 'kary' ? html`<${RacePenalties} b=${b} race=${race} reload=${reload} />` : null}
-      ${current === 'sklady' ? html`<${RosterAfterRace} b=${b} race=${race} reload=${reload} />` : null}
       ${current === 'zatwierdzenie' ? html`<${RaceSummary} b=${b} race=${race} nav=${nav} reload=${reload} />` : null}
     </div>
     ${idx < steps.length - 1 ? html`<${NextStep} label=${`Dalej: ${steps[idx + 1].label}`} onClick=${() => go(steps[idx + 1].id)} />` : null}
   </section>`;
+}
+
+// ---------- krok 0: przed wyścigiem (transmisja, czas trwania) ----------
+
+const RACE_STREAMS = STREAMS.filter(([k]) => ['youtube_url', 'twitch_url', 'tiktok_url'].includes(k));
+
+function PreRace({ race, reload }) {
+  const patch = async (p) => (await attempt(() => db.update('races', race.id, p), 'Zapisano')) && reload();
+  const setLink = (key, v) => {
+    const url = v.trim();
+    if (url && !/^https?:\/\//i.test(url)) return alert('Podaj pełny adres, np. https://www.youtube.com/live/…');
+    return patch({ [key]: url || null });
+  };
+  const minutes = race.duration_minutes || DEFAULT_RACE_MINUTES;
+  const end = race.race_date ? new Date(new Date(race.race_date).getTime() + minutes * 60000) : null;
+  return html`
+    <h3>Przed wyścigiem</h3>
+    <p class="muted">W trakcie wyścigu (od startu przez podany czas) wyścig jest na stronie głównej w sekcji <b>„Trwa teraz”</b> —
+      z transmisją YouTube w tle i przyciskiem <b>„Oglądaj”</b>. Po tym czasie znika z „trwających”, ale wyniki i tak trzeba zatwierdzić.</p>
+    <div class="form-grid">
+      <label class="field"><span>Czas trwania</span>
+        <${DurationInput} value=${race.duration_minutes} placeholder=${DEFAULT_RACE_MINUTES} onChange=${(v) => patch({ duration_minutes: v })} />
+        <small class="muted">${race.race_date ? `Start ${formatDate(race.race_date)} · „trwa” do ${end.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}` : 'Ustaw datę wyścigu w kalendarzu'}${race.duration_minutes ? '' : ` (domyślnie ${formatMinutes(DEFAULT_RACE_MINUTES)})`}</small>
+      </label>
+      <div class="field"><span>Stan</span><b>${{ upcoming: 'Przed startem', unscheduled: 'Bez terminu', live: '🔴 Trwa teraz', over: 'Czas minął — czeka na wyniki', done: '✓ Zatwierdzony' }[raceTimeState(race)]}</b></div>
+      ${RACE_STREAMS.map(([key, label]) => html`<label class="field span2"><span>Transmisja ${label}</span>
+        <input value=${race[key] || ''} placeholder=${key === 'youtube_url' ? 'https://www.youtube.com/live/… (w tle kafelka na stronie głównej)' : 'https://…'} onChange=${(e) => setLink(key, e.target.value)} /></label>`)}
+    </div>
+    <p class="hint">YouTube: wklej link do konkretnej transmisji (…/live/<i>ID</i> albo watch?v=<i>ID</i>) — wtedy wideo jest tłem kafelka. Link do kanału zadziała tylko jako przycisk „Oglądaj”.</p>
+  `;
 }
 
 // ---------- krok 1: wyniki ----------
@@ -79,14 +112,16 @@ function rowsFromResults(results) {
 }
 
 /** Zamienia wiersze formularza na rekordy tabeli results (z walidacją). */
-function toRecords(rows, raceId, series) {
+function toRecords(rows, raceId, season) {
+  const multiClass = seasonStyle(season) === 'lmu';
+  const fixedClass = season.series === 'f1' ? 'F1' : seasonCarType(season);
   const used = new Set();
   let winnerMs = null;
   return rows.map((r, i) => {
     if (!r.driver_id) throw new Error(`Pozycja ${i + 1}: wybierz kierowcę`);
     if (used.has(r.driver_id)) throw new Error(`Pozycja ${i + 1}: kierowca występuje dwa razy`);
     used.add(r.driver_id);
-    if (series !== 'f1' && !r.car_class) throw new Error(`Pozycja ${i + 1}: wybierz klasę samochodu`);
+    if (multiClass && !r.car_class) throw new Error(`Pozycja ${i + 1}: wybierz klasę samochodu`);
 
     let time_ms = null;
     const t = String(r.time).trim();
@@ -110,7 +145,7 @@ function toRecords(rows, raceId, series) {
       race_id: raceId,
       driver_id: r.driver_id,
       team_id: r.team_id || null,
-      car_class: series === 'f1' ? 'F1' : r.car_class,
+      car_class: multiClass ? r.car_class : fixedClass,
       position: i + 1,
       grid: r.grid === '' ? null : Number(r.grid),
       status: r.status,
@@ -126,7 +161,7 @@ function toRecords(rows, raceId, series) {
 function ResultsForm({ b, race, onSaved }) {
   const existing = b.results.filter((r) => r.race_id === race.id);
   const seats = lineupAt(b.entries, b.rosterChanges, race.round); // skład obowiązujący w tej rundzie
-  const multiClass = b.season.series !== 'f1';
+  const multiClass = seasonStyle(b.season) === 'lmu';
   const classOptions = seasonClasses(b.season);
   // przy jednej klasie w sezonie ustawiamy ją automatycznie
   const teamClass = (teamId) => b.teamById.get(teamId)?.car_class || (classOptions.length === 1 ? classOptions[0] : '');
@@ -163,7 +198,7 @@ function ResultsForm({ b, race, onSaved }) {
 
   const preview = useMemo(() => {
     try {
-      const recs = toRecords(rows.filter((r) => r.driver_id), race.id, b.season.series).map((r, i) => ({ ...r, id: `tmp${i}` }));
+      const recs = toRecords(rows.filter((r) => r.driver_id), race.id, b.season).map((r, i) => ({ ...r, id: `tmp${i}` }));
       return { map: new Map(computeRaceByClass(race, b.season, recs, b.penalties).map((r) => [r.driver_id, r])) };
     } catch (e) {
       return { map: new Map(), error: e.message };
@@ -173,7 +208,7 @@ function ResultsForm({ b, race, onSaved }) {
   const save = async () => {
     let records;
     try {
-      records = toRecords(rows, race.id, b.season.series);
+      records = toRecords(rows, race.id, b.season);
     } catch (e) {
       return alert(e.message);
     }
@@ -223,7 +258,7 @@ function ResultsForm({ b, race, onSaved }) {
     <div class="table-wrap">
       <table class="table edit-table results-edit">
         <thead><tr>
-          <th class="c">Poz</th><th>Kierowca</th><th>${unit(b.season.series).one}</th>${multiClass ? html`<th>Klasa</th>` : null}<th class="c">Start</th><th>Status</th>
+          <th class="c">Poz</th><th>Kierowca</th><th>${seasonUnit(b.season).one}</th>${multiClass ? html`<th>Klasa</th>` : null}<th class="c">Start</th><th>Status</th>
           <th>Czas / strata</th><th class="c" title="Okrążenia straty do lidera">Okr.−</th><th>Najl. okr.</th><th class="c" title="Najszybsze okrążenie">NO</th><th class="c">Pit</th>
           <th class="r">Pkt</th><th></th>
         </tr></thead>
@@ -240,7 +275,7 @@ function ResultsForm({ b, race, onSaved }) {
               </select></td>
               ${multiClass ? html`<td><select value=${row.car_class} onChange=${(e) => setRow(i, { car_class: e.target.value })}>
                 <option value="">—</option>
-                ${LMU_CLASSES.filter((c) => classOptions.includes(c.id)).map((c) => html`<option value=${c.id}>${c.id}</option>`)}
+                ${classOptions.map((id) => html`<option value=${id}>${id}</option>`)}
               </select></td>` : null}
               <td class="c"><input class="w-num" type="number" min="1" value=${row.grid} onInput=${(e) => setRow(i, { grid: e.target.value })} /></td>
               <td><select value=${row.status} onChange=${(e) => setRow(i, { status: e.target.value })}>
@@ -311,7 +346,9 @@ function PasteImport({ b, seats, onImport }) {
         ...blankRow(),
         driver_id: d?.id || '',
         team_id: t?.id || seats.get(d?.id)?.team_id || '',
-        car_class: CLASS_ALIASES[(cls || '').trim().toUpperCase().replace(/\s/g, '')] || t?.car_class || '',
+        // klasy LMU po skrótach, własne klasy wydarzeń „Inne” po nazwie
+        car_class: CLASS_ALIASES[(cls || '').trim().toUpperCase().replace(/\s/g, '')]
+          || seasonClasses(b.season).find((c) => norm(c) === norm(cls || '')) || t?.car_class || '',
         grid: (grid || '').replace(/\D/g, ''),
         pit_stops: (pit || '').replace(/\D/g, ''),
         best_lap: best || '',
@@ -324,7 +361,7 @@ function PasteImport({ b, seats, onImport }) {
 
   return html`<div class="subform">
     <b>Wklej wyniki</b>
-    <p class="hint">Jedna linia = jeden kierowca, w kolejności na mecie: <code>Nick | ${unit(b.season.series).one} | P. startowa | Pit | Najlepsze okrążenie | Czas</code>${b.season.series !== 'f1' ? html` <code>| Klasa</code>` : null}<br />
+    <p class="hint">Jedna linia = jeden kierowca, w kolejności na mecie: <code>Nick | ${seasonUnit(b.season).one} | P. startowa | Pit | Najlepsze okrążenie | Czas</code>${seasonStyle(b.season) === 'lmu' ? html` <code>| Klasa</code>` : null}<br />
       W polu czasu można wpisać <code>DNF</code>, <code>DNS</code>, <code>DSQ</code>, <code>NC</code> albo <code>+1 okr</code>. Działa też wklejka z Excela.</p>
     <textarea rows="8" class="mono" value=${text} onInput=${(e) => setText(e.target.value)} placeholder=${'Kowal_Racing | McLaren | 2 | 1 | 1:31.204 | 1:28:33.412\nSzybki_Bill | Ferrari | 1 | 1 | 1:31.380 | +3.215'}></textarea>
     <div class="form-actions"><button class="btn btn-accent" onClick=${run} disabled=${busy || !text.trim()}>Wczytaj do formularza</button></div>
@@ -335,13 +372,14 @@ function PasteImport({ b, seats, onImport }) {
 
 const VALUE_LABEL = { time: 'Sekundy', points: 'Punkty', grid: 'Pozycje' };
 const classOrder = (c) => CAR_CLASSES.findIndex((x) => x.id === c);
-const byClass = (rows) => rows.sort((x, y) => classOrder(y.carClass) - classOrder(x.carClass));
+// własne klasy wydarzeń „Inne” nie są na liście — grupujemy je po nazwie
+const byClass = (rows) => rows.sort((x, y) => classOrder(y.carClass) - classOrder(x.carClass) || String(x.carClass ?? '').localeCompare(String(y.carClass ?? '')));
 
 function RacePenalties({ b, race, reload }) {
   const [f, setF] = useState({ driver_id: '', type: 'time', value: 5, reason: '' });
   const results = b.results.filter((r) => r.race_id === race.id);
   if (!results.length) return html`<div class="empty">Najpierw wpisz wyniki wyścigu (krok 1).</div>`;
-  const multiClass = b.season.series !== 'f1';
+  const multiClass = seasonStyle(b.season) === 'lmu';
   const racePens = b.penalties.filter((p) => p.race_id === race.id);
   const before = byClass(computeRaceByClass(race, b.season, b.results, []));
   const after = byClass(computeRaceByClass(race, b.season, b.results, b.penalties));
@@ -422,184 +460,21 @@ function RacePenalties({ b, race, reload }) {
   `;
 }
 
-// ---------- krok 3: zmiany w składach po wyścigu ----------
-
-/** Liga LMU: zmiana auta kierowcy od kolejnej rundy (bez limitu miejsc — jednym modelem jedzie dowolnie wielu kierowców). */
-function CarChangesAfterRace({ b, race, reload }) {
-  const nextRound = race.round + 1;
-  const nextRace = b.races.find((r) => r.round === nextRound);
-  const now = lineupAt(b.entries, b.rosterChanges, race.round);
-  const after = lineupAt(b.entries, b.rosterChanges, nextRound);
-  const myChanges = b.rosterChanges.filter((c) => c.from_round === nextRound);
-  const nick = (id) => b.driverById.get(id)?.nick ?? '?';
-  const carName = (id) => b.teamById.get(id)?.name ?? 'bez auta';
-  const classes = seasonClasses(b.season);
-  const drivers = [...after.values()].sort((x, y) => nick(x.driver_id).localeCompare(nick(y.driver_id)));
-
-  const change = async (driverId, carId) => {
-    const prev = after.get(driverId)?.team_id || null;
-    if ((carId || null) === prev) return;
-    // zmiana auta = wpis "wchodzi do auta"; zdjęcie z auta = wpis "schodzi z auta"
-    const row = carId
-      ? { team_id: carId, driver_in_id: driverId, driver_out_id: null }
-      : { team_id: prev, driver_in_id: null, driver_out_id: driverId };
-    if (await attempt(() => db.insert('roster_changes', { season_id: b.season.id, from_round: nextRound, note: '', ...row }),
-      `${nick(driverId)}: ${carName(carId)} od rundy ${nextRound}`)) reload();
-  };
-  const undo = async (c) => (await attempt(() => db.remove('roster_changes', c.id), 'Zmiana cofnięta')) && reload();
-
-  return html`
-    <p class="muted">Zmiany zapisane tutaj obowiązują <b>od rundy ${nextRound}</b>${nextRace ? html` (${b.trackById.get(nextRace.track_id)?.name})` : ' (po ostatnim wyścigu sezonu)'}.
-      Wyniki tego i wcześniejszych wyścigów zostają bez zmian.</p>
-    ${myChanges.length ? html`<h3>Zmiany po tym wyścigu</h3>
-      <ul class="roster-log">
-        ${myChanges.map((c) => html`<li>
-          <span class="roster-round">od R${c.from_round}</span>
-          <span>${c.driver_in_id ? html`<b class="in">${nick(c.driver_in_id)}</b> → ${carName(c.team_id)}` : html`<b class="out">${nick(c.driver_out_id)}</b> → bez auta`}</span>
-          <button class="btn btn-xs btn-danger" onClick=${() => undo(c)}>Cofnij</button>
-        </li>`)}
-      </ul>` : null}
-    <h3>Auta na rundę ${nextRound}</h3>
-    <div class="table-wrap"><table class="table edit-table">
-      <thead><tr><th>Kierowca</th><th>Auto w rundzie ${race.round}</th><th>Auto od rundy ${nextRound}</th></tr></thead>
-      <tbody>${drivers.map((s) => html`<tr class=${s.team_id !== (now.get(s.driver_id)?.team_id ?? null) ? 'row-changed' : ''}>
-        <td><b>${nick(s.driver_id)}</b></td>
-        <td class="muted">${carName(now.get(s.driver_id)?.team_id)}</td>
-        <td><select value=${s.team_id || ''} onChange=${(e) => change(s.driver_id, e.target.value)}>
-          <option value="">— bez auta —</option>
-          ${classes.map((cls) => html`<optgroup label=${carClass(cls)?.label}>${b.teams.filter((x) => x.car_class === cls).map((x) => html`<option value=${x.id}>${x.name}</option>`)}</optgroup>`)}
-        </select></td>
-      </tr>`)}</tbody>
-    </table></div>
-  `;
-}
-
-function RosterAfterRace({ b, race, reload }) {
-  if (b.season.series === 'lmu') return html`<${CarChangesAfterRace} b=${b} race=${race} reload=${reload} />`;
-  const nextRound = race.round + 1;
-  const nextRace = b.races.find((r) => r.round === nextRound);
-  const after = lineupAt(b.entries, b.rosterChanges, nextRound);
-  const myChanges = b.rosterChanges.filter((c) => c.from_round === nextRound);
-  const [edit, setEdit] = useState(null); // { team_id, out_id | null }
-  const [inId, setInId] = useState('');
-  const [note, setNote] = useState('');
-  const [newReserve, setNewReserve] = useState('');
-  const nick = (id) => b.driverById.get(id)?.nick ?? '?';
-  const teamName = (id) => b.teamById.get(id)?.name ?? '?';
-  const seatsPerTeam = Math.max(1, ...b.teams.map((t) => teamSeats(lineupAt(b.entries, [], 1), t.id).length));
-
-  const record = async (row, msg) => {
-    const ok = await attempt(() => db.insert('roster_changes', { season_id: b.season.id, from_round: nextRound, note: note.trim(), ...row }), msg);
-    if (ok) {
-      setEdit(null);
-      setInId('');
-      setNote('');
-      reload();
-    }
-  };
-  const confirmEdit = () => {
-    if (!inId) return;
-    record({ team_id: edit.team_id, driver_out_id: edit.out_id || null, driver_in_id: inId },
-      edit.out_id ? `${nick(inId)} za ${nick(edit.out_id)} w ${teamName(edit.team_id)} od R${nextRound}` : `${nick(inId)} dołącza do ${teamName(edit.team_id)} od R${nextRound}`);
-  };
-  const toReserve = (teamId, driverId) => {
-    if (!confirm(`${nick(driverId)} schodzi do rezerwy od rundy ${nextRound}? Jego dotychczasowe wyniki zostają.`)) return;
-    record({ team_id: teamId, driver_out_id: driverId, driver_in_id: null }, `${nick(driverId)} przechodzi do rezerwy od R${nextRound}`);
-  };
-  const undo = async (c) => {
-    if (await attempt(() => db.remove('roster_changes', c.id), 'Zmiana cofnięta — skład wrócił do poprzedniego stanu')) reload();
-  };
-  const addReserve = async (e) => {
-    e.preventDefault();
-    if (!newReserve) return;
-    if (await attempt(() => db.insert('entries', { season_id: b.season.id, driver_id: newReserve, team_id: null, is_reserve: true }), 'Dodano do rezerwy')) {
-      setNewReserve('');
-      reload();
-    }
-  };
-
-  const reserves = reserveSeats(after);
-  const candidates = edit ? [
-    ...reserves.map((s) => ({ id: s.driver_id, label: `${nick(s.driver_id)} — rezerwa` })),
-    ...[...after.values()].filter((s) => s.team_id && s.team_id !== edit.team_id).map((s) => ({ id: s.driver_id, label: `${nick(s.driver_id)} — transfer z ${teamName(s.team_id)}` })),
-  ] : [];
-  const outsiders = b.drivers.filter((d) => !after.has(d.id));
-
-  return html`
-    <p class="muted">Zmiany zapisane tutaj obowiązują <b>od rundy ${nextRound}</b>${nextRace ? html` (${b.trackById.get(nextRace.track_id)?.name})` : ' (po ostatnim wyścigu sezonu)'}.
-      Wyniki tego i wcześniejszych wyścigów zostają bez zmian: punkty zespołu zostają przy zespole, a punkty indywidualne przy kierowcy.</p>
-
-    ${myChanges.length ? html`<h3>Zmiany po tym wyścigu</h3>
-      <ul class="roster-log">
-        ${myChanges.map((c) => html`<li>
-          <span class="roster-round">od R${c.from_round}</span>
-          <span><b>${teamName(c.team_id)}</b>:
-            ${c.driver_in_id ? html`<b class="in">▲ ${nick(c.driver_in_id)}</b>` : null}
-            ${c.driver_in_id && c.driver_out_id ? ' za ' : ''}
-            ${c.driver_out_id ? html`<b class="out">▼ ${nick(c.driver_out_id)}</b>${c.driver_in_id ? '' : ' → rezerwa'}` : null}
-          </span>
-          ${c.note ? html`<span class="muted">${c.note}</span>` : null}
-          <button class="btn btn-xs btn-danger" onClick=${() => undo(c)}>Cofnij</button>
-        </li>`)}
-      </ul>` : null}
-
-    <h3>Skład na rundę ${nextRound}</h3>
-    <div class="lineup-grid">
-      ${b.teams.map((t) => {
-        const ts = teamSeats(after, t.id);
-        return html`<div class="lineup-team" style=${{ '--team': t.color || '#888' }}>
-          <div class="lineup-team-head"><${TeamLogo} team=${t} size=${28} /> <b>${t.name}</b></div>
-          <ul>
-            ${ts.map((s) => html`<li>
-              <span class="lineup-driver">${myChanges.some((c) => c.driver_in_id === s.driver_id) ? html`<b class="in">▲</b>` : null} ${nick(s.driver_id)}</span>
-              <button class="btn btn-xs icon-btn" onClick=${() => { setEdit({ team_id: t.id, out_id: s.driver_id }); setInId(''); }} title="Zamień kierowcę" aria-label="Zamień kierowcę">⇄</button>
-              <button class="btn btn-xs icon-btn" onClick=${() => toReserve(t.id, s.driver_id)} title="Przenieś do rezerwy" aria-label="Przenieś do rezerwy">⤓ R</button>
-            </li>`)}
-          </ul>
-          ${ts.length < seatsPerTeam ? html`<button class="btn btn-xs btn-accent" onClick=${() => { setEdit({ team_id: t.id, out_id: null }); setInId(''); }}>+ Wolne miejsce — dodaj kierowcę</button>` : null}
-          ${edit?.team_id === t.id ? html`<div class="swap-box">
-            <b>${edit.out_id ? `Za: ${nick(edit.out_id)}` : 'Nowy kierowca'}</b>
-            <select value=${inId} onChange=${(e) => setInId(e.target.value)}>
-              <option value="">— kto wchodzi? —</option>
-              ${candidates.map((c) => html`<option value=${c.id}>${c.label}</option>`)}
-              ${outsiders.length ? html`<optgroup label="Spoza składu sezonu">${outsiders.map((d) => html`<option value=${d.id}>${d.nick}</option>`)}</optgroup>` : null}
-            </select>
-            <input placeholder="Powód (opcjonalnie, widoczny publicznie)" value=${note} onInput=${(e) => setNote(e.target.value)} />
-            <div class="form-actions">
-              <button class="btn btn-sm btn-accent" onClick=${confirmEdit} disabled=${!inId}>Zapisz zmianę</button>
-              <button class="btn btn-sm" onClick=${() => setEdit(null)}>Anuluj</button>
-            </div>
-          </div>` : null}
-        </div>`;
-      })}
-      <div class="lineup-team lineup-reserve">
-        <div class="lineup-team-head"><span class="badge badge-reserve">Rezerwa</span> <b>${reserves.length}</b></div>
-        <ul>${reserves.map((s) => html`<li><span class="lineup-driver">${myChanges.some((c) => c.driver_out_id === s.driver_id) ? html`<b class="out">▼</b>` : null} ${nick(s.driver_id)}</span></li>`)}</ul>
-        <form class="inline-form" onSubmit=${addReserve}>
-          <select value=${newReserve} onChange=${(e) => setNewReserve(e.target.value)}>
-            <option value="">— dodaj kierowcę do rezerwy —</option>
-            ${outsiders.map((d) => html`<option value=${d.id}>${d.nick}</option>`)}
-          </select>
-          <button class="btn btn-xs" disabled=${!newReserve}>+ Dodaj</button>
-        </form>
-      </div>
-    </div>
-  `;
-}
-
-// ---------- krok 4: podsumowanie i zatwierdzenie ----------
+// ---------- krok 3: podsumowanie i zatwierdzenie ----------
 
 function RaceSummary({ b, race, nav, reload }) {
   const results = b.results.filter((r) => r.race_id === race.id);
   const pens = b.penalties.filter((p) => p.race_id === race.id);
   const sprint = isSprint(race);
+  // zmiany w składach od kolejnej rundy — robi się je w kafelku „Składy”
+  const hasNextRound = !sprint && b.races.some((r) => r.round === race.round + 1);
   const changes = b.rosterChanges.filter((c) => c.from_round === race.round + 1);
   const done = race.status === 'completed';
   const idx = b.sessions.findIndex((r) => r.id === race.id);
   const next = b.sessions[idx + 1] || null; // po sprincie — wyścig główny tej rundy
   const nextName = (r) => (isSprint(r) ? `sprintu rundy ${r.round}` : `rundy ${r.round}`);
   const thisName = sprint ? `sprint rundy ${race.round}` : `rundę ${race.round}`;
-  const multiClass = b.season.series !== 'f1';
+  const multiClass = seasonStyle(b.season) === 'lmu';
   const nick = (id) => b.driverById.get(id)?.nick ?? '?';
 
   const rows = byClass(computeRaceByClass(race, b.season, b.results, b.penalties));
@@ -625,7 +500,7 @@ function RaceSummary({ b, race, nav, reload }) {
     <div class="checklist">
       <div class=${results.length ? 'ok' : 'bad'}>${results.length ? '✓' : '✕'} Wyniki: ${results.length} kierowców</div>
       <div class="ok">⚖️ Kary: ${pens.length || 'brak'}</div>
-      ${sprint ? null : html`<div class="ok">🔁 Zmiany w składzie od R${race.round + 1}: ${changes.length || 'brak'}</div>`}
+      ${hasNextRound ? html`<div class="ok">🔁 Zmiany w składzie od R${race.round + 1}: ${changes.length || 'brak'} <button type="button" class="btn btn-xs" onClick=${() => nav('sklady', String(race.round + 1))}>Składy →</button></div>` : null}
     </div>
 
     ${!results.length ? html`<div class="empty">Bez wyników nie można zatwierdzić wyścigu.</div>` : html`
@@ -633,7 +508,7 @@ function RaceSummary({ b, race, nav, reload }) {
         <div>
           <h3>Wynik końcowy (po karach)</h3>
           <div class="table-wrap"><table class="table">
-            <thead><tr>${multiClass ? html`<th>Kl.</th>` : null}<th class="c">Poz</th><th>Kierowca</th><th>${unit(b.season.series).one}</th><th class="r">Pkt</th></tr></thead>
+            <thead><tr>${multiClass ? html`<th>Kl.</th>` : null}<th class="c">Poz</th><th>Kierowca</th><th>${seasonUnit(b.season).one}</th><th class="r">Pkt</th></tr></thead>
             <tbody>${rows.map((r) => html`<tr>
               ${multiClass ? html`<td>${r.carClass}</td>` : null}
               <td class="c"><${PosBadge} pos=${r.finalPos} status=${r.status} /></td>

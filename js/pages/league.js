@@ -1,22 +1,23 @@
 import { useState, useMemo, useRef, useEffect } from '../../vendor/preact-htm.js';
 import {
   html, useAsync, loadSeasonBundle, listSeasons, pickSeason, rememberSeason,
-  seriesBase, unit, Flag, TeamTag, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, seasonReady, sprintOf, sessionLabel, Tabs, Countdown, formatDate, shortDate, SeatCell, driverSeat, TrackMedia, VideoEmbed, youtubeId,
+  seriesBase, seasonBase, seasonUnit, raceTimeState, StreamLinks, LiveBadge, Flag, TeamTag, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, seasonReady, sprintOf, sessionLabel, Tabs, Countdown, formatDate, shortDate, SeatCell, driverSeat, TrackMedia, VideoEmbed, youtubeId,
 } from '../ui.js';
-import { computeRace, computeStandings, penaltyLabel, formatDuration, resultClass, carClass, seasonClasses, isSprint, SPRINT_POINTS } from '../scoring.js';
+import { computeRace, computeStandings, penaltyLabel, formatDuration, resultClass, carClass, seasonClasses, seasonStyle, isSprint, SPRINT_POINTS } from '../scoring.js';
 import { TeamsGrid, TeamPage } from './teams.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
 import { EnduranceSection } from './endurance.js';
 import { SectionHead, LmuTopNav } from './section.js';
 import { RaceConditions } from '../race-conditions.js';
+import { DotdButton, DotdResult, loadDotd } from './dotd.js';
 
 
-const subnavFor = (series) => [
-  ['klasyfikacja', 'Klasyfikacja'],
-  ['wyniki', 'Wyniki'],
-  ['kalendarz', 'Kalendarz'],
-  [unit(series).listPath, unit(series).many], // F1: Zespoły, LMU: Samochody
-];
+// F1: Zespoły, LMU: Samochody; pojedyncze wydarzenie („Inne”): bez klasyfikacji, kalendarz = strona wydarzenia
+function subnavFor(season) {
+  const u = seasonUnit(season);
+  if (season?.event_format === 'single') return [['kalendarz', 'Wydarzenie'], ['wyniki', 'Wyniki'], [u.listPath, u.many]];
+  return [['klasyfikacja', 'Klasyfikacja'], ['wyniki', 'Wyniki'], ['kalendarz', 'Kalendarz'], [u.listPath, u.many]];
+}
 const isTeamList = (sub) => sub === 'zespoly' || sub === 'samochody';
 const isTeamPage = (sub) => sub === 'zespol' || sub === 'samochod';
 
@@ -42,16 +43,19 @@ export function classBundle(b, cls) {
   };
 }
 
-const baseOf = (b) => seriesBase(b.season.series);
+const baseOf = (b) => seasonBase(b.season);
 
-/** Sekcja ligi (F1 albo LMU): klasyfikacje, wyniki, kalendarz, zespoły; w LMU z podziałem na klasy. */
-export function LeagueSection({ series, parts, top }) {
-  const base = seriesBase(series);
-  const seasons = useAsync(() => listSeasons(series), [series]);
+/**
+ * Sekcja ligi (F1 albo LMU): klasyfikacje, wyniki, kalendarz, zespoły; w LMU z podziałem na klasy.
+ * fixedSeason = jedno wydarzenie z zakładki „Inne” (bez wyboru sezonu, własny tytuł).
+ */
+export function LeagueSection({ series, parts, top, fixedSeason }) {
+  const seasons = useAsync(() => (fixedSeason ? Promise.resolve([fixedSeason]) : listSeasons(series)), [series, fixedSeason?.id]);
   const [seasonId, setSeasonId] = useState(null);
   const season = seasons.data && (seasons.data.find((s) => s.id === seasonId) || pickSeason(seasons.data, series));
+  const base = season ? seasonBase(season) : seriesBase(series);
   const bundle = useAsync(() => (season ? loadSeasonBundle(season.id) : Promise.resolve(null)), [season?.id]);
-  const [sub = 'klasyfikacja', arg] = parts;
+  const [sub = fixedSeason?.event_format === 'single' ? 'kalendarz' : 'klasyfikacja', arg] = parts;
   const [pickedClass, setPickedClass] = useState(null);
   // stary adres profilu (#/f1/kierowca/:id) -> wspólny profil
   if (sub === 'kierowca' && arg) location.replace(`#/kierowca/${arg}`);
@@ -77,15 +81,14 @@ export function LeagueSection({ series, parts, top }) {
 
   const showClassBar = season && classes.length > 1 && !isTeamPage(sub);
   return html`<div class=${`section-${series}`}>
-    <${SectionHead} series=${series} top=${top}
-      right=${seasons.data?.length ? html`<label class="season-select">
-        <span>Sezon</span>
-        <select value=${season?.id} onChange=${(e) => changeSeason(e.target.value)}>
+    <${SectionHead} series=${series} top=${top} title=${fixedSeason?.name}
+      right=${!fixedSeason && seasons.data?.length ? html`<label class="season-select">
+        <select aria-label="Sezon" value=${season?.id} onChange=${(e) => changeSeason(e.target.value)}>
           ${seasons.data.map((s) => html`<option value=${s.id}>${s.name}</option>`)}
         </select>
       </label>` : null}
       nav=${html`<nav class="wrap subnav">
-        ${subnavFor(series).map(([id, label]) => html`<a href=${`${base}/${id}`} class=${sub === id || (isTeamList(id) && isTeamPage(sub)) ? 'active' : ''}>${label}</a>`)}
+        ${subnavFor(season).map(([id, label]) => html`<a href=${`${base}/${id}`} class=${sub === id || (isTeamList(id) && isTeamPage(sub)) ? 'active' : ''}>${label}</a>`)}
       </nav>`} />
     ${showClassBar ? html`<div class="class-bar"><div class="wrap class-bar-inner">
       <span class="muted">Klasa:</span>
@@ -107,13 +110,29 @@ export function LmuSection({ parts }) {
   return html`<${LeagueSection} series="lmu" parts=${leagueParts} top=${html`<${LmuTopNav} active="liga" />`} />`;
 }
 
+/** Najbliższy wyścig przed startem (albo bez terminu). Wyścig po czasie, czekający na wyniki, nie jest „następny”. */
 export function nextRace(b) {
-  return b.races.find((r) => r.status !== 'completed' && new Date(r.race_date) > new Date()) || b.races.find((r) => r.status !== 'completed');
+  return b.races.find((r) => ['upcoming', 'unscheduled'].includes(raceTimeState(r)));
 }
 
 function NextRaceStrip({ b }) {
+  // wyścig w trakcie (wg czasu trwania): pasek „Trwa teraz” z przyciskiem do transmisji
+  const live = b.sessions.find((r) => raceTimeState(r) === 'live');
+  if (live) {
+    const track = b.trackById.get(live.track_id);
+    return html`<div class="next-strip next-live">
+      <div class="wrap next-strip-inner">
+        <div>
+          <div class="eyebrow"><${LiveBadge} /> ${sessionLabel(live)}</div>
+          <div class="next-name"><${Flag} code=${track?.country_code} /> ${track?.name ?? 'Tor'}</div>
+        </div>
+        <div class="live-actions"><${StreamLinks} links=${live} main /><${DotdButton} b=${b} race=${live} /></div>
+      </div>
+    </div>`;
+  }
   const main = nextRace(b);
-  if (!main) return null;
+  // pojedyncze wydarzenie: odliczanie jest w kafelku wydarzenia
+  if (!main || b.season.event_format === 'single') return null;
   // weekend sprinterski: najpierw sprint, potem wyścig główny
   const sprint = sprintOf(b, main);
   const race = sprint && sprint.status !== 'completed' ? sprint : main;
@@ -123,7 +142,7 @@ function NextRaceStrip({ b }) {
       <div>
         <div class="eyebrow">${isSprint(race) ? 'Następny: sprint' : 'Następny wyścig'} · Runda ${race.round}${sprint && !isSprint(race) ? ' · weekend sprinterski' : ''}</div>
         <div class="next-name"><${Flag} code=${track?.country_code} /> ${track?.name ?? 'Tor'} <span class="muted">· ${formatDate(race.race_date)}</span></div>
-        ${b.season.series === 'lmu' ? html`<${RaceConditions} race=${race} compact />` : null}
+        ${b.season.series !== 'f1' ? html`<${RaceConditions} race=${race} compact />` : null}
       </div>
       ${race.race_date ? html`<${Countdown} to=${race.race_date} />` : null}
     </div>
@@ -145,12 +164,12 @@ function Standings({ b }) {
       <${Tabs} value=${tab} onChange=${setTab} tabs=${[
         { id: 'drivers', label: 'Kierowcy' },
         // w lidze LMU klasyfikacja zespołów nie jest prowadzona
-        ...(b.season.series === 'f1' ? [{ id: 'teams', label: 'Konstruktorzy' }] : []),
+        ...(seasonStyle(b.season) === 'f1' ? [{ id: 'teams', label: 'Konstruktorzy' }] : []),
         { id: 'matrix', label: 'Runda po rundzie' },
       ]} />
     </div>
     ${tab === 'drivers' ? html`<${DriverStandings} b=${b} st=${st} />` : null}
-    ${tab === 'teams' && b.season.series === 'f1' ? html`<${TeamStandings} b=${b} st=${st} />` : null}
+    ${tab === 'teams' && seasonStyle(b.season) === 'f1' ? html`<${TeamStandings} b=${b} st=${st} />` : null}
     ${tab === 'matrix' ? html`<${Matrix} b=${b} st=${st} />` : null}
   `;
 }
@@ -178,7 +197,7 @@ function DriverStandings({ b, st }) {
     <div class="table-wrap">
       <table class="table">
         <thead><tr>
-          <th class="c">P</th><th>Kierowca</th><th>${unit(b.season.series).one}</th>
+          <th class="c">P</th><th>Kierowca</th><th>${seasonUnit(b.season).one}</th>
           <th class="c hide-sm" title="Wygrane">Wygr.</th><th class="c hide-sm">Podia</th>
           <th class="c hide-sm" title="Pole position">Pole</th><th class="c hide-sm" title="Najszybsze okrążenia">NO</th>
           <th class="r hide-sm">Strata</th><th class="r">Pkt</th>
@@ -219,7 +238,7 @@ function TeamStandings({ b, st }) {
             const team = b.teamById.get(t.team_id);
             return html`<tr style=${{ '--team': team?.color || 'transparent' }} class="team-row">
               <td class="c"><${PosBadge} pos=${i + 1} /></td>
-              <td><${TeamTag} team=${team} base=${baseOf(b)} /></td>
+              <td><${TeamTag} team=${team} season=${b.season} /></td>
               <td class="muted hide-sm">${driversOf(t.team_id).join(', ')}</td>
               <td class="c hide-sm">${t.wins || '·'}</td>
               <td class="c hide-sm">${t.podiums || '·'}</td>
@@ -317,7 +336,7 @@ export function RaceResult({ b, race, compact = false }) {
         ${race.counts === false ? html`<span class="badge badge-warn">Nie liczy się do klasyfikacji</span>` : null}
         ${isSprint(race) ? html`<span class="badge badge-sprint" title="Punkty dla pierwszej ósemki">Sprint · punkty ${SPRINT_POINTS.join('-')}</span>` : null}
       </div>
-      ${b.season.series === 'lmu' ? html`<${RaceConditions} race=${race} />` : null}
+      ${b.season.series !== 'f1' ? html`<${RaceConditions} race=${race} />` : null}
       ${race.notes ? html`<p class="muted">${race.notes}</p>` : null}
     </div>`}
     ${compact ? null : html`<${TrackMedia} track=${track} />`}
@@ -327,7 +346,7 @@ export function RaceResult({ b, race, compact = false }) {
     <//>` : html`<div class="table-wrap">
       <table class="table">
         <thead><tr>
-          <th class="c">Poz</th><th class="c hide-sm" title="Zmiana względem startu">+/−</th><th>Kierowca</th><th class="hide-sm">${unit(b.season.series).one}</th>
+          <th class="c">Poz</th><th class="c hide-sm" title="Zmiana względem startu">+/−</th><th>Kierowca</th><th class="hide-sm">${seasonUnit(b.season).one}</th>
           <th class="c hide-sm">Start</th><th class="c hide-sm">Pit</th><th class="r hide-sm">Najl. okr.</th>
           <th class="r">Czas / strata</th><th class="r">Pkt</th>
         </tr></thead>
@@ -343,7 +362,7 @@ export function RaceResult({ b, race, compact = false }) {
                 ${r.hasFastestLap ? html`<span class="badge badge-fl" title="Najszybsze okrążenie">NO</span>` : null}
                 ${r.penalties.map((p) => html`<span class="badge badge-pen" title=${p.reason}>${penaltyLabel(p)}</span>`)}
               </td>
-              <td class="hide-sm"><${TeamTag} team=${team} base=${baseOf(b)} /></td>
+              <td class="hide-sm"><${TeamTag} team=${team} season=${b.season} /></td>
               <td class="c hide-sm">${r.grid || '—'}</td>
               <td class="c hide-sm">${r.pit_stops ?? '—'}</td>
               <td class=${`r mono hide-sm ${r.hasFastestLap ? 'fl-text' : ''}`}>${formatDuration(r.best_lap_ms)}</td>
@@ -378,6 +397,7 @@ function Delta({ v }) {
 function Calendar({ b, focusId }) {
   const stripRef = useRef(null);
   const next = nextRace(b);
+  const dotd = useAsync(() => loadDotd(b.season.id), [b.season.id]).data; // kierowca dnia (po zamknięciu głosowania)
   // karuzela startuje na najbliższym wyścigu (albo na ostatniej rundzie zakończonego sezonu)
   const focusIdx = focusId ? b.races.findIndex((r) => r.id === focusId) : -1;
   const startIdx = focusIdx >= 0 ? focusIdx : Math.max(0, next ? b.races.findIndex((r) => r.id === next.id) : b.races.length - 1);
@@ -430,9 +450,12 @@ function Calendar({ b, focusId }) {
   };
 
   if (!b.races.length) return html`<${SeasonWip} />`;
+  // pojedyncze wydarzenie (zakładka „Inne”): jeden kafelek bez nawigacji po rundach
+  const single = b.season.event_format === 'single';
 
   return html`
-    <div class="page-head">
+    ${single ? html`<div class="page-head"><h2>Wydarzenie</h2></div>
+      ${b.season.description ? html`<p class="muted">${b.season.description}</p>` : null}` : html`<div class="page-head">
       <h2>Kalendarz — ${b.races.length} rund</h2>
       <div class="cal-nav">
         <button class="btn btn-sm" onClick=${() => scrollTo(Math.max(0, active - 1))} disabled=${active === 0} aria-label="Poprzednia runda">←</button>
@@ -447,7 +470,7 @@ function Calendar({ b, focusId }) {
           <${Flag} code=${t?.country_code} size=${18} /><span>R${r.round}</span>
         </button>`;
       })}
-    </div>
+    </div>`}
 
     <div class="cal-strip" ref=${stripRef} onScroll=${onScroll}>
       ${b.races.map((r, i) => {
@@ -460,20 +483,27 @@ function Calendar({ b, focusId }) {
         return html`<article class=${`cal-tile ${done ? 'done' : ''} ${isNext ? 'next' : ''} ${i === active ? 'active' : ''}`}>
           <header class="cal-tile-head">
             <div class="cal-tile-round">
-              <span class="cal-tile-num">R${r.round}</span>
+              ${single ? null : html`<span class="cal-tile-num">R${r.round}</span>`}
               <span class="muted">${r.race_date ? formatDate(r.race_date) : 'Data do ustalenia'}</span>
             </div>
             <h3><${Flag} code=${t?.country_code} size=${28} /> ${t?.name ?? '—'}</h3>
             <div class="cal-tile-meta muted">${[t?.country, t?.length_km ? `${t.length_km} km` : null, r.laps ? `${r.laps} okr.` : null].filter(Boolean).join(' · ')}</div>
-            ${b.season.series === 'lmu' ? html`<${RaceConditions} race=${r} />` : null}
+            ${b.season.series !== 'f1' ? html`<${RaceConditions} race=${r} />` : null}
             ${sprint ? html`<div class="cal-sprint">
               <span class="badge badge-sprint">Weekend sprinterski</span>
               <span class="muted">Sprint: ${sprint.race_date ? formatDate(sprint.race_date) : 'termin do ustalenia'}${sprint.laps ? ` · ${sprint.laps} okr.` : ''}</span>
               ${sprintWinner?.finalPos === 1 ? html`<a class="cal-winner" href=${`${baseOf(b)}/wyniki/${sprint.id}`}>🏁 ${b.driverById.get(sprintWinner.driver_id)?.nick}</a>` : null}
             </div>` : null}
+            <${StreamLinks} links=${r} />
+            <${DotdButton} b=${b} race=${r} />
+            <${DotdResult} b=${b} result=${dotd?.get(r.id)} />
+            ${sprint ? html`<${DotdResult} b=${b} result=${dotd?.get(sprint.id)} label="sprint" />` : null}
             <div class="cal-tile-status">
-              ${isNext ? html`<span class="badge badge-next">Następny wyścig</span>` : null}
-              ${done ? html`<span class="badge badge-ok">Rozegrany</span>` : !isNext ? html`<span class="badge">Zaplanowany</span>` : null}
+              ${{
+                done: html`<span class="badge badge-ok">Rozegrany</span>`,
+                live: html`<${LiveBadge} />`,
+                over: html`<span class="badge badge-warn">Czeka na wyniki</span>`,
+              }[raceTimeState(r)] || (isNext ? html`<span class="badge badge-next">Następny wyścig</span>` : html`<span class="badge">Zaplanowany</span>`)}
               ${winner?.finalPos === 1 ? html`<span class="cal-winner">🏆 ${b.driverById.get(winner.driver_id)?.nick}</span>` : null}
             </div>
           </header>

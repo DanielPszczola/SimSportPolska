@@ -5,6 +5,7 @@ export const IMAGE_SIZES = {
   logo: { maxW: 256, maxH: 256 },
   car: { maxW: 900, maxH: 260 },
   track: { maxW: 900, maxH: 700 },
+  post: { maxW: 1200, maxH: 800 },
 };
 
 const MAX_INPUT = 15 * 1024 * 1024;

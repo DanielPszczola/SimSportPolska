@@ -11,7 +11,7 @@
 // rpc(name, args) -> wynik funkcji z bazy (np. discord_login)
 //
 // Po każdym zapisie wysyłane jest zdarzenie 'ssp-db-write' — czyści pamięć podręczną danych (ui.js).
-import { SUPABASE_URL, SUPABASE_ANON_KEY, loginToEmail } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, PREPROD_LOGINS, loginToEmail } from './config.js';
 
 // biblioteka Supabase 2.116.0 jako jeden plik (vendor/supabase.js) — jedno żądanie zamiast łańcucha modułów z CDN
 const SUPABASE_LIB = new URL('../vendor/supabase.js', import.meta.url).href;
@@ -52,6 +52,17 @@ async function createSupabaseDb() {
     const err = params.get('error_description') || hashError?.get('error_description') || params.get('error') || hashError?.get('error');
     if (err) sessionStorage.setItem('ssp_auth_error', AUTH_ERRORS[err] || err);
     history.replaceState(history.state, '', location.pathname + (hashError ? '#/konto' : location.hash));
+  }
+  // lokalny pre-prod: „preprod.bat login <typ>” otwiera #/preprod/<typ> — przelogowanie na konto testowe (gość = wylogowanie)
+  const pre = PREPROD_LOGINS && /^#\/preprod\/(\w+)/.exec(location.hash);
+  if (pre) {
+    await sb.auth.signOut({ scope: 'local' });
+    const acc = PREPROD_LOGINS[pre[1]];
+    if (acc) {
+      const { error } = await sb.auth.signInWithPassword({ email: loginToEmail(acc[0]), password: acc[1] });
+      if (error) sessionStorage.setItem('ssp_auth_error', `Pre-prod: nie udało się zalogować jako ${pre[1]} (${error.message}) — uruchom „preprod.bat login” ponownie`);
+    }
+    history.replaceState(history.state, '', location.pathname + (acc?.[2] || '#/'));
   }
 
   return {

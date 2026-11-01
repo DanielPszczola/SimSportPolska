@@ -20,8 +20,12 @@ const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname)
 
 export const SUPABASE_URL = LOCAL?.SUPABASE_URL ?? PROD_URL;
 export const SUPABASE_ANON_KEY = LOCAL?.SUPABASE_ANON_KEY ?? PROD_KEY;
+// konta testowe lokalnego pre-produ ({ typ: [login, hasło, strona po zalogowaniu] }) — tylko z js/config.local.js
+export const PREPROD_LOGINS = LOCAL?.PREPROD_LOGINS ?? null;
 
 export const LEAGUE_NAME = 'Sim Sport Polska';
+// zaproszenie na serwer Discord ligi (przycisk „Dołącz do nas na Discord” na stronie głównej)
+export const DISCORD_INVITE = 'https://discord.com/invite/QxXmae2bPm';
 
 // Logowanie loginem zamiast e-maila. Supabase wymaga e-maila przy koncie, więc login jest zamieniany
 // na techniczny adres <login>@LOGIN_DOMAIN. Konto admina zakładasz w Supabase z takim właśnie adresem,

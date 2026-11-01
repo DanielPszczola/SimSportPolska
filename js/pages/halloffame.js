@@ -1,4 +1,4 @@
-import { html, useAsync, listSeasons, loadSeasonBundle, seriesBase, teamHref, Loader, ErrorBox, Empty, Flag, DriverLink, TeamTag, TeamLogo, formatDate } from '../ui.js';
+import { html, useAsync, listSeasons, loadSeasonBundle, seriesBase, teamHref, Loader, ErrorBox, Empty, Flag, DriverLink, TeamTag, TeamLogo, formatDate, formatHours } from '../ui.js';
 import { computeStandings, carClass, seasonClasses } from '../scoring.js';
 import { classBundle } from './league.js';
 import { loadEndurance, ClassBadge } from './endurance.js';
@@ -148,7 +148,7 @@ function EnduranceCard({ ev, crew, d }) {
   return html`<article class="hof-end-card" style=${{ '--cls': carClass(crew.car_class)?.color || 'var(--accent)' }}>
     <div class="hof-end-car">${crew.car_image_url ? html`<img src=${crew.car_image_url} alt="" loading="lazy" />` : html`<span class="hof-end-trophy">🏆</span>`}</div>
     <div class="hof-end-body">
-      <div class="eyebrow">${ev.name}${ev.duration_hours ? ` · ${Number(ev.duration_hours)} h` : ''}</div>
+      <div class="eyebrow">${ev.name}${ev.duration_hours ? ` · ${formatHours(ev.duration_hours)}` : ''}</div>
       <div class="hof-end-result">
         ${crew.position_class ? html`<span class=${`pos ${crew.position_class <= 3 ? `pos-${crew.position_class}` : ''}`}>P${crew.position_class}</span> <b>w klasie</b> <${ClassBadge} id=${crew.car_class} />` : html`<${ClassBadge} id=${crew.car_class} />`}
         ${crew.position_overall ? html`<span class="muted">· P${crew.position_overall} ogólnie</span>` : null}

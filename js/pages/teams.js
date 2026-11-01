@@ -1,9 +1,9 @@
 import { useMemo } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import {
-  html, seriesBase, unit, teamHref, teamListHref, useAsync, loadSeasonBundle, Flag, TeamTag, TeamLogo, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, sessionLabel, roleInTeam, ROLE_LABEL,
+  html, seasonBase, seasonUnit, seasonTeamHref, seasonTeamListHref, useAsync, loadSeasonBundle, Flag, TeamTag, TeamLogo, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, sessionLabel, roleInTeam, ROLE_LABEL,
 } from '../ui.js';
-import { computeRace, computeStandings, carClass, teamPointsResolver, isSprint } from '../scoring.js';
+import { computeRace, computeStandings, carClass, seasonStyle, teamPointsResolver, isSprint } from '../scoring.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
 
 /** Punkty, starty i najlepszy wynik każdego kierowcy w barwach danego zespołu w sezonie. */
@@ -51,18 +51,18 @@ function teamDrivers(b, teamId, stats) {
 const ROLE_BADGE = ROLE_LABEL;
 // liga LMU: kierowcy jeżdżą autami, a nie w zespołach
 const ROLE_BADGE_LMU = { former: 'Wcześniej', moved: 'Zmienił auto', sub: 'Jednorazowo' };
-const roleBadge = (b, role) => (b.season.series === 'lmu' ? ROLE_BADGE_LMU : ROLE_BADGE)[role];
+const roleBadge = (b, role) => (seasonStyle(b.season) === 'lmu' ? ROLE_BADGE_LMU : ROLE_BADGE)[role];
 
 // ---------- siatka zespołów sezonu ----------
 
 export function TeamsGrid({ b }) {
   const st = useMemo(() => computeStandings(b), [b]);
   const stats = useMemo(() => teamDriverStats(b), [b]);
-  const u = unit(b.season.series);
+  const u = seasonUnit(b.season);
   if (!b.teams.length) return html`<${SeasonWip} />`;
 
   // w lidze LMU nie ma klasyfikacji zespołów — bez pozycji i punktów zespołu
-  const ranked = b.season.series === 'f1';
+  const ranked = seasonStyle(b.season) === 'f1';
   const posOf = (id) => {
     const i = st.teams.findIndex((t) => t.team_id === id);
     return i < 0 ? null : i + 1;
@@ -75,7 +75,7 @@ export function TeamsGrid({ b }) {
       ${sorted.map((team) => {
         const s = st.teams.find((t) => t.team_id === team.id);
         const pos = posOf(team.id);
-        const href = teamHref(b.season.series, team.id);
+        const href = seasonTeamHref(b.season, team.id);
         return html`<article class="tcard" style=${{ '--team': team.color || '#888' }}>
           <a class="tcard-head" href=${href}>
             <${TeamLogo} team=${team} size=${52} />
@@ -127,7 +127,7 @@ function TeamProfile({ team, b }) {
   const s = st.teams[idx];
   const drivers = teamDrivers(b, team.id, stats);
   const changes = (b.rosterChanges || []).filter((c) => c.team_id === team.id);
-  const ranked = b.season.series === 'f1'; // LMU: bez klasyfikacji zespołów
+  const ranked = seasonStyle(b.season) === 'f1'; // LMU: bez klasyfikacji zespołów
 
   // wyścig po wyścigu: kto jechał w barwach zespołu i ile punktów zdobył zespół
   const teamOf = teamPointsResolver(b);
@@ -141,7 +141,7 @@ function TeamProfile({ team, b }) {
   const fls = rounds.reduce((n, r) => n + r.rows.filter((x) => x.hasFastestLap).length, 0);
 
   return html`
-    <a class="back" href=${teamListHref(b.season.series)}>← ${ranked ? 'Wszystkie zespoły' : 'Wszystkie samochody'}</a>
+    <a class="back" href=${seasonTeamListHref(b.season)}>← ${ranked ? 'Wszystkie zespoły' : 'Wszystkie samochody'}</a>
     <section class="thero" style=${{ '--team': team.color || '#888' }}>
       <div class="thero-info">
         <${TeamLogo} team=${team} size=${84} />
@@ -198,7 +198,7 @@ function TeamProfile({ team, b }) {
         ${rounds.map(({ race, rows, points }) => {
           const t = b.trackById.get(race.track_id);
           return html`<tr>
-            <td class="nowrap"><a href=${`${seriesBase(b.season.series)}/wyniki/${race.id}`}><span class="muted">${sessionLabel(race, true)}</span> <${Flag} code=${t?.country_code} size=${18} /> ${t?.name}</a></td>
+            <td class="nowrap"><a href=${`${seasonBase(b.season)}/wyniki/${race.id}`}><span class="muted">${sessionLabel(race, true)}</span> <${Flag} code=${t?.country_code} size=${18} /> ${t?.name}</a></td>
             <td><div class="round-results">
               ${rows.length ? rows.map((r) => html`<span class="rr"><${PosBadge} pos=${r.finalPos} status=${r.status} /> ${b.driverById.get(r.driver_id)?.nick}</span>`) : html`<span class="muted">—</span>`}
             </div></td>

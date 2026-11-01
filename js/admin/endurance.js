@@ -1,9 +1,9 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, useAsync, Loader, ErrorBox, Flag, attempt, formatDate } from '../ui.js';
+import { html, useAsync, Loader, ErrorBox, Flag, attempt, formatDate, formatHours, timeState } from '../ui.js';
 import { LMU_CLASSES, carClass } from '../scoring.js';
 import { categoriesForSeries } from '../tracks-seed.js';
-import { ImageField, ClassSelect, toLocalInput, fromLocalInput } from './common.js';
+import { ImageField, ClassSelect, toLocalInput, fromLocalInput, DateTimeInput, DurationInput } from './common.js';
 import { LMU_CARS } from '../team-assets.js';
 import { ClassBadge } from '../pages/endurance.js';
 
@@ -66,7 +66,7 @@ function EventsAdmin({ data }) {
     return html`<div class=${`end-admin ${isOpen ? 'open' : ''}`} key=${ev.id}>
       <button class="end-admin-head" onClick=${() => setOpen(isOpen ? null : ev.id)} aria-expanded=${isOpen}>
         <span class="end-admin-title"><b>${ev.name}</b>
-          <span class="muted">${t ? html`<${Flag} code=${t.country_code} size=${16} /> ${t.name} · ` : ''}${ev.start_at ? formatDate(ev.start_at) : 'termin do ustalenia'}${ev.duration_hours ? ` · ${Number(ev.duration_hours)} h` : ''}</span>
+          <span class="muted">${t ? html`<${Flag} code=${t.country_code} size=${16} /> ${t.name} · ` : ''}${ev.start_at ? formatDate(ev.start_at) : 'termin do ustalenia'}${ev.duration_hours ? ` · ${formatHours(ev.duration_hours)}` : ''}</span>
         </span>
         <span class="end-admin-side">
           <span class="badge">${n} ${n === 1 ? 'zespół' : 'zesp.'}</span>
@@ -133,6 +133,7 @@ function EventEditor({ ev, data, reload, onDeleted }) {
       <div>
         <span class="field-label">Status eventu</span>
         <div class="end-status-value">${finished ? '✓ Zakończony — wyniki są opublikowane' : 'Zaplanowany — widoczny w kalendarzu Endurance'}</div>
+        ${!finished && timeState(ev.start_at, (Number(ev.duration_hours) || 2) * 60) === 'over' ? html`<div class="hint warn">Czas eventu minął — na stronie głównej nie jest już „trwający”. Wpisz wyniki i zakończ event, żeby je opublikować.</div>` : null}
         ${!finished && withResults ? html`<div class="hint warn">Wpisano wyniki ${withResults} z ${crews.length} zespołów, ale event jest nadal zaplanowany — wyniki nie są jeszcze widoczne na stronie.</div>` : null}
       </div>
       ${finished
@@ -149,8 +150,9 @@ function EventEditor({ ev, data, reload, onDeleted }) {
           </optgroup>`)}
         </select>
       </label>
-      <label class="field"><span>Start</span><input type="datetime-local" value=${toLocalInput(ev.start_at)} onChange=${(e) => patch({ start_at: fromLocalInput(e.target.value) })} /></label>
-      <label class="field"><span>Długość (godziny)</span><input type="number" min="0.5" step="0.5" value=${ev.duration_hours ?? ''} onChange=${(e) => patch({ duration_hours: e.target.value ? Number(e.target.value) : null })} /></label>
+      <label class="field"><span>Start</span><${DateTimeInput} value=${toLocalInput(ev.start_at)} onChange=${(v) => patch({ start_at: fromLocalInput(v) })} /></label>
+      <label class="field"><span>Długość</span><${DurationInput} value=${ev.duration_hours ? Math.round(Number(ev.duration_hours) * 60) : null} minuteStep=${15}
+        onChange=${(v) => patch({ duration_hours: v ? Math.round((v / 60) * 100) / 100 : null })} /></label>
       <label class="field span2"><span>Transmisja / powtórka (link, np. YouTube live)</span><input value=${ev.stream_url || ''} placeholder="https://www.youtube.com/live/…" onChange=${(e) => setStream(e.target.value)} /></label>
       <label class="field span2"><span>Opis (opcjonalnie)</span><input value=${ev.notes || ''} onChange=${(e) => patch({ notes: e.target.value })} placeholder="np. wyścig specjalny, start z pit lane" /></label>
     </div>

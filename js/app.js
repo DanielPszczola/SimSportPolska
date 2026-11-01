@@ -1,12 +1,13 @@
 import { html, render, useState, useEffect } from '../vendor/preact-htm.js';
 import { db } from './db.js';
 import { useSession, isDiscordUser, userLabel } from './session.js';
-import { Toasts } from './ui.js';
-import { LEAGUE_NAME } from './config.js';
+import { Toasts, ModalHost } from './ui.js';
+import { LEAGUE_NAME, PREPROD_LOGINS } from './config.js';
 import { HomePage } from './pages/home.js';
 import { F1Section, LmuSection } from './pages/league.js';
 import { DriverPage } from './pages/driver.js';
 import { HallOfFamePage } from './pages/halloffame.js';
+import { OtherSection } from './pages/other.js';
 import { AdminPage } from './admin/admin.js';
 import { AccountPage } from './pages/account.js';
 
@@ -44,6 +45,7 @@ function Header({ section }) {
         ${link('#/', '', 'Strona główna')}
         ${link('#/f1', 'f1', 'F1')}
         ${link('#/lmu', 'lmu', 'Le Mans Ultimate')}
+        ${link('#/inne', 'inne', 'Eventy')}
         ${link('#/galeria', 'galeria', 'Galeria sław')}
         ${s.isStaff ? html`<a href="#/admin" class=${`nav-admin ${section === 'admin' ? 'active' : ''}`} title="Panel administratora">Panel</a>` : null}
         ${discord
@@ -56,6 +58,11 @@ function Header({ section }) {
 }
 
 function DemoBanner() {
+  if (PREPROD_LOGINS) {
+    return html`<div class="demo-banner">
+      <b>PRE-PROD</b> — lokalna baza (Docker), produkcja nietknięta. Zmiana użytkownika: <code>preprod.bat login</code>
+    </div>`;
+  }
   if (db.mode !== 'demo') return null;
   return html`<div class="demo-banner">
     <b>TRYB DEMO</b> — dane zapisują się tylko w tej przeglądarce. Admin: dowolny login, hasło <code>admin</code>.
@@ -72,6 +79,7 @@ function App() {
   else if (section === 'f1') page = html`<${F1Section} parts=${rest} query=${query} />`;
   else if (section === 'lmu') page = html`<${LmuSection} parts=${rest} />`;
   else if (section === 'kierowca') page = html`<${DriverPage} driverId=${rest[0]} tab=${rest[1]} />`;
+  else if (section === 'inne') page = html`<${OtherSection} parts=${rest} />`;
   else if (section === 'galeria') page = html`<${HallOfFamePage} />`;
   else if (section === 'admin') page = html`<${AdminPage} parts=${rest} />`;
   else if (section === 'konto') page = html`<${AccountPage} />`;
@@ -83,6 +91,7 @@ function App() {
     <main>${page}</main>
     <footer class="site-footer"><div class="wrap">© ${new Date().getFullYear()} ${LEAGUE_NAME} · Liga sim racingowa</div></footer>
     <${Toasts} />
+    <${ModalHost} />
   `;
 }
 

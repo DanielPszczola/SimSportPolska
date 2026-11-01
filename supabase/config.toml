@@ -12,7 +12,7 @@ port = 54322
 # schemat → dane startowe sezonów F1 → lokalne konto admina (admin / admin).
 [db.seed]
 enabled = true
-sql_paths = ["./schema.sql", "./seed.sql", "./local/admin.sql"]
+sql_paths = ["./schema.sql", "./seed.sql", "./local/admin.sql", "./local/users.sql"]
 
 [studio]
 enabled = true

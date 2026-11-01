@@ -2,7 +2,7 @@
 import { html, useState, useEffect, useCallback } from '../vendor/preact-htm.js';
 import { db } from './db.js';
 import { bundleLineup } from './lineup.js';
-import { isSprint, sessionOrder } from './scoring.js';
+import { isSprint, sessionOrder, seasonStyle, registerClasses } from './scoring.js';
 
 export { html };
 
@@ -51,13 +51,15 @@ export function cached(key, fn) {
 const sortBy = (rows, key) => [...rows].sort((a, b) => (a[key] > b[key] ? 1 : a[key] < b[key] ? -1 : 0));
 
 function makeBundle(raw) {
+  const season = raw.seasons?.[0] ?? null;
+  if (season?.series === 'inne') registerClasses(season.class_defs); // własne klasy wydarzenia (kolory znaczków)
   const teams = sortBy(raw.teams || [], 'name');
   const tracks = sortBy(raw.tracks || [], 'name');
   const drivers = sortBy(raw.drivers || [], 'nick');
   // races = wyścigi główne (jedna pozycja na rundę), sprints = sprinty, sessions = wszystko w kolejności rozgrywania
   const sessions = [...(raw.races || [])].sort(sessionOrder);
   return {
-    season: raw.seasons?.[0] ?? null,
+    season,
     teams,
     entries: raw.entries || [],
     races: sessions.filter((r) => !isSprint(r)),
@@ -148,6 +150,12 @@ export const unit = (series) => UNITS[series] || UNITS.f1;
 export const teamHref = (series, id) => `${seriesBase(series)}/${unit(series).path}/${id}`;
 export const teamListHref = (series) => `${seriesBase(series)}/${unit(series).listPath}`;
 
+// Adresy i nazewnictwo wg sezonu — wydarzenia „Inne” mają własny adres (#/inne/e/<id>) i styl F1 albo LMU.
+export const seasonBase = (season) => (season?.series === 'inne' ? `#/inne/e/${season.id}` : seriesBase(season?.series));
+export const seasonUnit = (season) => unit(seasonStyle(season));
+export const seasonTeamHref = (season, id) => `${seasonBase(season)}/${seasonUnit(season).path}/${id}`;
+export const seasonTeamListHref = (season) => `${seasonBase(season)}/${seasonUnit(season).listPath}`;
+
 // ---------- formatowanie ----------
 
 export function formatDate(iso, withTime = true) {
@@ -171,12 +179,12 @@ export function Flag({ code, size = 20 }) {
   return html`<img class="flag" src=${`https://flagcdn.com/w40/${code.toLowerCase()}.png`} alt=${code} width=${size} height=${Math.round(size * 0.75)} loading="lazy" />`;
 }
 
-/** Nazwa zespołu taka, jaka obowiązywała w sezonie tego wyniku (logo + kolor). */
-export function TeamTag({ team, link = true, base }) {
+/** Nazwa zespołu taka, jaka obowiązywała w sezonie tego wyniku (logo + kolor). season = sezon zespołu (adres linku). */
+export function TeamTag({ team, link = true, base, season }) {
   if (!team) return html`<span class="muted">—</span>`;
   const inner = html`<i style=${{ background: team.color || '#888' }}></i>${team.logo_url ? html`<${TeamLogo} team=${team} size=${20} />` : null}<span>${team.name}</span>`;
   return link
-    ? html`<a class="team-tag" href=${teamHref(base === seriesBase('lmu') ? 'lmu' : 'f1', team.id)}>${inner}</a>`
+    ? html`<a class="team-tag" href=${season ? seasonTeamHref(season, team.id) : teamHref(base === seriesBase('lmu') ? 'lmu' : 'f1', team.id)}>${inner}</a>`
     : html`<span class="team-tag">${inner}</span>`;
 }
 
@@ -256,6 +264,28 @@ export function Countdown({ to }) {
   </div>`;
 }
 
+// ---------- okna (np. głosowanie) ----------
+// Okno wyświetla ModalHost na końcu strony (app.js) — nie chowa się pod nagłówkiem ani w kafelku z overflow.
+
+let setModal = null;
+
+export function ModalHost() {
+  const [modal, set] = useState(null);
+  useEffect(() => {
+    setModal = set;
+    const close = () => set(null); // przejście na inną stronę zamyka okno
+    window.addEventListener('hashchange', close);
+    return () => {
+      setModal = null;
+      window.removeEventListener('hashchange', close);
+    };
+  }, []);
+  return modal;
+}
+
+export const showModal = (vnode) => setModal?.(vnode);
+export const closeModal = () => setModal?.(null);
+
 // ---------- powiadomienia ----------
 
 const listeners = new Set();
@@ -315,11 +345,11 @@ export const ROLE_LABEL = { former: 'Były kierowca', sub: 'Zastępstwo', moved:
 /** Komórka "Zespół" w klasyfikacji: obecny zespół albo Rezerwa + zespoły, dla których jechał. */
 export function SeatCell({ b, driverId, teamIds = [] }) {
   const seat = driverSeat(b, driverId);
-  if (!seat.reserve) return html`<${TeamTag} team=${seat.team} />`;
+  if (!seat.reserve) return html`<${TeamTag} team=${seat.team} season=${b.season} />`;
   const drove = teamIds.map((id) => b.teamById.get(id)).filter(Boolean);
   return html`<span class="seat-reserve">
     <span class="badge badge-reserve">Rezerwa</span>
-    ${drove.length ? html`<span class="seat-drove" title="Punkty zdobywał dla tych zespołów">${drove.map((t) => html`<a href=${teamHref(b.season.series, t.id)} class="seat-team"><i style=${{ background: t.color || '#888' }}></i>${t.name}</a>`)}</span>` : null}
+    ${drove.length ? html`<span class="seat-drove" title="Punkty zdobywał dla tych zespołów">${drove.map((t) => html`<a href=${seasonTeamHref(b.season, t.id)} class="seat-team"><i style=${{ background: t.color || '#888' }}></i>${t.name}</a>`)}</span>` : null}
   </span>`;
 }
 
@@ -330,6 +360,75 @@ export function youtubeId(url) {
   if (!url) return null;
   const m = String(url).trim().match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
   return m ? m[1] : null;
+}
+
+// ---------- transmisje i czas trwania wydarzeń ----------
+
+/** Domyślny czas trwania wyścigu ligowego (gdy w kalendarzu nie podano), w minutach. */
+export const DEFAULT_RACE_MINUTES = 120;
+
+/** Czas trwania w minutach jako tekst: „2 h”, „1 h 30 min”, „45 min”. */
+export function formatMinutes(min) {
+  const t = Math.round(Number(min) || 0);
+  if (!t) return '';
+  const h = Math.floor(t / 60);
+  const m = t % 60;
+  return [h ? `${h} h` : '', m ? `${m} min` : ''].filter(Boolean).join(' ');
+}
+
+/** Długość endurance (zapis w godzinach, np. 2.5) jako tekst: „2 h 30 min”. */
+export const formatHours = (h) => formatMinutes((Number(h) || 0) * 60);
+
+/**
+ * Stan wydarzenia wg startu i czasu trwania: 'unscheduled' | 'upcoming' | 'live' | 'over'.
+ * 'over' = czas minął, wydarzenie nie jest już „trwające” — ale wyniki i tak zatwierdza admin.
+ */
+export function timeState(startIso, minutes, now = Date.now()) {
+  if (!startIso) return 'unscheduled';
+  const start = new Date(startIso).getTime();
+  if (now < start) return 'upcoming';
+  return now < start + (Number(minutes) || DEFAULT_RACE_MINUTES) * 60000 ? 'live' : 'over';
+}
+
+/** Stan wyścigu ligi / wydarzenia „Inne”: 'done' po zatwierdzeniu, inaczej jak timeState. */
+export const raceTimeState = (race, now) => (race.status === 'completed' ? 'done' : timeState(race.race_date, race.duration_minutes, now));
+
+// platformy: [pole, nazwa, klasa CSS]
+export const STREAMS = [
+  ['youtube_url', 'YouTube', 'yt'],
+  ['twitch_url', 'Twitch', 'tw'],
+  ['tiktok_url', 'TikTok', 'tt'],
+  ['discord_url', 'Discord', 'dc'],
+  ['other_url', 'Transmisja', 'ot'],
+];
+
+/** Pojedynczy link do transmisji (np. eventu Endurance) przypisany do platformy wg adresu. */
+export function streamsFromUrl(url) {
+  if (!url) return {};
+  const u = String(url).toLowerCase();
+  const key = /youtu\.?be/.test(u) ? 'youtube_url' : u.includes('twitch.tv') ? 'twitch_url' : u.includes('tiktok.com') ? 'tiktok_url' : 'other_url';
+  return { [key]: url };
+}
+
+/** Główny link „Oglądaj”: YouTube, potem Twitch, TikTok albo inny. */
+export const watchUrl = (links) => (links ? links.youtube_url || links.twitch_url || links.tiktok_url || links.other_url || null : null);
+
+/**
+ * Przyciski transmisji (YouTube / Twitch / TikTok) i dołączenia (Discord); links = obiekt z polami *_url.
+ * main = pierwsza transmisja jako większy przycisk w barwach platformy (trwające wydarzenia).
+ */
+export function StreamLinks({ links, main = false }) {
+  const list = links ? STREAMS.filter(([key]) => links[key]) : [];
+  if (!list.length) return null;
+  const mainKey = main ? list.find(([key]) => key !== 'discord_url')?.[0] : null;
+  return html`<div class="stream-links">
+    ${list.map(([key, label, cls]) => html`<a class=${`stream-btn stream-${cls} ${key === mainKey ? 'stream-main' : ''}`} href=${links[key]} target="_blank" rel="noopener">
+      ${key === 'discord_url' ? '💬' : '▶'} ${label}</a>`)}
+  </div>`;
+}
+
+export function LiveBadge() {
+  return html`<span class="live-badge"><i></i>Trwa teraz</span>`;
 }
 
 /** Film ładowany dopiero po kliknięciu — strona nie pobiera odtwarzacza YouTube bez potrzeby. */

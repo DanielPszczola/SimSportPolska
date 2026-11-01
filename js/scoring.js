@@ -26,14 +26,39 @@ export const CAR_CLASSES = [
   { id: 'HY', label: 'Hypercar', color: '#f5c542' },
 ];
 export const LMU_CLASSES = CAR_CLASSES.filter((c) => c.id !== 'F1');
-export const carClass = (id) => CAR_CLASSES.find((c) => c.id === id);
 
-/** Klasy jadące w sezonie (LMU: 1–3 klasy z ustawień sezonu; F1: brak podziału na klasy). */
-export const seasonClasses = (season) => (season?.series === 'lmu' ? (season.classes?.length ? season.classes : ['HY', 'LMP', 'GT3']) : []);
+// Własne klasy wydarzeń z zakładki „Inne” (np. F2, GT4) — nazwa klasy jest jej identyfikatorem.
+// Rejestrowane przy wczytaniu wydarzenia, żeby znaczki klas miały właściwy kolor.
+const customClasses = new Map();
+export const CUSTOM_CLASS_COLOR = '#8b8b9e';
+export function registerClasses(defs) {
+  for (const d of defs || []) if (d?.id) customClasses.set(d.id, { id: d.id, label: d.label || d.id, color: d.color || CUSTOM_CLASS_COLOR });
+}
+export const carClass = (id) => CAR_CLASSES.find((c) => c.id === id) || customClasses.get(id) || (id ? { id, label: id, color: CUSTOM_CLASS_COLOR } : undefined);
 
-/** Klasa wyniku: zapisana przy wyniku, a dla sezonów F1 zawsze 'F1'. */
+/**
+ * Styl sezonu: 'f1' = zespoły kierowców i klasyfikacja konstruktorów (jedna klasa),
+ * 'lmu' = samochody z podziałem na klasy. Wydarzenia „Inne” wybierają styl w ustawieniach (roster_mode).
+ */
+export const seasonStyle = (season) => {
+  if (season?.series === 'inne') return season.roster_mode === 'cars' ? 'lmu' : 'f1';
+  return season?.series === 'lmu' ? 'lmu' : 'f1';
+};
+
+/** Klasy jadące w sezonie (LMU: 1–3 klasy z ustawień; „Inne” z autami: własne klasy; zespoły: brak podziału). */
+export function seasonClasses(season) {
+  if (season?.series === 'lmu') return season.classes?.length ? season.classes : ['HY', 'LMP', 'GT3'];
+  if (season?.series === 'inne' && season.roster_mode === 'cars') return (season.class_defs || []).map((c) => c.id);
+  return [];
+}
+
+/** Typ aut wydarzenia „Inne” w trybie zespołów (np. F2) — jedna klasa dla całego wydarzenia. */
+export const seasonCarType = (season) => (season?.series === 'inne' ? season.class_defs?.[0]?.id || null : null);
+
+/** Klasa wyniku: zapisana przy wyniku; sezony F1 zawsze 'F1', wydarzenia „Inne” z zespołami — typ aut wydarzenia. */
 export function resultClass(r, season) {
   if (season?.series === 'f1') return 'F1';
+  if (season?.series === 'inne' && season.roster_mode !== 'cars') return seasonCarType(season);
   return r.car_class || null;
 }
 

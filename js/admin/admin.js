@@ -6,6 +6,8 @@ import { DiscordButton } from '../pages/account.js';
 import { SeriesAdmin } from './series.js';
 import { DatabaseAdmin } from './database.js';
 import { EnduranceAdmin } from './endurance.js';
+import { LobbyAdmin } from './lobby.js';
+import { PostsAdmin } from './posts.js';
 import { UsersAdmin, roleLabel } from './users.js';
 import { rolePerms } from '../session.js';
 
@@ -14,6 +16,8 @@ const SECTIONS = [
   ['f1', 'Formuła 1', 'F1', 'staff'],
   ['lmu', 'LMU Liga', 'LMU', 'staff'],
   ['endurance', 'LMU Endurance', 'END', 'staff'],
+  ['inne', 'Eventy', 'EVENT', 'staff'],
+  ['ogloszenia', 'Ogłoszenia', '📣', 'staff'],
   ['baza', 'Baza danych', '🗂', 'staff'],
   ['uzytkownicy', 'Użytkownicy', '👥', 'admin'],
 ];
@@ -59,9 +63,23 @@ export function AdminPage({ parts }) {
       ${section === 'baza' ? html`<${DatabaseAdmin} tab=${parts[1]} isAdmin=${isAdmin} />`
         : section === 'uzytkownicy' ? html`<${UsersAdmin} me=${user.id} />`
         : section === 'endurance' ? html`<${EnduranceAdmin} tab=${parts[1]} />`
+        : section === 'inne' ? html`<${OtherAdmin} parts=${parts} />`
+        : section === 'ogloszenia' ? html`<${PostsAdmin} parts=${parts} />`
         : html`<${SeriesAdmin} key=${section} series=${section} parts=${parts} />`}
     </div>
   </div>`;
+}
+
+/** Inne: wydarzenia i serie (silnik ligi) oraz open lobby. */
+function OtherAdmin({ parts }) {
+  const lobby = parts[1] === 'lobby';
+  return html`
+    <div class="db-tabs">
+      <a href="#/admin/inne" class=${`btn btn-sm ${lobby ? '' : 'btn-accent'}`}>🏁 Serie i wydarzenia</a>
+      <a href="#/admin/inne/lobby" class=${`btn btn-sm ${lobby ? 'btn-accent' : ''}`}>🎮 Open lobby</a>
+    </div>
+    ${lobby ? html`<${LobbyAdmin} />` : html`<${SeriesAdmin} key="inne" series="inne" parts=${parts} />`}
+  `;
 }
 
 function Login({ onDone }) {

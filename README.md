@@ -123,8 +123,22 @@ Kopia strony z **własną, lokalną bazą Supabase** (w Dockerze) — do testowa
 - Wymaga **Docker Desktop** (https://www.docker.com/products/docker-desktop/ albo `winget install Docker.DockerDesktop`) i Pythona.
   Supabase CLI pobiera się samo do `tools/bin` (bez Node.js).
 - `preprod.bat` → menu: **Start** (baza + strona na http://localhost:8000), **Stop**, **Reset** (czyści lokalną bazę i wgrywa dane od nowa), **Status**.
-- Lokalna baza dostaje: `supabase/schema.sql` → `supabase/seed.sql` (sezony F1) → konto admina **admin / admin** (`supabase/local/admin.sql`).
-  Konfiguracja: `supabase/config.toml`. Panel bazy (Studio): http://127.0.0.1:54323.
+- Lokalna baza dostaje: `supabase/schema.sql` → `supabase/seed.sql` (sezony F1) → konto admina **admin / admin** (`supabase/local/admin.sql`)
+  → konta testowe (`supabase/local/users.sql`). Przy każdym starcie lokalna baza dostaje aktualny `schema.sql` (niczego nie kasuje),
+  więc nowe tabele i kolumny są od razu na pre-prodzie. Konfiguracja: `supabase/config.toml`. Panel bazy (Studio): http://127.0.0.1:54323.
+- **Logowanie różnymi typami użytkowników:** `preprod.bat login <typ>` (albo menu → 5) otwiera stronę od razu zalogowaną jako:
+
+  | typ | konto | co widać |
+  |---|---|---|
+  | `owner` | admin / admin | konto główne — pełny panel, rangi |
+  | `admin` | test-admin / test | panel z zakładką Użytkownicy |
+  | `moderator` | test-mod / test | panel bez rang i kont Discord |
+  | `user` | test-discord / test | zwykły użytkownik „z Discorda” (Moje konto, profil kierowcy) |
+  | `guest` | — | wylogowany gość |
+
+  Sesja jest wspólna dla kart jednej przeglądarki — dwóch użytkowników naraz: drugi adres w oknie prywatnym.
+  Konta testowe istnieją tylko w lokalnej bazie (Docker); na produkcji ich nie ma, a przelogowanie przez adres `#/preprod/…`
+  działa wyłącznie z plikiem `js/config.local.js`.
 - Po starcie powstaje `js/config.local.js` — strona otwierana na `localhost` łączy się wtedy z lokalną bazą.
   „Stop” usuwa ten plik, więc podgląd lokalny (`python tools/serve.py`) znów korzysta z produkcji. Plik nie trafia do repozytorium ani na Vercel.
 - Produkcja nie jest w żaden sposób używana: projekt nie jest „podlinkowany” z Supabase w chmurze.
@@ -189,12 +203,18 @@ W serii wybierasz sezon (albo tworzysz nowy) i widzisz **oś sezonu z kafelkami*
 3. **Zespoły**: nazwa, kolor, logo i bolid na ten sezon. Można skopiować zespoły z poprzedniego sezonu.
 4. **Składy startowe**: kto w jakim zespole, kto w rezerwie.
 
+**Kafelki „Składy”** stoją na osi sezonu między wyścigami: przed każdą rundą od drugiej (w weekendzie sprinterskim
+przed sprintem). Służą do zmian w zespołach w dowolnym momencie sezonu, także między wyścigami. Kafelek „Przed R5”
+zbiera zmiany obowiązujące od rundy 5: zamianę, transfer albo przejście do rezerwy (LMU: zmianę auta).
+Kafelek z zapisanymi zmianami jest wyróżniony i pokazuje ich liczbę. Pod spodem jest pełna lista zmian w sezonie z przyciskiem *Cofnij*.
+Jeśli wybrana runda ma już wyniki, panel ostrzega, że zmiana wpłynie na podział punktów w tych wyścigach.
+
 **Kafelek wyścigu** ma kroki:
+0. **Przed wyścigiem**: czas trwania i linki do transmisji.
 1. **Wyniki**: formularz od razu zawiera skład obowiązujący w tej rundzie. Kolejność ustawiasz numerem w kolumnie *Poz*.
    Można też wkleić wyniki z tekstu w formacie `Nick | Zespół | P. startowa | Pit | Najlepsze okrążenie | Czas`.
 2. **Kary**: czasowe, punktowe, DSQ, na starcie, ostrzeżenia. Widać podgląd „przed / po”.
-3. **Zmiany w składach**: zamiany i przejścia do rezerwy obowiązujące **od następnej rundy**.
-4. **Zatwierdzenie**: podsumowanie, a po zatwierdzeniu publikacja wyników na stronie i przejście do kolejnej rundy.
+3. **Zatwierdzenie**: podsumowanie, a po zatwierdzeniu publikacja wyników na stronie i przejście do kolejnej rundy.
 
 Stany kafelków: *Zaplanowany*, *Następny*, *Do zatwierdzenia* (są wyniki, ale nie są opublikowane), *Zatwierdzony*.
 Kary i składy można poprawiać także po zatwierdzeniu.
@@ -230,8 +250,8 @@ Każdy wynik pamięta zespół, w barwach którego został zdobyty. Dzięki temu
 - **punkty indywidualne idą za kierowcą**;
 - w klasyfikacji kierowca przesunięty do rezerwy ma oznaczenie **„Rezerwa”** i listę zespołów, dla których punktował.
 
-Skład zapisany jest **na każdą rundę**: skład startowy plus zmiany wprowadzone po kolejnych wyścigach.
-Zmianę robisz w kafelku wyścigu, w kroku *Zmiany w składach*, i obowiązuje ona od następnej rundy. Cofnięcie zmiany przywraca poprzedni skład. Wpis trafia do rejestru zmian i jest widoczny na stronie zespołu. Strona odróżnia wtedy
+Skład zapisany jest **na każdą rundę**: skład startowy plus zmiany obowiązujące od kolejnych rund.
+Zmianę robisz w kafelku *Składy* przed wybraną rundą i obowiązuje ona od tej rundy. Cofnięcie zmiany przywraca poprzedni skład. Wpis trafia do rejestru zmian i jest widoczny na stronie zespołu. Strona odróżnia wtedy
 „byłego kierowcę” od jednorazowego „zastępstwa”. Jednorazowe zastępstwo nie wymaga zmiany składu: w formularzu wyników
 wybierasz rezerwowego i zespół, za który jechał.
 
@@ -262,7 +282,7 @@ W lidze LMU **zamiast zespołów są samochody**, bo liczy się marka i model au
 - *Start sezonu → Samochody*: modele aut jeżdżące w sezonie (marka i model, klasa, kolor, logo marki, zdjęcie auta).
   Model można wybrać z listy aut Le Mans Ultimate albo wpisać ręcznie;
 - *Start sezonu → Przypisanie aut*: każdemu kierowcy przypisujesz auto. **Jednym modelem może jechać dowolnie wielu kierowców**;
-- *kafelek wyścigu → Zmiany aut*: zmiana auta kierowcy od kolejnej rundy. Wcześniejsze wyniki zostają przy aucie,
+- *kafelek Składy*: zmiana auta kierowcy od wybranej rundy. Wcześniejsze wyniki zostają przy aucie,
   którym zostały zdobyte;
 - na stronie zakładka **Samochody** (auta z kierowcami), a w tabelach kolumna „Samochód”.
 
@@ -298,10 +318,97 @@ się do klasyfikacji, a wygrane, podia, pole, starty i remisy liczą się z wyś
   albo w tabeli kalendarza zaznacz kolumnę *Sprint*. Pod rundą pojawi się wiersz sprintu (data, okrążenia, pogoda, pora dnia).
   Tor i „do klasyfikacji” są wspólne dla sprintu i wyścigu głównego.
 - **Wyniki:** sprint ma na osi sezonu osobny kafelek przed wyścigiem głównym (wyniki → kary → zatwierdzenie).
-  Zmiany w składach wpisuje się po wyścigu głównym.
+  Zmiany w składach (kafelek *Składy* przed sprintem) obowiązują od całej rundy — sprintu i wyścigu głównego.
 - **Strona:** wyniki rundy mają przełącznik *Sprint / Wyścig główny*, kalendarz pokazuje „Weekend sprinterski”,
   a tabela *Runda po rundzie* ma osobną kolumnę sprintu (R3 S).
 - **Baza:** jednorazowo uruchom `supabase/migrations/2026-10-30_sprint.sql` (dodaje tylko kolumnę `races.kind`).
+
+## Transmisje i „Trwa teraz”
+
+Każde wydarzenie ma czas trwania, wpisywany jako godziny + minuty (np. 1 h 30 min): wyścig ligowy (domyślnie 2 h), event Endurance, open lobby.
+Od startu przez ten czas wydarzenie jest na stronie głównej w sekcji **„Trwa teraz”** (nad nadchodzącymi): kafelek
+w proporcjach YouTube, transmisja YouTube (wyciszona) w tle i przycisk **„Oglądaj”**. Po tym czasie wydarzenie znika
+z „trwających” i z nadchodzących — ale wyniki dalej trzeba wpisać i zatwierdzić, żeby były oficjalne
+(oś sezonu w panelu pokazuje wtedy „Czeka na wyniki”).
+
+- **Wyścigi lig i eventów:** kafelek wyścigu → krok **„Przed wyścigiem”** — czas trwania i linki do transmisji
+  (YouTube, Twitch, TikTok). Linki są też w kafelku kalendarza, a w trakcie wyścigu — w pasku „Trwa teraz” nad stroną ligi.
+- **Endurance:** link do transmisji i długość w edycji eventu. **Open lobby:** linki i czas trwania w edycji lobby.
+- **YouTube w tle** wymaga linku do konkretnej transmisji (`…/live/<ID>` albo `watch?v=<ID>`); link do kanału działa tylko jako przycisk.
+- **Baza:** jednorazowo uruchom `supabase/migrations/2026-11-01_transmisje.sql` (dodaje kolumny w `races` — niczego nie usuwa).
+
+### Kierowca dnia
+
+W trakcie wyścigu (ligi F1 / LMU, serie i pojedyncze eventy) przy kafelku „Trwa teraz”, w pasku nad stroną
+ligi i w kafelku kalendarza jest przycisk **⭐ Kierowca dnia** — okno z kierowcami składu tej rundy (rezerwowi po rozwinięciu).
+Głosować może **każdy**, jeden raz na wyścig (bez zmiany głosu): zalogowany — jako konto, gość — jako ta przeglądarka
+(losowy identyfikator w localStorage). Dodatkowo z jednego adresu sieciowego można oddać najwyżej 5 głosów na wyścig
+(w bazie jest tylko skrót adresu). Po oddaniu głosu okno pokazuje **bieżące wyniki** (odświeżane co 15 s) zamiast ankiety.
+Głosowanie trwa od startu przez czas trwania wyścigu; potem się zamyka, a wynik (kierowca i % głosów) pojawia się
+w kafelku kalendarza. Zasad pilnuje baza (funkcje `dotd_vote` / `dotd_poll` / `dotd_results`).
+**Baza:** jednorazowo uruchom `supabase/migrations/2026-11-01_kierowca_dnia.sql` (dodaje tabelę i funkcje — niczego nie usuwa).
+
+## Eventy: serie i wydarzenia
+
+Zakładka **Eventy** (`#/inne`) to wydarzenia spoza lig F1 i LMU — np. seria F2 albo jednorazowy wyścig z własnymi klasami.
+Wydarzenie działa jak sezon ligi (kalendarz, zespoły/auta, składy, wyniki, kary, zatwierdzanie), tylko z własnymi ustawieniami:
+
+- **Format:** *Seria* (kilka wyścigów, klasyfikacja) albo *Pojedyncze wydarzenie* (jeden wyścig, opcjonalnie ze sprintem,
+  bez klasyfikacji — strona wydarzenia, wyniki i lista startowa).
+- **Składy:** *Zespoły* (jak F1: zespoły kierowców, klasyfikacja zespołów, opcjonalny typ aut np. „F2”) albo
+  *Auta i klasy* (jak liga LMU: kierowcy przypisani do aut, wyniki i klasyfikacje osobno w każdej klasie).
+- **Klasy aut:** własne nazwy i kolory (np. GT3, GT4, Porsche Cup). Zmiana nazwy klasy przepisuje ją w autach i wynikach;
+  klasy używanej przez auta lub wyniki nie da się usunąć.
+- **Panel → Eventy → Serie i wydarzenia:** *+ Nowe wydarzenie / seria*, potem te same kroki co przy sezonie ligi.
+- **Strona:** lista wydarzeń w *Eventy → Serie i wydarzenia*; trwające wydarzenia są w *Nadchodzących wydarzeniach* na stronie głównej,
+  a trwające serie mają kartę z klasyfikacją w *Bieżących sezonach*. Profil kierowcy ma zakładkę *Eventy*.
+- **Baza:** jednorazowo uruchom `supabase/migrations/2026-10-31_inne_wydarzenia.sql` (dodaje kolumny wydarzenia
+  w `seasons`, dopuszcza serię `inne` i własne klasy przy autach i wynikach — niczego nie usuwa).
+
+## Eventy: open lobby
+
+**Open lobby** (*Eventy → Open lobby*) — otwarte, regularne jazdy bez zapisów, składów i wyników, z linkami do transmisji
+(YouTube, Twitch, TikTok) i Discorda.
+
+- **Panel → Eventy → Open lobby:** *+ Nowe lobby*, potem nazwa, gra, auta, start, czas trwania, opis i linki.
+  *↻ Zaplanuj kolejne (+7 dni)* kopiuje lobby z tymi samymi ustawieniami na następny tydzień.
+- **Status:** domyślnie *Automatycznie* — od startu przez podany czas trwania lobby jest „Trwa teraz”, potem „Zakończone”.
+  Moderator może ustawić status ręcznie (*Trwa teraz* / *Zakończone*).
+- **Strona główna:** zaplanowane lobby są w *Nadchodzących wydarzeniach*, a trwające — na górze jako **🔴 Trwa teraz**
+  z przyciskami do transmisji.
+
+## Ogłoszenia
+
+Blok **Ogłoszenia** na górze strony głównej: posty z tytułem, zdjęciem (opcjonalnie) i treścią. Dodają je moderatorzy
+i administratorzy w *Panel → Ogłoszenia*. Przypięte są na początku, potem od najnowszych; widać 3, resztę po kliknięciu
+*Pokaż wszystkie*. Adresy `https://…` w treści stają się linkami. Bez ogłoszeń blok się nie wyświetla.
+
+**Baza (Eventy i Ogłoszenia):** jednorazowo uruchom `supabase/migrations/2026-10-30_inne_lobby_ogloszenia.sql`
+(dodaje tylko tabele `lobbies` i `posts`). Bez tego strona działa normalnie, tylko bez lobby i ogłoszeń.
+
+### Formularz zgłoszeń w ogłoszeniu
+
+W edycji ogłoszenia, w sekcji *Formularz zgłoszeń*, wybierasz jedną z opcji:
+
+- **Własny formularz:** wybierasz sezon albo wydarzenie (z dowolnej serii) i datę końca zgłoszeń, a potem układasz pola:
+  krótki tekst, dłuższy tekst, liczba, wybór z listy, zaznaczenie tak / nie. Każde pole może być wymagane.
+  Nicku nie trzeba dodawać, bo zgłoszenie jest przypisane do konta Discord.
+- **Link do zewnętrznego formularza** (np. Google Forms): przycisk w ogłoszeniu otwiera podany adres.
+
+Ogłoszenie z formularzem jest na stronie głównej **do końca zgłoszeń**, a potem zostaje tylko w panelu.
+Zgłaszać się mogą tylko osoby **zalogowane przez Discord**. Do końca zapisów mogą poprawić albo wycofać zgłoszenie
+i widzą jego status (czeka / przyjęte / nie przyjęte). Listę zgłoszeń widzą tylko moderatorzy i administratorzy.
+
+**Panel → Ogłoszenia → 📝 Zgłoszenia** przy ogłoszeniu pokazuje odpowiedzi z filtrem i pozwala pobrać CSV.
+
+- **Przyjmij do rezerwy:** kierowca trafia do rezerwy wybranego sezonu. Miejsce w zespole przydzielasz potem
+  w *Start → Skład startowy* albo w kafelku *Składy* przed wybraną rundą. Konto bez profilu kierowcy dostaje nowy profil z nickiem z Discorda.
+  Jeśli konto czeka na powiązanie z istniejącym kierowcą, najpierw trzeba to rozpatrzyć w *Panel → Użytkownicy*.
+- **Odrzuć / Cofnij decyzję:** cofnięcie przyjęcia zdejmuje kierowcę z rezerwy, o ile nie dostał jeszcze miejsca
+  w zespole ani nie ma wyników.
+
+**Baza:** jednorazowo uruchom `supabase/migrations/2026-11-01_zgloszenia.sql` (dodaje kolumny formularza w `posts`,
+tabelę `signups` i funkcje zgłoszeń; niczego nie usuwa).
 
 ## Klasy samochodów
 

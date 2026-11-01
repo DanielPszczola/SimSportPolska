@@ -1,7 +1,7 @@
 // Skład zespołów w danej rundzie sezonu.
 //
 // entries        = skład na START sezonu (kto w jakim zespole, kto w rezerwie),
-// roster_changes = zmiany wprowadzane PO wyścigu, obowiązujące od rundy from_round.
+// roster_changes = zmiany w składach (kafelek „Składy” w panelu), obowiązujące od rundy from_round.
 //
 // Skład na rundę N = skład startowy + wszystkie zmiany z from_round <= N.
 // Wyniki nie zależą od składu: każdy wynik pamięta zespół, dla którego został zdobyty.
