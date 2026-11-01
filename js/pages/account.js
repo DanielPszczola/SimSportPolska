@@ -60,7 +60,7 @@ function PasswordUser({ s }) {
     <h2>${s.isStaff ? 'Konto administratora' : 'Twoje konto'}</h2>
     <p>Jesteś zalogowany jako <b>${userLabel(s.user)}</b> · <span class=${`role-badge role-${s.role}`}>${roleLabel(s.role)}</span></p>
     <div class="form-actions">
-      ${s.isStaff ? html`<a class="btn btn-accent" href="#/admin">Panel administratora →</a>` : null}
+      ${s.isStaff ? html`<a class="btn btn-accent" href="#/admin">Zarządzanie →</a>` : null}
       <button class="btn" onClick=${logout}>Wyloguj</button>
     </div>
   </div>`;
@@ -103,7 +103,7 @@ function DiscordAccount({ s }) {
     ${a.status && a.status !== 'error' && !a.claim_driver_id && (a.status === 'unlinked' || a.auto_driver) ? html`<${ClaimForm} own=${a.driver_id} first=${a.status === 'unlinked'} />` : null}
 
     <div class="form-actions">
-      ${s.isStaff ? html`<a class="btn btn-accent" href="#/admin">Panel administratora →</a>` : null}
+      ${s.isStaff ? html`<a class="btn btn-accent" href="#/admin">Zarządzanie →</a>` : null}
       <span class="spacer"></span>
       <button class="btn" onClick=${logout}>Wyloguj</button>
     </div>

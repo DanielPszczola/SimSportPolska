@@ -23,8 +23,12 @@ export const newFieldId = () => `f${Date.now().toString(36)}${Math.random().toSt
 /** Czy formularz przyjmuje zgłoszenia (wg daty końca). */
 export const formOpen = (post, now = Date.now()) => !!post.form_kind && (!post.form_until || now < new Date(post.form_until).getTime());
 
-/** Ogłoszenie na stronie głównej: bez formularza zawsze, z formularzem — do końca zgłoszeń. */
-export const postOnHome = (post, now = Date.now()) => !post.form_kind || formOpen(post, now);
+/** Głosowanie zostaje na stronie głównej jeszcze tyle dni po zakończeniu — z wynikami. */
+export const POLL_SHOW_DAYS = 7;
+
+/** Ogłoszenie na stronie głównej: bez dodatku zawsze, z formularzem — do końca zgłoszeń, z głosowaniem — jeszcze tydzień po nim. */
+export const postOnHome = (post, now = Date.now()) => !post.form_kind || formOpen(post, now)
+  || (post.form_kind === 'poll' && now < new Date(post.form_until).getTime() + POLL_SHOW_DAYS * 86400000);
 
 /** „jeszcze 3 dni” / „jeszcze 5 godz.” / „jeszcze 20 min”. */
 export function timeLeft(iso, now = Date.now()) {

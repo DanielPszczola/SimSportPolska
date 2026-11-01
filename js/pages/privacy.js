@@ -47,6 +47,12 @@ export function PrivacyPage() {
       Do końca zapisów możesz zgłoszenie poprawić albo wycofać.</p>
     <p>Jeśli ogłoszenie prowadzi do zewnętrznego formularza (np. Google Forms), dane podajesz w tamtym serwisie, na jego zasadach.</p>
 
+    <h2>Głosowania w ogłoszeniach</h2>
+    <p>W głosowaniach (ankietach) w ogłoszeniach głosują osoby zalogowane przez Discord. Zapisujemy, na którą odpowiedź zagłosowało
+      konto — żeby każdy miał jeden głos i mógł go zmienić. Publicznie widać tylko łączne wyniki, nie to, kto jak głosował.
+      30 dni po zakończeniu głosowania usuwamy pojedyncze głosy, a zostają tylko łączne wyniki. Podstawa: art. 6 ust. 1 lit. f RODO
+      — poznanie zdania społeczności ligi.</p>
+
     <h2>Głosowanie na kierowcę dnia</h2>
     <p>Głosować może każdy. Żeby jedna osoba nie głosowała wielokrotnie, zapisujemy: na kogo oddano głos, losowy identyfikator
       przeglądarki (albo konto, jeśli jesteś zalogowany) oraz <b>skrót adresu IP</b> (nie sam adres) — limit głosów z jednej sieci.
@@ -69,7 +75,8 @@ export function PrivacyPage() {
       <li>konto Discord — do czasu, aż je odepniesz (albo poprosisz o usunięcie);</li>
       <li>profil kierowcy i wyniki — przez czas istnienia ligi, jako archiwum rozgrywek;</li>
       <li>zgłoszenia — 30 dni po zakończeniu zapisów, potem są usuwane automatycznie;</li>
-      <li>skrót adresu IP z głosowania — do zakończenia głosowania.</li>
+      <li>głosy w ankietach — 30 dni po zakończeniu głosowania (potem zostają tylko łączne wyniki);</li>
+      <li>skrót adresu IP z głosowania na kierowcę dnia — do zakończenia głosowania.</li>
     </ul>
 
     <h2>Twoje prawa</h2>
@@ -79,7 +86,7 @@ export function PrivacyPage() {
 
     <h2>Usunięcie konta</h2>
     <p>W <a href="#/konto">Moje konto</a> możesz w każdej chwili kliknąć <b>„Odepnij konto Discord”</b>. Usuwa to konto na stronie
-      i wszystkie dane z Discorda (identyfikator, nazwy, e-mail, awatar) oraz Twoje zgłoszenia. Profil kierowcy z nickiem i wynikami
+      i wszystkie dane z Discorda (identyfikator, nazwy, e-mail, awatar) oraz Twoje zgłoszenia. Oddane głosy zostają w wynikach, ale bez powiązania z Tobą. Profil kierowcy z nickiem i wynikami
       zostaje jako część historii ligi. Jeśli chcesz, żeby z wyników zniknął także Twój nick, wyślij do administracji ligi prośbę
       o jego zmianę — zastąpimy go neutralnym (np. „Kierowca #57”). Wyniki i klasyfikacje się przy tym nie zmieniają.</p>
   </div>`;

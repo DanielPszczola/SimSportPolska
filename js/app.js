@@ -48,7 +48,7 @@ function Header({ section }) {
         ${link('#/lmu', 'lmu', 'Le Mans Ultimate')}
         ${link('#/inne', 'inne', 'Eventy')}
         ${link('#/galeria', 'galeria', 'Galeria sław')}
-        ${s.isStaff ? html`<a href="#/admin" class=${`nav-admin ${section === 'admin' ? 'active' : ''}`} title="Panel administratora">Panel</a>` : null}
+        ${s.isStaff ? html`<a href="#/admin" class=${`nav-admin ${section === 'admin' ? 'active' : ''}`} title="Zarządzanie ligą">Zarządzanie</a>` : null}
         ${discord
           ? html`<a href="#/konto" class=${`nav-user ${section === 'konto' ? 'active' : ''}`} title="Moje konto">
               ${avatar ? html`<img src=${avatar} alt="" />` : null}<span>${userLabel(s.user, s.account)}</span></a>`

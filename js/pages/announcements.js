@@ -2,6 +2,7 @@ import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, cached, formatDate } from '../ui.js';
 import { SignupBox, postOnHome } from './signup.js';
+import { PollBox } from './poll.js';
 
 // Ogłoszenia na stronie głównej: posty moderatorów i administratorów (tytuł, zdjęcie, treść).
 // Przypięte na początku, potem od najnowszych. Bez ogłoszeń blok się nie wyświetla.
@@ -44,7 +45,7 @@ function PostCard({ post }) {
       <h3>${post.title}</h3>
       <div class=${long && !open ? 'post-clamp' : ''}><${PostBody} text=${post.body} /></div>
       ${long ? html`<button class="link" onClick=${() => setOpen(!open)}>${open ? 'Zwiń' : 'Czytaj dalej'}</button>` : null}
-      ${post.form_kind ? html`<${SignupBox} post=${post} />` : null}
+      ${post.form_kind === 'poll' ? html`<${PollBox} post=${post} />` : post.form_kind ? html`<${SignupBox} post=${post} />` : null}
     </div>
   </article>`;
 }

@@ -50,7 +50,7 @@ export function AdminPage({ parts }) {
   return html`<div class="admin">
     <div class="section-head">
       <div class="wrap section-head-inner">
-        <div class="section-title"><span class="series-chip admin">ADMIN</span><h1>Panel administratora</h1></div>
+        <div class="section-title"><span class="series-chip admin">ADMIN</span><h1>Zarządzanie</h1></div>
         <div class="admin-user"><span class="muted">${userLabel(user)} · <span class=${`role-badge role-${role}`}>${roleLabel(role)}</span></span><button class="btn btn-sm" onClick=${logout}>Wyloguj</button></div>
       </div>
       <nav class="wrap subnav admin-sections">

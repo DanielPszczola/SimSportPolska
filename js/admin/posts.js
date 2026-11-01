@@ -6,9 +6,10 @@ import { ImageField, DateTimeInput, toLocalInput, fromLocalInput, SERIES } from 
 import { sortPosts, PostBody } from '../pages/announcements.js';
 import { FIELD_TYPES, newFieldId, formOpen, timeLeft, seasonLabel, signupsPurgeAt } from '../pages/signup.js';
 import { SignupsAdmin } from './signups.js';
+import { PollResults } from '../pages/poll.js';
 
-// Ogłoszenia na stronie głównej (moderator i wyżej): tytuł, zdjęcie, treść, przypięcie
-// i opcjonalnie formularz zgłoszeń (własny albo link do zewnętrznego) do wybranego sezonu / wydarzenia.
+// Ogłoszenia na stronie głównej (moderator i wyżej): tytuł, zdjęcie, treść, przypięcie i opcjonalnie dodatek:
+// formularz zgłoszeń (własny albo link do zewnętrznego) do wybranego sezonu / wydarzenia albo głosowanie (ankieta).
 
 const EMPTY = { title: '', body: '', image_url: null, pinned: false };
 
@@ -58,7 +59,7 @@ function PostsList() {
       ${editing !== 'new' ? html`<button class="btn btn-accent btn-sm" onClick=${() => setEditing('new')}>+ Nowe ogłoszenie</button>` : null}
     </div>
     <p class="muted">Ogłoszenia są widoczne w bloku <b>„Ogłoszenia”</b> na górze strony głównej — przypięte na początku, potem od najnowszych.
-      Ogłoszenie z formularzem zgłoszeń jest na stronie głównej do końca zapisów. Gdy nie ma żadnego ogłoszenia, blok się nie wyświetla.</p>
+      Ogłoszenie z formularzem zgłoszeń jest na stronie głównej do końca zapisów, a z głosowaniem — jeszcze 7 dni po jego zakończeniu (z wynikami). Gdy nie ma żadnego ogłoszenia, blok się nie wyświetla.</p>
     ${editing === 'new' ? html`<${PostEditor} post=${EMPTY} seasons=${seasons} onDone=${done} onCancel=${() => setEditing(null)} />` : null}
     <div class="post-admin-list">
       ${posts.map((p) => (editing === p.id
@@ -84,7 +85,7 @@ function PostRow({ post, seasons, signups, onEdit, reload }) {
     <div class="post-admin-main">
       <div class="muted small">${post.pinned ? '📌 Przypięte · ' : ''}${formatDate(post.created_at)}${post.author ? ` · ${post.author}` : ''}</div>
       <b>${post.title}</b>
-      ${post.form_kind ? html`<div class="post-form-info small">
+      ${post.form_kind === 'poll' ? html`<${PollRowInfo} post=${post} />` : post.form_kind ? html`<div class="post-form-info small">
         <span class=${`tile-state ${open ? 'st-live' : 'st-done'}`}>${open ? 'Zapisy trwają' : 'Zapisy zakończone'}</span>
         ${post.form_kind === 'external' ? ' Formularz zewnętrzny' : ' Własny formularz'}${season ? ` · ${seasonLabel(season)}` : ''}${post.form_until ? ` · do ${formatDate(post.form_until)}${open ? ` (${timeLeft(post.form_until)})` : ''}` : ''}
         ${open ? null : html`<span class="muted"> · nie jest już na stronie głównej${post.form_kind === 'internal' && post.form_until ? ` · zgłoszenia znikną ${formatDate(signupsPurgeAt(post), false)}` : ''}</span>`}
@@ -106,13 +107,20 @@ function PostEditor({ post, seasons, count = 0, onDone, onCancel }) {
     title: post.title, body: post.body || '', image_url: post.image_url || null, pinned: !!post.pinned,
     form_kind: post.form_kind || '', form_url: post.form_url || '', form_fields: post.form_fields || [],
     form_season_id: post.form_season_id || '', form_until: toLocalInput(post.form_until || null),
+    poll_multi: !!post.poll_multi,
   });
+  // odpowiedzi głosowania trzymamy osobno od pól formularza (przełączanie rodzaju ich nie miesza)
+  const [options, setOptions] = useState(() => (post.form_kind === 'poll' ? post.form_fields || [] : []));
   const [busy, setBusy] = useState(false);
   const isNew = !post.id;
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
-  const setKind = (kind) => setF((x) => ({
+  const setKind = (kind) => {
+    if (kind === 'poll' && !options.length) setOptions([{ id: newFieldId(), label: '' }, { id: newFieldId(), label: '' }]);
+    setKindF(kind);
+  };
+  const setKindF = (kind) => setF((x) => ({
     ...x, form_kind: kind,
-    form_fields: kind === 'internal' && !x.form_fields.length ? DEFAULT_FIELDS() : x.form_fields,
+    form_fields: kind === 'internal' && (!x.form_fields.length || post.form_kind === 'poll') ? DEFAULT_FIELDS() : x.form_fields,
     form_until: kind && !x.form_until ? toLocalInput(defaultUntil()) : x.form_until,
   }));
   const save = async (e) => {
@@ -122,7 +130,8 @@ function PostEditor({ post, seasons, count = 0, onDone, onCancel }) {
     // kolumny formularza wysyłamy tylko, gdy formularz jest (albo był) — ogłoszenia działają też bez aktualizacji bazy
     if (f.form_kind || post.form_kind) {
       if (f.form_kind) {
-        if (!f.form_until) return alert('Ustaw, do kiedy przyjmujesz zgłoszenia');
+        if (!f.form_until) return alert(f.form_kind === 'poll' ? 'Ustaw, do kiedy trwa głosowanie' : 'Ustaw, do kiedy przyjmujesz zgłoszenia');
+        if (f.form_kind === 'poll' && options.filter((x) => x.label.trim()).length < 2) return alert('Głosowanie musi mieć co najmniej dwie odpowiedzi');
         if (f.form_kind === 'external' && !/^https?:\/\//i.test(f.form_url.trim())) return alert('Podaj pełny adres formularza, np. https://forms.gle/…');
         if (f.form_kind === 'internal' && !f.form_season_id) return alert('Wybierz sezon / wydarzenie — przyjęci kierowcy trafią do jego rezerwy');
         if (f.form_kind === 'internal' && f.form_fields.some((x) => !x.label.trim())) return alert('Każde pole formularza musi mieć nazwę');
@@ -131,10 +140,12 @@ function PostEditor({ post, seasons, count = 0, onDone, onCancel }) {
       Object.assign(row, {
         form_kind: f.form_kind || null,
         form_url: f.form_kind === 'external' ? f.form_url.trim() : null,
-        form_fields: f.form_kind === 'internal' ? f.form_fields.map((x) => ({ ...x, label: x.label.trim() })) : [],
-        form_season_id: f.form_season_id || null,
+        form_fields: f.form_kind === 'internal' ? f.form_fields.map((x) => ({ ...x, label: x.label.trim() }))
+          : f.form_kind === 'poll' ? options.filter((x) => x.label.trim()).map((x) => ({ id: x.id, label: x.label.trim() })) : [],
+        form_season_id: f.form_kind === 'poll' ? null : f.form_season_id || null,
         form_until: f.form_kind ? fromLocalInput(f.form_until) : null,
       });
+      if (f.form_kind === 'poll' || post.form_kind === 'poll') row.poll_multi = f.form_kind === 'poll' && f.poll_multi;
     }
     setBusy(true);
     const ok = await attempt(() => (isNew
@@ -160,12 +171,13 @@ function PostEditor({ post, seasons, count = 0, onDone, onCancel }) {
     </div>
 
     <div class="post-form-section">
-      <span class="field-label">Formularz zgłoszeń</span>
+      <span class="field-label">Dodatek do ogłoszenia</span>
       <div class="seg">
-        ${[['', 'Bez formularza'], ['internal', 'Własny formularz'], ['external', 'Link do zewnętrznego']].map(([id, label]) => html`<button type="button"
+        ${[['', 'Bez dodatku'], ['internal', 'Formularz zgłoszeń'], ['external', 'Link do formularza'], ['poll', '📊 Głosowanie']].map(([id, label]) => html`<button type="button"
           class=${`btn btn-sm ${f.form_kind === id ? 'btn-accent' : ''}`} onClick=${() => setKind(id)}>${label}</button>`)}
       </div>
-      ${f.form_kind ? html`
+      ${f.form_kind === 'poll' ? html`<${PollEditor} f=${f} setF=${setF} options=${options} setOptions=${setOptions} />` : null}
+      ${f.form_kind && f.form_kind !== 'poll' ? html`
         <p class="muted small">${f.form_kind === 'internal'
           ? 'Zgłaszają się osoby zalogowane przez Discord. Zgłoszenia przeglądasz w panelu (przycisk „Zgłoszenia” przy ogłoszeniu) — przyjęty kierowca trafia do rezerwy wybranego sezonu. Zgłoszenia są usuwane automatycznie 30 dni po zakończeniu zapisów.'
           : 'Przycisk w ogłoszeniu otworzy podany formularz (np. Google Forms, Microsoft Forms). Zgłoszenia zbierasz w tamtym serwisie.'} Ogłoszenie jest na stronie głównej do końca zgłoszeń.</p>
@@ -190,6 +202,41 @@ function PostEditor({ post, seasons, count = 0, onDone, onCancel }) {
       <button type="button" class="btn" onClick=${onCancel}>Anuluj</button>
     </div>
   </form>`;
+}
+
+/** Głosowanie: odpowiedzi (min. 2), jedna albo kilka do wyboru, koniec głosowania. */
+function PollEditor({ f, setF, options, setOptions }) {
+  const patch = (i, label) => setOptions(options.map((x, j) => (j === i ? { ...x, label } : x)));
+  return html`
+    <p class="muted small">Pytanie do społeczności — wpisz je w tytule albo treści ogłoszenia. Głosują osoby zalogowane przez Discord
+      (jeden głos na konto, do końca można go zmienić). Wyniki widać po oddaniu głosu i po zakończeniu; ogłoszenie zostaje
+      na stronie głównej jeszcze 7 dni po zakończeniu, z wynikami.</p>
+    <div class="form-grid">
+      <label class="field"><span>Głosowanie do</span><${DateTimeInput} value=${f.form_until} onChange=${(v) => setF((x) => ({ ...x, form_until: v }))} /></label>
+      <label class="check-inline"><input type="checkbox" checked=${f.poll_multi} onChange=${(e) => setF((x) => ({ ...x, poll_multi: e.target.checked }))} /> Można zaznaczyć kilka odpowiedzi</label>
+    </div>
+    <div class="fields-editor">
+      <span class="field-label">Odpowiedzi</span>
+      ${options.map((x, i) => html`<div class="poll-option-row" key=${x.id}>
+        <span class="muted">${i + 1}.</span>
+        <input value=${x.label} maxlength="120" placeholder=${i === 0 ? 'np. Spa-Francorchamps' : 'kolejna odpowiedź'} onInput=${(e) => patch(i, e.target.value)} />
+        <button type="button" class="btn btn-xs btn-danger" disabled=${options.length <= 2} onClick=${() => setOptions(options.filter((_, j) => j !== i))} aria-label="Usuń odpowiedź">✕</button>
+      </div>`)}
+      <button type="button" class="btn btn-sm" onClick=${() => setOptions([...options, { id: newFieldId(), label: '' }])}>+ Dodaj odpowiedź</button>
+    </div>`;
+}
+
+/** Głosowanie na liście ogłoszeń: stan, termin i bieżące wyniki (moderator widzi je zawsze). */
+function PollRowInfo({ post }) {
+  const open = formOpen(post);
+  const st = useAsync(() => db.rpc('poll_state', { p_post: post.id }), [post.id]);
+  return html`<div class="post-form-info small">
+      <span class=${`tile-state ${open ? 'st-live' : 'st-done'}`}>${open ? 'Głosowanie trwa' : 'Głosowanie zakończone'}</span>
+      ${post.poll_multi ? ' Wiele odpowiedzi' : ' Jedna odpowiedź'}${post.form_until ? ` · do ${formatDate(post.form_until)}${open ? ` (${timeLeft(post.form_until)})` : ''}` : ''}
+      ${st.data?.results ? ` · zagłosowało: ${st.data.results.voters}` : ''}
+    </div>
+    ${st.data?.results ? html`<div class="poll-admin-results"><${PollResults} options=${post.form_fields || []} results=${st.data.results} /></div>` : null}
+    ${st.error ? html`<div class="hint warn small">Głosowanie wymaga aktualizacji bazy (supabase/migrations/2026-11-02_glosowania.sql): ${st.error.message}</div>` : null}`;
 }
 
 /** Pola własnego formularza: nazwa, typ, wymagane, opcje listy; kolejność strzałkami. Nick i konto Discord dołączają się same. */

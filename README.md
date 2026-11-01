@@ -149,7 +149,7 @@ Kopia strony z **własną, lokalną bazą Supabase** (w Dockerze) — do testowa
 Kierowcy logują się kontem Discord (link **Zaloguj** w nagłówku → `#/konto`). Admini mogą dalej używać loginu i hasła.
 
 **Jak działa:**
-- pierwsze logowanie: jeśli w bazie jest kierowca z takim samym nickiem (bez konta), powstaje **prośba o powiązanie** — admin zatwierdza ją w *Panel → Baza danych → Konta Discord*; w przeciwnym razie automatycznie powstaje **nowy kierowca** z nickiem z Discorda,
+- pierwsze logowanie: jeśli w bazie jest kierowca z takim samym nickiem (bez konta), powstaje **prośba o powiązanie** — admin zatwierdza ją w *Zarządzanie → Baza danych → Konta Discord*; w przeciwnym razie automatycznie powstaje **nowy kierowca** z nickiem z Discorda,
 - kierowca, który startował pod innym nickiem, może na stronie *Moje konto* wskazać swój stary profil (prośba do admina),
 - admin może powiązać dowolnego kierowcę z kontem Discord (kolumna *Discord* w bazie kierowców albo karta *Konta Discord*); profil założony automatycznie zostaje wtedy **scalony** z wybranym kierowcą — wyniki, składy i kary przechodzą na niego,
 - po powiązaniu nick i awatar kierowcy są odświeżane z Discorda przy każdym logowaniu (nazwa wyświetlana na Discordzie).
@@ -168,27 +168,27 @@ Kierowcy logują się kontem Discord (link **Zaloguj** w nagłówku → `#/konto
    kierowca logujący się przez Discord to nowe konto w Supabase.
 
 Admin lub moderator z kontem Discord: niech zaloguje się raz przez Discord, a potem konto główne „admin” nada mu rangę
-w *Panel → Użytkownicy*.
+w *Zarządzanie → Użytkownicy*.
 
 ## Rangi użytkowników
 
 | Ranga | Dostęp |
 |---|---|
 | **Konto główne** (login `admin`, e-mail `admin@ssp.example.com`) | zawsze admin; jego rangi nie da się zmienić |
-| **Admin** | pełny dostęp: zarządzanie ligą + rangi użytkowników (*Panel → Użytkownicy*) + konta Discord |
+| **Admin** | pełny dostęp: zarządzanie ligą + rangi użytkowników (*Zarządzanie → Użytkownicy*) + konta Discord |
 | **Moderator** | zarządzanie ligą: sezony, kalendarz, zespoły, składy, wyniki i czasy, kary, kierowcy, tory, Endurance, grafiki |
 | **Użytkownik** | domyślnie każde nowe konto (np. z Discorda) — bez dostępu do panelu |
 
-Do panelu wchodzisz adresem `https://<adres-strony>/#/admin`. Na stronie nie ma do niego linku dla gości, a przycisk *Panel*
+Do panelu wchodzisz adresem `https://<adres-strony>/#/admin`. Na stronie nie ma do niego linku dla gości, a przycisk *Zarządzanie*
 w nagłówku widzą tylko admini i moderatorzy. Zwykły użytkownik, który wpisze ten adres po zalogowaniu, trafia na swoje konto.
 
 Rangi są sprawdzane w bazie (reguły RLS), a nie tylko na stronie — nie da się ich obejść z przeglądarki.
 Admin nie może zmienić własnej rangi ani rangi konta głównego, więc nikt przypadkiem nie odetnie wszystkich od panelu.
 Aktualizacja bazy: `supabase/migrations/2026-10-30_rangi.sql` (dotychczasowi admini z tabeli `admins` zostają adminami).
 
-## Panel administratora (`#/admin`)
+## Zarządzanie (`#/admin`)
 
-Panel ma cztery zakładki: **Formuła 1**, **LMU Liga**, **LMU Endurance** i **Baza danych**. W bazie są tory i kierowcy,
+Zarządzanie ma zakładki: **Formuła 1**, **LMU Liga**, **LMU Endurance**, **Eventy**, **Ogłoszenia**, **Baza danych** i (dla admina) **Użytkownicy**. W bazie są tory i kierowcy,
 czyli dane wspólne dla wszystkich sezonów.
 
 W serii wybierasz sezon (albo tworzysz nowy) i widzisz **oś sezonu z kafelkami**:
@@ -314,7 +314,7 @@ Runda może mieć oprócz wyścigu głównego **sprint**, jak we współczesnej 
 dla pierwszej ósemki (w każdej klasie osobno), bez punktów za pole i najszybsze okrążenie. Punkty ze sprintu wliczają
 się do klasyfikacji, a wygrane, podia, pole, starty i remisy liczą się z wyścigów głównych.
 
-- **Włączenie:** *Panel → LMU Liga → Start sezonu → Kalendarz* — przy dodawaniu rundy zaznacz *Weekend sprinterski*
+- **Włączenie:** *Zarządzanie → LMU Liga → Start sezonu → Kalendarz* — przy dodawaniu rundy zaznacz *Weekend sprinterski*
   albo w tabeli kalendarza zaznacz kolumnę *Sprint*. Pod rundą pojawi się wiersz sprintu (data, okrążenia, pogoda, pora dnia).
   Tor i „do klasyfikacji” są wspólne dla sprintu i wyścigu głównego.
 - **Wyniki:** sprint ma na osi sezonu osobny kafelek przed wyścigiem głównym (wyniki → kary → zatwierdzenie).
@@ -359,7 +359,7 @@ Wydarzenie działa jak sezon ligi (kalendarz, zespoły/auta, składy, wyniki, ka
   *Auta i klasy* (jak liga LMU: kierowcy przypisani do aut, wyniki i klasyfikacje osobno w każdej klasie).
 - **Klasy aut:** własne nazwy i kolory (np. GT3, GT4, Porsche Cup). Zmiana nazwy klasy przepisuje ją w autach i wynikach;
   klasy używanej przez auta lub wyniki nie da się usunąć.
-- **Panel → Eventy → Serie i wydarzenia:** *+ Nowe wydarzenie / seria*, potem te same kroki co przy sezonie ligi.
+- **Zarządzanie → Eventy → Serie i wydarzenia:** *+ Nowe wydarzenie / seria*, potem te same kroki co przy sezonie ligi.
 - **Strona:** lista wydarzeń w *Eventy → Serie i wydarzenia*; trwające wydarzenia są w *Nadchodzących wydarzeniach* na stronie głównej,
   a trwające serie mają kartę z klasyfikacją w *Bieżących sezonach*. Profil kierowcy ma zakładkę *Eventy*.
 - **Baza:** jednorazowo uruchom `supabase/migrations/2026-10-31_inne_wydarzenia.sql` (dodaje kolumny wydarzenia
@@ -370,7 +370,7 @@ Wydarzenie działa jak sezon ligi (kalendarz, zespoły/auta, składy, wyniki, ka
 **Open lobby** (*Eventy → Open lobby*) — otwarte, regularne jazdy bez zapisów, składów i wyników, z linkami do transmisji
 (YouTube, Twitch, TikTok) i Discorda.
 
-- **Panel → Eventy → Open lobby:** *+ Nowe lobby*, potem nazwa, gra, auta, start, czas trwania, opis i linki.
+- **Zarządzanie → Eventy → Open lobby:** *+ Nowe lobby*, potem nazwa, gra, auta, start, czas trwania, opis i linki.
   *↻ Zaplanuj kolejne (+7 dni)* kopiuje lobby z tymi samymi ustawieniami na następny tydzień.
 - **Status:** domyślnie *Automatycznie* — od startu przez podany czas trwania lobby jest „Trwa teraz”, potem „Zakończone”.
   Moderator może ustawić status ręcznie (*Trwa teraz* / *Zakończone*).
@@ -380,7 +380,7 @@ Wydarzenie działa jak sezon ligi (kalendarz, zespoły/auta, składy, wyniki, ka
 ## Ogłoszenia
 
 Blok **Ogłoszenia** na górze strony głównej: posty z tytułem, zdjęciem (opcjonalnie) i treścią. Dodają je moderatorzy
-i administratorzy w *Panel → Ogłoszenia*. Przypięte są na początku, potem od najnowszych; widać 3, resztę po kliknięciu
+i administratorzy w *Zarządzanie → Ogłoszenia*. Przypięte są na początku, potem od najnowszych; widać 3, resztę po kliknięciu
 *Pokaż wszystkie*. Adresy `https://…` w treści stają się linkami. Bez ogłoszeń blok się nie wyświetla.
 
 **Baza (Eventy i Ogłoszenia):** jednorazowo uruchom `supabase/migrations/2026-10-30_inne_lobby_ogloszenia.sql`
@@ -400,16 +400,29 @@ Zgłoszenia są usuwane automatycznie **30 dni po zakończeniu zapisów** (polit
 Zgłaszać się mogą tylko osoby **zalogowane przez Discord**. Do końca zapisów mogą poprawić albo wycofać zgłoszenie
 i widzą jego status (czeka / przyjęte / nie przyjęte). Listę zgłoszeń widzą tylko moderatorzy i administratorzy.
 
-**Panel → Ogłoszenia → 📝 Zgłoszenia** przy ogłoszeniu pokazuje odpowiedzi z filtrem i pozwala pobrać CSV.
+**Zarządzanie → Ogłoszenia → 📝 Zgłoszenia** przy ogłoszeniu pokazuje odpowiedzi z filtrem i pozwala pobrać CSV.
 
 - **Przyjmij do rezerwy:** kierowca trafia do rezerwy wybranego sezonu. Miejsce w zespole przydzielasz potem
   w *Start → Skład startowy* albo w kafelku *Składy* przed wybraną rundą. Konto bez profilu kierowcy dostaje nowy profil z nickiem z Discorda.
-  Jeśli konto czeka na powiązanie z istniejącym kierowcą, najpierw trzeba to rozpatrzyć w *Panel → Użytkownicy*.
+  Jeśli konto czeka na powiązanie z istniejącym kierowcą, najpierw trzeba to rozpatrzyć w *Zarządzanie → Użytkownicy*.
 - **Odrzuć / Cofnij decyzję:** cofnięcie przyjęcia zdejmuje kierowcę z rezerwy, o ile nie dostał jeszcze miejsca
   w zespole ani nie ma wyników.
 
 **Baza:** jednorazowo uruchom `supabase/migrations/2026-11-01_zgloszenia.sql` (dodaje kolumny formularza w `posts`,
 tabelę `signups` i funkcje zgłoszeń; niczego nie usuwa).
+
+### Głosowanie (ankieta) w ogłoszeniu
+
+W edycji ogłoszenia, w sekcji *Dodatek do ogłoszenia*, wybierz **📊 Głosowanie**: wpisz odpowiedzi (co najmniej dwie),
+datę końca i opcjonalnie *Można zaznaczyć kilka odpowiedzi*. Pytanie wpisujesz w tytule albo treści ogłoszenia.
+
+- Głosują osoby **zalogowane przez Discord**: jeden głos na konto, do końca głosowania można go zmienić.
+- Wyniki (procent głosujących i liczba głosów) widać po oddaniu głosu i po zakończeniu. Moderatorzy widzą je zawsze,
+  także na liście w *Zarządzanie → Ogłoszenia*.
+- Ogłoszenie z głosowaniem jest na stronie głównej do końca głosowania i **jeszcze 7 dni** po nim, z wynikami.
+- 30 dni po zakończeniu pojedyncze głosy są usuwane, a w ogłoszeniu zostają tylko łączne wyniki (polityka prywatności).
+
+**Baza:** jednorazowo uruchom `supabase/migrations/2026-11-02_glosowania.sql` (po `2026-11-02_prywatnosc.sql`; niczego nie usuwa).
 
 ## Prywatność (RODO)
 
@@ -417,7 +430,7 @@ tabelę `signups` i funkcje zgłoszeń; niczego nie usuwa).
   i w formularzu zgłoszenia. Przy zmianie zasad (nowe dane, nowy dostawca) zaktualizuj tekst i datę w pliku.
   Kontakt w sprawach danych to serwer Discord ligi (`DISCORD_INVITE` w `js/config.js`).
 - **Czcionka** jest na własnym serwerze (`assets/fonts`), strona nie łączy się z Google Fonts.
-- **E-maile kont Discord** nie są pokazywane w *Panel → Użytkownicy*.
+- **E-maile kont Discord** nie są pokazywane w *Zarządzanie → Użytkownicy*.
 - **Skrót adresu IP** z głosowania na kierowcę dnia jest kasowany po zakończeniu głosowania (po zatwierdzeniu wyścigu
   albo przy kolejnym głosie po upływie czasu trwania).
 - **„Odepnij konto Discord”** (*Moje konto → Prywatność i usunięcie danych*): użytkownik sam usuwa konto i dane z Discorda
