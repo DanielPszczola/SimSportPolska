@@ -6,9 +6,7 @@
   <title>Sim Sport Polska</title>
   <meta name="description" content="Sim Sport Polska — liga sim racingowa F1 i Le Mans Ultimate. Wyniki, klasyfikacje, kalendarz." />
   <link rel="icon" type="image/jpeg" href="assets/hero.jpg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet" />
+  <link rel="preload" href="assets/fonts/titillium-web-400-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="css/style.css" />
   <!-- Szybsze ładowanie: przeglądarka pobiera wszystkie moduły równolegle, zamiast odkrywać je łańcuchem importów.
        Przy dodaniu nowego pliku js/ dopisz go tutaj (pliki tylko dla trybu demo celowo pominięte). -->
@@ -39,7 +37,13 @@
   <link rel="modulepreload" href="js/race-conditions.js" />
   <link rel="modulepreload" href="js/session.js" />
   <link rel="modulepreload" href="js/pages/account.js" />
+  <link rel="modulepreload" href="js/pages/announcements.js" />
+  <link rel="modulepreload" href="js/pages/dotd.js" />
+  <link rel="modulepreload" href="js/pages/other.js" />
+  <link rel="modulepreload" href="js/admin/lobby.js" />
+  <link rel="modulepreload" href="js/admin/posts.js" />
   <link rel="modulepreload" href="js/pages/signup.js" />
+  <link rel="modulepreload" href="js/pages/privacy.js" />
   <link rel="modulepreload" href="js/admin/signups.js" />
   <link rel="modulepreload" href="js/team-assets.js" />
   <link rel="modulepreload" href="js/tracks-seed.js" />

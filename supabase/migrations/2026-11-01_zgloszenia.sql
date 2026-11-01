@@ -2,6 +2,7 @@
 -- Ogłoszenie może mieć formularz: własny (pola ustawia moderator, zgłoszenia trafiają do panelu) albo link do
 -- zewnętrznego formularza. Formularz jest aktywny do podanej daty — do tej pory ogłoszenie jest też na stronie głównej.
 -- Zgłaszać się mogą tylko osoby zalogowane przez Discord. Przyjęcie zgłoszenia dodaje kierowcę do rezerwy wybranego sezonu.
+-- Zgłoszenia są usuwane automatycznie 30 dni po zakończeniu zapisów (przyjęci kierowcy zostają w rezerwie).
 -- Niczego nie usuwa z danych. Można uruchomić wielokrotnie (Supabase → SQL Editor → wklej → Run).
 
 alter table public.posts add column if not exists form_kind text;                -- null | 'internal' | 'external'
@@ -50,14 +51,29 @@ as $$
 $$;
 grant execute on function public.signup_open(uuid) to anon, authenticated;
 
+-- zgłoszenia usuwane automatycznie 30 dni po zakończeniu zapisów (polityka prywatności) — sprzątanie przy okazji
+-- odczytu zgłoszeń (moje zgłoszenia, panel), bez harmonogramu zadań
+create or replace function public.signups_cleanup()
+returns void
+language sql security definer
+set search_path = public
+as $$
+  delete from public.signups s using public.posts p
+  where p.id = s.post_id and p.form_until is not null and p.form_until < now() - interval '30 days';
+$$;
+revoke all on function public.signups_cleanup() from public, anon, authenticated;
+
 -- moje zgłoszenia (status widzi tylko zgłaszający)
 create or replace function public.my_signups()
 returns json
-language sql stable security definer
+language plpgsql security definer
 set search_path = public
 as $$
-  select coalesce(json_agg(json_build_object('post_id', s.post_id, 'status', s.status, 'answers', s.answers, 'updated_at', s.updated_at)), '[]'::json)
-  from public.signups s where s.user_id = auth.uid();
+begin
+  perform public.signups_cleanup();
+  return (select coalesce(json_agg(json_build_object('post_id', s.post_id, 'status', s.status, 'answers', s.answers, 'updated_at', s.updated_at)), '[]'::json)
+          from public.signups s where s.user_id = auth.uid());
+end;
 $$;
 grant execute on function public.my_signups() to authenticated;
 
@@ -119,13 +135,14 @@ grant execute on function public.signup_withdraw(uuid) to authenticated;
 -- panel: zgłoszenia z aktualnym kierowcą konta i informacją, czy jest już w składzie sezonu
 create or replace function public.signup_list(p_post uuid)
 returns json
-language plpgsql stable security definer
+language plpgsql security definer
 set search_path = public
 as $$
 declare
   v_season uuid;
 begin
   if not public.is_staff() then raise exception 'Brak uprawnień'; end if;
+  perform public.signups_cleanup();
   select form_season_id into v_season from public.posts where id = p_post;
   return coalesce((
     select json_agg(json_build_object(

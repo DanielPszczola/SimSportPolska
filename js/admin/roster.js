@@ -70,8 +70,7 @@ function ChangeText({ b, c, lmu }) {
   const nick = (id) => b.driverById.get(id)?.nick ?? '?';
   const team = b.teamById.get(c.team_id)?.name ?? '?';
   if (lmu) return html`<span>${c.driver_in_id ? html`<b class="in">${nick(c.driver_in_id)}</b> → ${team}` : html`<b class="out">${nick(c.driver_out_id)}</b> → bez auta`}</span>`;
-  return html`<span><b>${team}</b>:
-    ${c.driver_in_id ? html`<b class="in">▲ ${nick(c.driver_in_id)}</b>` : null}
+  return html`<span><b>${team}</b>: ${c.driver_in_id ? html`<b class="in">▲ ${nick(c.driver_in_id)}</b>` : null}
     ${c.driver_in_id && c.driver_out_id ? ' za ' : ''}
     ${c.driver_out_id ? html`<b class="out">▼ ${nick(c.driver_out_id)}</b>${c.driver_in_id ? '' : ' → rezerwa'}` : null}
   </span>`;

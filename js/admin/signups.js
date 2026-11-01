@@ -1,7 +1,7 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, useAsync, Loader, ErrorBox, attempt, formatDate } from '../ui.js';
-import { formOpen, timeLeft, seasonLabel, answerText } from '../pages/signup.js';
+import { formOpen, timeLeft, seasonLabel, answerText, signupsPurgeAt, SIGNUP_KEEP_DAYS } from '../pages/signup.js';
 
 // Zgłoszenia z formularza w ogłoszeniu (moderator i wyżej): podgląd odpowiedzi, przyjęcie albo odrzucenie.
 // Przyjęcie dodaje kierowcę do rezerwy sezonu z formularza (bez konta kierowcy — tworzy profil z nickiem z Discorda);
@@ -25,8 +25,7 @@ export function SignupsAdmin({ postId }) {
   const back = html`<a class="btn btn-sm" href="#/admin/ogloszenia">← Ogłoszenia</a>`;
   if (data.loading && !data.data) return html`<${Loader} />`;
   if (data.error) {
-    return html`${back}<div class="hint warn">Zgłoszenia wymagają aktualizacji bazy: uruchom w Supabase → SQL Editor plik
-      <b>supabase/migrations/2026-11-01_zgloszenia.sql</b> (niczego nie usuwa).</div><${ErrorBox} error=${data.error} />`;
+    return html`${back}<div class="hint warn">Zgłoszenia wymagają aktualizacji bazy: uruchom w Supabase → SQL Editor plik <b>supabase/migrations/2026-11-01_zgloszenia.sql</b> (niczego nie usuwa).</div><${ErrorBox} error=${data.error} />`;
   }
   const { post, list, season } = data.data;
   const open = formOpen(post);
@@ -63,6 +62,7 @@ export function SignupsAdmin({ postId }) {
       <span>Sezon: <b>${season ? seasonLabel(season) : 'nie wybrano'}</b></span>
       ${season ? html`<a href=${`#/admin/${season.series}/${season.id}/start/sklady`}>Skład sezonu →</a>` : null}
     </div>
+    ${post.form_kind === 'internal' && post.form_until ? html`<p class="muted small">Zgłoszenia zostaną usunięte automatycznie ${formatDate(signupsPurgeAt(post))} — ${SIGNUP_KEEP_DAYS} dni po zakończeniu zapisów (polityka prywatności). Przyjęci kierowcy zostają w składzie sezonu.</p>` : null}
     ${post.form_kind !== 'internal' ? html`<p class="hint">To ogłoszenie ${post.form_kind === 'external' ? 'ma link do zewnętrznego formularza — zgłoszenia są w tamtym serwisie' : 'nie ma formularza'}.</p>` : html`
       ${!season ? html`<p class="hint warn">Formularz nie ma wybranego sezonu — ustaw go w edycji ogłoszenia, żeby móc przyjmować zgłoszenia.</p>` : null}
       <div class="seg signup-filters">

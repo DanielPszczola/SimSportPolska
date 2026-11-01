@@ -10,6 +10,7 @@ import { HallOfFamePage } from './pages/halloffame.js';
 import { OtherSection } from './pages/other.js';
 import { AdminPage } from './admin/admin.js';
 import { AccountPage } from './pages/account.js';
+import { PrivacyPage } from './pages/privacy.js';
 
 function parseHash() {
   const h = location.hash.replace(/^#\/?/, '');
@@ -83,13 +84,14 @@ function App() {
   else if (section === 'galeria') page = html`<${HallOfFamePage} />`;
   else if (section === 'admin') page = html`<${AdminPage} parts=${rest} />`;
   else if (section === 'konto') page = html`<${AccountPage} />`;
+  else if (section === 'prywatnosc') page = html`<${PrivacyPage} />`;
   else page = html`<div class="wrap page"><h1>404</h1><p>Nie ma takiej strony. <a href="#/">Wróć na start</a></p></div>`;
 
   return html`
     <${DemoBanner} />
     <${Header} section=${section} />
     <main>${page}</main>
-    <footer class="site-footer"><div class="wrap">© ${new Date().getFullYear()} ${LEAGUE_NAME} · Liga sim racingowa</div></footer>
+    <footer class="site-footer"><div class="wrap footer-inner"><span>© ${new Date().getFullYear()} ${LEAGUE_NAME} · Liga sim racingowa</span><a href="#/prywatnosc">Polityka prywatności</a></div></footer>
     <${Toasts} />
     <${ModalHost} />
   `;

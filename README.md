@@ -396,6 +396,7 @@ W edycji ogłoszenia, w sekcji *Formularz zgłoszeń*, wybierasz jedną z opcji:
 - **Link do zewnętrznego formularza** (np. Google Forms): przycisk w ogłoszeniu otwiera podany adres.
 
 Ogłoszenie z formularzem jest na stronie głównej **do końca zgłoszeń**, a potem zostaje tylko w panelu.
+Zgłoszenia są usuwane automatycznie **30 dni po zakończeniu zapisów** (polityka prywatności).
 Zgłaszać się mogą tylko osoby **zalogowane przez Discord**. Do końca zapisów mogą poprawić albo wycofać zgłoszenie
 i widzą jego status (czeka / przyjęte / nie przyjęte). Listę zgłoszeń widzą tylko moderatorzy i administratorzy.
 
@@ -410,6 +411,22 @@ i widzą jego status (czeka / przyjęte / nie przyjęte). Listę zgłoszeń widz
 **Baza:** jednorazowo uruchom `supabase/migrations/2026-11-01_zgloszenia.sql` (dodaje kolumny formularza w `posts`,
 tabelę `signups` i funkcje zgłoszeń; niczego nie usuwa).
 
+## Prywatność (RODO)
+
+- **Polityka prywatności** (`#/prywatnosc`, plik `js/pages/privacy.js`): link w stopce, przy logowaniu przez Discord
+  i w formularzu zgłoszenia. Przy zmianie zasad (nowe dane, nowy dostawca) zaktualizuj tekst i datę w pliku.
+  Kontakt w sprawach danych to serwer Discord ligi (`DISCORD_INVITE` w `js/config.js`).
+- **Czcionka** jest na własnym serwerze (`assets/fonts`), strona nie łączy się z Google Fonts.
+- **E-maile kont Discord** nie są pokazywane w *Panel → Użytkownicy*.
+- **Skrót adresu IP** z głosowania na kierowcę dnia jest kasowany po zakończeniu głosowania (po zatwierdzeniu wyścigu
+  albo przy kolejnym głosie po upływie czasu trwania).
+- **„Odepnij konto Discord”** (*Moje konto → Prywatność i usunięcie danych*): użytkownik sam usuwa konto i dane z Discorda
+  oraz swoje zgłoszenia. Profil kierowcy z nickiem i wynikami zostaje, znika tylko awatar.
+  Jeśli ktoś prosi o usunięcie także nicku, admin zmienia go na neutralny (np. „Kierowca #57”) w *Baza danych → Kierowcy* — wyniki zostają.
+- **Zgłoszenia** z formularzy są usuwane automatycznie 30 dni po zakończeniu zapisów (przyjęci kierowcy zostają w składzie).
+
+**Baza:** jednorazowo uruchom `supabase/migrations/2026-11-02_prywatnosc.sql` (niczego nie usuwa z danych).
+
 ## Klasy samochodów
 
 Każdy wynik ma klasę: **F1, GT3, LMP lub HY** (Hypercar). W sezonach F1 klasa jest zawsze F1. W sezonach LMU
@@ -422,7 +439,7 @@ i pokazuje statystyki łącznie albo w podziale na klasy.
 ```
 index.html
 css/style.css
-assets/              logo, grafika
+assets/              logo, grafika, czcionka (assets/fonts)
 vendor/preact-htm.js Preact + htm (lokalna kopia)
 js/
   config.js          ← konfiguracja Supabase

@@ -665,7 +665,8 @@ begin
   if not public.is_admin() then raise exception 'Tylko administrator może zarządzać rangami'; end if;
   return query
     select u.id,
-           case when u.email like '%@ssp.example.com' then split_part(u.email, '@', 1) else u.email::text end,
+           -- login tylko dla kont z loginem i hasłem; e-maili z Discorda nie pokazujemy (RODO)
+           case when u.email like '%@ssp.example.com' then split_part(u.email, '@', 1) else null end,
            coalesce(u.raw_app_meta_data ->> 'provider', 'email'),
            coalesce(d.display_name, u.raw_user_meta_data -> 'custom_claims' ->> 'global_name', u.raw_user_meta_data ->> 'full_name'),
            coalesce(d.avatar_url, u.raw_user_meta_data ->> 'avatar_url'),
@@ -770,6 +771,7 @@ declare
   v_ip text := btrim(split_part(coalesce(current_setting('request.headers', true)::json ->> 'x-forwarded-for', ''), ',', 1));
   v_hash text := case when v_ip <> '' then md5(p_race::text || v_ip) end;
 begin
+  perform public.dotd_clear_ip();
   if not public.dotd_window_open(p_race) then
     raise exception 'Głosowanie na kierowcę dnia jest zamknięte — trwa tylko podczas wyścigu';
   end if;
@@ -825,6 +827,63 @@ as $$
 $$;
 grant execute on function public.dotd_results(uuid) to anon, authenticated;
 
+-- ---------- prywatność: skrót IP tylko na czas głosowania, „Odepnij konto Discord” (opis: migrations/2026-11-02_prywatnosc.sql) ----------
+-- kasuje skróty IP wyścigów, w których głosowanie już się zakończyło
+create or replace function public.dotd_clear_ip()
+returns void
+language sql security definer
+set search_path = public
+as $$
+  update public.dotd_votes v set ip_hash = null
+  where v.ip_hash is not null and not public.dotd_window_open(v.race_id);
+$$;
+revoke all on function public.dotd_clear_ip() from public, anon, authenticated;
+
+-- po zatwierdzeniu wyścigu głosowanie jest zamknięte — skróty IP od razu znikają
+create or replace function public.dotd_clear_ip_on_race()
+returns trigger
+language plpgsql security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'completed' then
+    update public.dotd_votes set ip_hash = null where race_id = new.id and ip_hash is not null;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists dotd_clear_ip_on_race on public.races;
+create trigger dotd_clear_ip_on_race after update of status on public.races
+  for each row execute function public.dotd_clear_ip_on_race();
+
+do $$ begin perform public.dotd_clear_ip(); end $$;
+
+-- ---------- 3. „Odepnij konto Discord” — użytkownik usuwa swoje konto ----------
+-- Usuwa konto logowania i dane z Discorda (ID, nazwy, e-mail, awatar), rangę i zgłoszenia z formularzy.
+-- Profil kierowcy (nick, wyniki, składy) zostaje jako część historii ligi; znika z niego awatar z Discorda.
+-- Oddane głosy na kierowcę dnia zostają w wynikach, ale bez powiązania z kontem.
+-- Ponowne logowanie przez Discord zakłada nowe konto (powiązanie z profilem kierowcy zatwierdza admin).
+create or replace function public.discord_unlink_me()
+returns void
+language plpgsql security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  acc public.discord_accounts%rowtype;
+begin
+  if v_uid is null then raise exception 'Nie jesteś zalogowany'; end if;
+  select * into acc from public.discord_accounts where user_id = v_uid;
+  if not found then raise exception 'To nie jest konto Discord'; end if;
+  if acc.driver_id is not null then
+    update public.drivers set avatar_url = null where id = acc.driver_id;
+  end if;
+  update public.dotd_votes set voter = 'x:' || gen_random_uuid(), user_id = null where voter = 'u:' || v_uid;
+  delete from auth.users where id = v_uid;  -- razem z nim: discord_accounts, ranga, zgłoszenia
+end;
+$$;
+grant execute on function public.discord_unlink_me() to authenticated;
+
 -- ---------- formularz zgłoszeń w ogłoszeniach (opis: supabase/migrations/2026-11-01_zgloszenia.sql) ----------
 alter table public.posts add column if not exists form_kind text;                -- null | 'internal' | 'external'
 alter table public.posts add column if not exists form_url text;                 -- zewnętrzny formularz
@@ -872,14 +931,29 @@ as $$
 $$;
 grant execute on function public.signup_open(uuid) to anon, authenticated;
 
+-- zgłoszenia usuwane automatycznie 30 dni po zakończeniu zapisów (polityka prywatności) — sprzątanie przy okazji
+-- odczytu zgłoszeń (moje zgłoszenia, panel), bez harmonogramu zadań
+create or replace function public.signups_cleanup()
+returns void
+language sql security definer
+set search_path = public
+as $$
+  delete from public.signups s using public.posts p
+  where p.id = s.post_id and p.form_until is not null and p.form_until < now() - interval '30 days';
+$$;
+revoke all on function public.signups_cleanup() from public, anon, authenticated;
+
 -- moje zgłoszenia (status widzi tylko zgłaszający)
 create or replace function public.my_signups()
 returns json
-language sql stable security definer
+language plpgsql security definer
 set search_path = public
 as $$
-  select coalesce(json_agg(json_build_object('post_id', s.post_id, 'status', s.status, 'answers', s.answers, 'updated_at', s.updated_at)), '[]'::json)
-  from public.signups s where s.user_id = auth.uid();
+begin
+  perform public.signups_cleanup();
+  return (select coalesce(json_agg(json_build_object('post_id', s.post_id, 'status', s.status, 'answers', s.answers, 'updated_at', s.updated_at)), '[]'::json)
+          from public.signups s where s.user_id = auth.uid());
+end;
 $$;
 grant execute on function public.my_signups() to authenticated;
 
@@ -941,13 +1015,14 @@ grant execute on function public.signup_withdraw(uuid) to authenticated;
 -- panel: zgłoszenia z aktualnym kierowcą konta i informacją, czy jest już w składzie sezonu
 create or replace function public.signup_list(p_post uuid)
 returns json
-language plpgsql stable security definer
+language plpgsql security definer
 set search_path = public
 as $$
 declare
   v_season uuid;
 begin
   if not public.is_staff() then raise exception 'Brak uprawnień'; end if;
+  perform public.signups_cleanup();
   select form_season_id into v_season from public.posts where id = p_post;
   return coalesce((
     select json_agg(json_build_object(

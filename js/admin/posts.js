@@ -4,7 +4,7 @@ import { html, useAsync, Loader, ErrorBox, attempt, formatDate } from '../ui.js'
 import { useSession, userLabel } from '../session.js';
 import { ImageField, DateTimeInput, toLocalInput, fromLocalInput, SERIES } from './common.js';
 import { sortPosts, PostBody } from '../pages/announcements.js';
-import { FIELD_TYPES, newFieldId, formOpen, timeLeft, seasonLabel } from '../pages/signup.js';
+import { FIELD_TYPES, newFieldId, formOpen, timeLeft, seasonLabel, signupsPurgeAt } from '../pages/signup.js';
 import { SignupsAdmin } from './signups.js';
 
 // Ogłoszenia na stronie głównej (moderator i wyżej): tytuł, zdjęcie, treść, przypięcie
@@ -43,8 +43,7 @@ function PostsList() {
   }, []);
   if (data.loading && !data.data) return html`<${Loader} />`;
   if (data.error) {
-    return html`<div class="hint warn">Ogłoszenia wymagają aktualizacji bazy: uruchom w Supabase → SQL Editor plik
-      <b>supabase/migrations/2026-10-30_inne_lobby_ogloszenia.sql</b> (niczego nie usuwa).</div><${ErrorBox} error=${data.error} />`;
+    return html`<div class="hint warn">Ogłoszenia wymagają aktualizacji bazy: uruchom w Supabase → SQL Editor plik <b>supabase/migrations/2026-10-30_inne_lobby_ogloszenia.sql</b> (niczego nie usuwa).</div><${ErrorBox} error=${data.error} />`;
   }
   const { signups, seasons } = data.data;
   const posts = sortPosts(data.data.posts);
@@ -88,7 +87,7 @@ function PostRow({ post, seasons, signups, onEdit, reload }) {
       ${post.form_kind ? html`<div class="post-form-info small">
         <span class=${`tile-state ${open ? 'st-live' : 'st-done'}`}>${open ? 'Zapisy trwają' : 'Zapisy zakończone'}</span>
         ${post.form_kind === 'external' ? ' Formularz zewnętrzny' : ' Własny formularz'}${season ? ` · ${seasonLabel(season)}` : ''}${post.form_until ? ` · do ${formatDate(post.form_until)}${open ? ` (${timeLeft(post.form_until)})` : ''}` : ''}
-        ${open ? null : html`<span class="muted"> · nie jest już na stronie głównej</span>`}
+        ${open ? null : html`<span class="muted"> · nie jest już na stronie głównej${post.form_kind === 'internal' && post.form_until ? ` · zgłoszenia znikną ${formatDate(signupsPurgeAt(post), false)}` : ''}</span>`}
       </div>` : null}
       <div class="post-clamp small"><${PostBody} text=${post.body} /></div>
     </div>
@@ -168,7 +167,7 @@ function PostEditor({ post, seasons, count = 0, onDone, onCancel }) {
       </div>
       ${f.form_kind ? html`
         <p class="muted small">${f.form_kind === 'internal'
-          ? 'Zgłaszają się osoby zalogowane przez Discord. Zgłoszenia przeglądasz w panelu (przycisk „Zgłoszenia” przy ogłoszeniu) — przyjęty kierowca trafia do rezerwy wybranego sezonu.'
+          ? 'Zgłaszają się osoby zalogowane przez Discord. Zgłoszenia przeglądasz w panelu (przycisk „Zgłoszenia” przy ogłoszeniu) — przyjęty kierowca trafia do rezerwy wybranego sezonu. Zgłoszenia są usuwane automatycznie 30 dni po zakończeniu zapisów.'
           : 'Przycisk w ogłoszeniu otworzy podany formularz (np. Google Forms, Microsoft Forms). Zgłoszenia zbierasz w tamtym serwisie.'} Ogłoszenie jest na stronie głównej do końca zgłoszeń.</p>
         <div class="form-grid">
           <label class="field"><span>Sezon / wydarzenie${f.form_kind === 'external' ? ' (opcjonalnie)' : ''}</span>

@@ -3,6 +3,7 @@ import { db } from '../db.js';
 import { html, useAsync, Loader, attempt } from '../ui.js';
 import { useSession, setAccount, isDiscordUser, userLabel } from '../session.js';
 import { roleLabel } from '../admin/users.js';
+import { PrivacyNote } from './privacy.js';
 
 // Moje konto: logowanie przez Discord i powiązanie konta z profilem kierowcy.
 
@@ -50,6 +51,7 @@ function Guest() {
     <p>Zaloguj się kontem Discord. Twoje konto zostanie powiązane z profilem kierowcy, a nick na stronie będzie zawsze taki jak na Discordzie.</p>
     ${db.mode === 'demo' ? html`<p class="hint warn">W trybie demo logowanie przez Discord nie działa — wymaga podłączenia Supabase.</p>` : null}
     <${DiscordButton} />
+    <${PrivacyNote} />
   </div>`;
 }
 
@@ -105,7 +107,32 @@ function DiscordAccount({ s }) {
       <span class="spacer"></span>
       <button class="btn" onClick=${logout}>Wyloguj</button>
     </div>
+
+    <${UnlinkDiscord} nick=${a.driver_nick} />
   </div>`;
+}
+
+/** „Odepnij konto Discord”: użytkownik sam usuwa konto i dane z Discorda; profil kierowcy z wynikami zostaje. */
+function UnlinkDiscord({ nick }) {
+  const [busy, setBusy] = useState(false);
+  const unlink = async () => {
+    if (!confirm('Odpiąć konto Discord?\n\nUsuniemy Twoje konto na stronie i dane z Discorda (identyfikator, nazwy, e-mail, awatar) oraz Twoje zgłoszenia.'
+      + (nick ? `\nProfil kierowcy „${nick}” z wynikami zostanie w historii ligi.` : '')
+      + '\n\nMożesz potem zalogować się ponownie — powiązanie z profilem kierowcy zatwierdzi admin.')) return;
+    setBusy(true);
+    const ok = await attempt(() => db.rpc('discord_unlink_me'), 'Konto Discord odpięte — dane usunięte');
+    setBusy(false);
+    if (!ok) return;
+    try { await db.auth.signOut(); } catch { /* sesja i tak wygasła razem z kontem */ }
+    window.dispatchEvent(new Event('ssp-auth'));
+    location.hash = '#/';
+  };
+  return html`<details class="account-unlink">
+    <summary>Prywatność i usunięcie danych</summary>
+    <p class="muted small">Odpięcie usuwa Twoje konto na stronie i wszystkie dane pobrane z Discorda (identyfikator, nazwy, e-mail, awatar)
+      oraz Twoje zgłoszenia z formularzy. ${nick ? html`Profil kierowcy <b>${nick}</b> z wynikami zostaje w historii ligi.` : null} Szczegóły: <a href="#/prywatnosc">polityka prywatności</a>.</p>
+    <button class="btn btn-sm btn-danger" disabled=${busy} onClick=${unlink}>${busy ? 'Odpinanie…' : 'Odepnij konto Discord'}</button>
+  </details>`;
 }
 
 async function request(driverId) {

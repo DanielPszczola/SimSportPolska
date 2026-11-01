@@ -3,6 +3,7 @@ import { db } from '../db.js';
 import { html, cached, attempt, formatDate, showModal, closeModal } from '../ui.js';
 import { useSession, isDiscordUser } from '../session.js';
 import { DiscordButton } from './account.js';
+import { PrivacyNote } from './privacy.js';
 
 // Formularz zgłoszeń w ogłoszeniu: własny (pola ustawia moderator, zgłoszenia trafiają do panelu) albo link do zewnętrznego.
 // Zgłaszają się tylko osoby zalogowane przez Discord; zasad pilnuje baza (signup_submit / signup_withdraw / my_signups).
@@ -39,6 +40,10 @@ const SERIES_SHORT = { f1: 'F1', lmu: 'LMU', inne: 'Event' };
 export const seasonLabel = (s) => (s ? `${SERIES_SHORT[s.series] ?? ''} · ${s.name}` : '');
 export const loadAllSeasons = () => cached('seasons:all', () => db.list('seasons', { order: ['created_at', false] }));
 
+/** Zgłoszenia są usuwane automatycznie tyle dni po zakończeniu zapisów (funkcja signups_cleanup w bazie). */
+export const SIGNUP_KEEP_DAYS = 30;
+export const signupsPurgeAt = (post) => (post.form_until ? new Date(new Date(post.form_until).getTime() + SIGNUP_KEEP_DAYS * 86400000).toISOString() : null);
+
 /** Odpowiedź do wyświetlenia. */
 export const answerText = (field, v) => (v == null || v === '' ? '—' : field.type === 'checkbox' ? (v === 'true' ? '✓ tak' : '—') : String(v));
 
@@ -72,7 +77,7 @@ export function SignupBox({ post }) {
   else if (post.form_kind === 'external') {
     action = post.form_url ? html`<a class="btn btn-accent" href=${post.form_url} target="_blank" rel="noopener">📝 Formularz zgłoszeń ↗</a>` : null;
   } else if (!s.ready) action = null;
-  else if (!s.user) action = html`<${DiscordButton} label="Zaloguj przez Discord, aby się zgłosić" />`;
+  else if (!s.user) action = html`<${DiscordButton} label="Zaloguj przez Discord, aby się zgłosić" /><${PrivacyNote} />`;
   else if (!discord) action = html`<span class="muted small">Zgłoszenia przyjmujemy od kont Discord — zaloguj się przez Discord.</span>`;
   else if (!mine) action = null;
   else if (!my) action = html`<button type="button" class="btn btn-accent" onClick=${openForm}>📝 Zgłoś się</button>`;
@@ -135,7 +140,7 @@ function SignupModal({ post, season, account, my, onSaved, onClose }) {
       </header>
       <form class="modal-body signup-form" onSubmit=${submit}>
         <p class="muted small">Zgłaszasz się jako <b>${account?.display_name || 'konto Discord'}</b>${account?.driver_nick ? html` (profil kierowcy: <b>${account.driver_nick}</b>)` : ''}.
-          Do końca zapisów możesz poprawić albo wycofać zgłoszenie.</p>
+          Do końca zapisów możesz poprawić albo wycofać zgłoszenie. Odpowiedzi widzi tylko administracja ligi — <a href="#/prywatnosc" target="_blank">polityka prywatności</a>.</p>
         ${fields.map((f) => (f.type === 'checkbox'
           ? html`<label class="check-inline signup-check"><input type="checkbox" required=${!!f.required} checked=${answers[f.id] === 'true'} onChange=${(e) => set(f.id, e.target.checked ? 'true' : '')} />
               ${f.label}${f.required ? html` <span class="req">*</span>` : null}</label>`
