@@ -206,7 +206,8 @@ W serii wybierasz sezon (albo tworzysz nowy) i widzisz **oś sezonu z kafelkami*
 **Kafelki „Składy”** stoją na osi sezonu między wyścigami: przed każdą rundą od drugiej (w weekendzie sprinterskim
 przed sprintem). Służą do zmian w zespołach w dowolnym momencie sezonu, także między wyścigami. Kafelek „Przed R5”
 zbiera zmiany obowiązujące od rundy 5: zamianę, transfer albo przejście do rezerwy (LMU: zmianę auta).
-Kafelek z zapisanymi zmianami jest wyróżniony i pokazuje ich liczbę. Pod spodem jest pełna lista zmian w sezonie z przyciskiem *Cofnij*.
+Kafelek z zapisanymi zmianami jest wyróżniony i pokazuje ich liczbę.
+Przy nickach widać punkty karne kierowców w sezonie (⚖), także na liście „kto wchodzi?”. Pod spodem jest pełna lista zmian w sezonie z przyciskiem *Cofnij*.
 Jeśli wybrana runda ma już wyniki, panel ostrzega, że zmiana wpłynie na podział punktów w tych wyścigach.
 
 **Kafelek wyścigu** ma kroki:
@@ -214,7 +215,18 @@ Jeśli wybrana runda ma już wyniki, panel ostrzega, że zmiana wpłynie na podz
 1. **Wyniki**: formularz od razu zawiera skład obowiązujący w tej rundzie. Kolejność ustawiasz numerem w kolumnie *Poz*.
    Można też wkleić wyniki z tekstu w formacie `Nick | Zespół | P. startowa | Pit | Najlepsze okrążenie | Czas`.
 2. **Kary**: czasowe, punktowe, DSQ, na starcie, ostrzeżenia. Widać podgląd „przed / po”.
+   Przy każdej decyzji możesz dodać **punkty karne**, a rodzaj *Tylko punkty karne* służy do decyzji bez kary na wyścig (patrz niżej).
 3. **Zatwierdzenie**: podsumowanie, a po zatwierdzeniu publikacja wyników na stronie i przejście do kolejnej rundy.
+
+**Klasyfikacja → Na przestrzeni sezonu** to wykres liniowy punktów narastająco, runda po rundzie (w F1 i seriach z zespołami
+także dla konstruktorów). Oś obejmuje cały kalendarz, więc linie kończą się na ostatniej rozegranej rundzie. Na start widać
+pierwszą trójkę, a przyciskami nad wykresem dodajesz (do 8) lub usuwasz kierowców. Sprint liczy się do swojej rundy.
+
+**Punkty karne** to osobny, czysto informacyjny rejestr, niezależny od punktów w klasyfikacji. Sumują się w ramach sezonu.
+Strona nie ma limitów ani progów: o usunięciu kierowcy z ligi decyduje administracja, a kierowcę przenosisz do rezerwy
+w kafelku *Składy*. Publicznie punkty widać w *Klasyfikacja → Punkty karne* (tylko zatwierdzone wyścigi).
+Cofnięcie decyzji w kroku *Kary* cofa też jej punkty karne.
+**Baza:** jednorazowo uruchom `supabase/migrations/2026-11-04_punkty_karne.sql` (niczego nie usuwa).
 
 Stany kafelków: *Zaplanowany*, *Następny*, *Do zatwierdzenia* (są wyniki, ale nie są opublikowane), *Zatwierdzony*.
 Kary i składy można poprawiać także po zatwierdzeniu.
@@ -325,7 +337,7 @@ się do klasyfikacji, a wygrane, podia, pole, starty i remisy liczą się z wyś
 
 ## Transmisje i „Trwa teraz”
 
-Każde wydarzenie ma czas trwania, wpisywany jako godziny + minuty (np. 1 h 30 min): wyścig ligowy (domyślnie 2 h), event Endurance, open lobby.
+Każde wydarzenie ma czas trwania, wpisywany jako godziny + minuty (np. 1 h 30 min): wyścig ligowy (domyślnie 2 h), event Endurance, transmisja z zakładki Eventy.
 Od startu przez ten czas wydarzenie jest na stronie głównej w sekcji **„Trwa teraz”** (nad nadchodzącymi): kafelek
 w proporcjach YouTube, transmisja YouTube (wyciszona) w tle i przycisk **„Oglądaj”**. Po tym czasie wydarzenie znika
 z „trwających” i z nadchodzących — ale wyniki dalej trzeba wpisać i zatwierdzić, żeby były oficjalne
@@ -333,7 +345,7 @@ z „trwających” i z nadchodzących — ale wyniki dalej trzeba wpisać i zat
 
 - **Wyścigi lig i eventów:** kafelek wyścigu → krok **„Przed wyścigiem”** — czas trwania i linki do transmisji
   (YouTube, Twitch, TikTok). Linki są też w kafelku kalendarza, a w trakcie wyścigu — w pasku „Trwa teraz” nad stroną ligi.
-- **Endurance:** link do transmisji i długość w edycji eventu. **Open lobby:** linki i czas trwania w edycji lobby.
+- **Endurance:** link do transmisji i długość w edycji eventu. **Transmisje:** linki i czas trwania w edycji transmisji.
 - **YouTube w tle** wymaga linku do konkretnej transmisji (`…/live/<ID>` albo `watch?v=<ID>`); link do kanału działa tylko jako przycisk.
 - **Baza:** jednorazowo uruchom `supabase/migrations/2026-11-01_transmisje.sql` (dodaje kolumny w `races` — niczego nie usuwa).
 
@@ -365,16 +377,16 @@ Wydarzenie działa jak sezon ligi (kalendarz, zespoły/auta, składy, wyniki, ka
 - **Baza:** jednorazowo uruchom `supabase/migrations/2026-10-31_inne_wydarzenia.sql` (dodaje kolumny wydarzenia
   w `seasons`, dopuszcza serię `inne` i własne klasy przy autach i wynikach — niczego nie usuwa).
 
-## Eventy: open lobby
+## Eventy: transmisje
 
-**Open lobby** (*Eventy → Open lobby*) — otwarte, regularne jazdy bez zapisów, składów i wyników, z linkami do transmisji
+**Transmisje** (*Eventy → Transmisje*) — zapowiedzi transmisji, np. open lobby: bez zapisów, składów i wyników, z linkami
 (YouTube, Twitch, TikTok) i Discorda.
 
-- **Zarządzanie → Eventy → Open lobby:** *+ Nowe lobby*, potem nazwa, gra, auta, start, czas trwania, opis i linki.
-  *↻ Zaplanuj kolejne (+7 dni)* kopiuje lobby z tymi samymi ustawieniami na następny tydzień.
-- **Status:** domyślnie *Automatycznie* — od startu przez podany czas trwania lobby jest „Trwa teraz”, potem „Zakończone”.
+- **Zarządzanie → Eventy → Transmisje:** *+ Nowa transmisja*, potem nazwa, gra, auta, start, czas trwania, opis i linki.
+  *↻ Zaplanuj kolejne (+7 dni)* kopiuje transmisję z tymi samymi ustawieniami na następny tydzień.
+- **Status:** domyślnie *Automatycznie* — od startu przez podany czas trwania transmisja jest „Trwa teraz”, potem „Zakończone”.
   Moderator może ustawić status ręcznie (*Trwa teraz* / *Zakończone*).
-- **Strona główna:** zaplanowane lobby są w *Nadchodzących wydarzeniach*, a trwające — na górze jako **🔴 Trwa teraz**
+- **Strona główna:** zaplanowane transmisje są w *Nadchodzących wydarzeniach*, a trwające — na górze jako **🔴 Trwa teraz**
   z przyciskami do transmisji.
 
 ## Ogłoszenia
@@ -384,14 +396,15 @@ i administratorzy w *Zarządzanie → Ogłoszenia*. Przypięte są na początku,
 *Pokaż wszystkie*. Adresy `https://…` w treści stają się linkami. Bez ogłoszeń blok się nie wyświetla.
 
 **Baza (Eventy i Ogłoszenia):** jednorazowo uruchom `supabase/migrations/2026-10-30_inne_lobby_ogloszenia.sql`
-(dodaje tylko tabele `lobbies` i `posts`). Bez tego strona działa normalnie, tylko bez lobby i ogłoszeń.
+(dodaje tylko tabele `lobbies` i `posts`). Bez tego strona działa normalnie, tylko bez transmisji i ogłoszeń.
 
 ### Formularz zgłoszeń w ogłoszeniu
 
 W edycji ogłoszenia, w sekcji *Formularz zgłoszeń*, wybierasz jedną z opcji:
 
 - **Własny formularz:** wybierasz sezon albo wydarzenie (z dowolnej serii) i datę końca zgłoszeń, a potem układasz pola:
-  krótki tekst, dłuższy tekst, liczba, wybór z listy, zaznaczenie tak / nie. Każde pole może być wymagane.
+  krótki tekst, dłuższy tekst, liczba, wybór z listy, zaznaczenie tak / nie, **zdjęcie** (np. zrzut z gry jako dowód czasu).
+  Każde pole może być wymagane.
   Nicku nie trzeba dodawać, bo zgłoszenie jest przypisane do konta Discord.
 - **Link do zewnętrznego formularza** (np. Google Forms): przycisk w ogłoszeniu otwiera podany adres.
 
@@ -408,8 +421,12 @@ i widzą jego status (czeka / przyjęte / nie przyjęte). Listę zgłoszeń widz
 - **Odrzuć / Cofnij decyzję:** cofnięcie przyjęcia zdejmuje kierowcę z rezerwy, o ile nie dostał jeszcze miejsca
   w zespole ani nie ma wyników.
 
+**Zdjęcia** są prywatne: leżą w bazie (tabela `signup_files`), nie w publicznym magazynie plików. Widzi je autor zgłoszenia
+i moderatorzy, a znikają razem ze zgłoszeniem. Przeglądarka zmniejsza zdjęcie do najwyżej 1 MB, a baza przyjmuje tylko
+JPG, PNG i WebP. W panelu zgłoszeń zdjęcie jest przy odpowiedziach, a klik powiększa je na cały ekran.
+
 **Baza:** jednorazowo uruchom `supabase/migrations/2026-11-01_zgloszenia.sql` (dodaje kolumny formularza w `posts`,
-tabelę `signups` i funkcje zgłoszeń; niczego nie usuwa).
+tabelę `signups` i funkcje zgłoszeń; niczego nie usuwa), a dla zdjęć `supabase/migrations/2026-11-04_zgloszenia_zdjecia.sql`.
 
 ### Głosowanie (ankieta) w ogłoszeniu
 

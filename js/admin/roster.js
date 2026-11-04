@@ -1,7 +1,7 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, Flag, TeamLogo, attempt, shortDate } from '../ui.js';
-import { carClass, seasonClasses, seasonStyle } from '../scoring.js';
+import { carClass, seasonClasses, seasonStyle, licenseTable, licenseLabel } from '../scoring.js';
 import { lineupAt, teamSeats, reserveSeats } from '../lineup.js';
 
 // Kafelki „Składy” na osi sezonu — przed każdą rundą od 2.: zmiany w zespołach (LMU: zmiany aut) w dowolnym momencie
@@ -19,6 +19,16 @@ export function defaultChangeRound(b) {
   const rounds = changeRounds(b);
   return (rounds.find((r) => !roundPlayed(b, r.round)) || rounds[rounds.length - 1])?.round ?? null;
 }
+
+/** Punkty karne kierowców w sezonie: pomagają przy decyzjach o miejscach w zespołach (tylko informacja). */
+const licenseMap = (b) => new Map(licenseTable(b).map((r) => [r.driver_id, r.points]));
+
+function LicenseBadge({ points }) {
+  return points ? html`<span class="badge badge-pen license-badge" title=${`${licenseLabel(points)} w sezonie`}>⚖ ${points}</span>` : null;
+}
+
+const LicenseNote = ({ license }) => (license.size
+  ? html`<p class="muted small">⚖ — punkty karne kierowcy w sezonie, także z niezatwierdzonych wyścigów.</p>` : null);
 
 export function RosterPanel({ b, round, nav, reload }) {
   const rounds = changeRounds(b);
@@ -78,6 +88,7 @@ function ChangeText({ b, c, lmu }) {
 
 /** Liga LMU: zmiana auta kierowcy od wybranej rundy (bez limitu miejsc — jednym modelem jedzie dowolnie wielu kierowców). */
 function CarChanges({ b, round, reload }) {
+  const license = licenseMap(b);
   const before = lineupAt(b.entries, b.rosterChanges, round - 1);
   const after = lineupAt(b.entries, b.rosterChanges, round);
   const nick = (id) => b.driverById.get(id)?.nick ?? '?';
@@ -98,10 +109,11 @@ function CarChanges({ b, round, reload }) {
 
   return html`
     <h3>Auta kierowców</h3>
+    <${LicenseNote} license=${license} />
     <div class="table-wrap"><table class="table edit-table">
       <thead><tr><th>Kierowca</th><th>Auto w rundzie ${round - 1}</th><th>Auto od rundy ${round}</th></tr></thead>
       <tbody>${drivers.map((s) => html`<tr class=${s.team_id !== (before.get(s.driver_id)?.team_id ?? null) ? 'row-changed' : ''}>
-        <td><b>${nick(s.driver_id)}</b></td>
+        <td><b>${nick(s.driver_id)}</b> <${LicenseBadge} points=${license.get(s.driver_id)} /></td>
         <td class="muted">${carName(before.get(s.driver_id)?.team_id)}</td>
         <td><select value=${s.team_id || ''} onChange=${(e) => change(s.driver_id, e.target.value)}>
           <option value="">— bez auta —</option>
@@ -114,6 +126,8 @@ function CarChanges({ b, round, reload }) {
 
 /** Ligi z zespołami (F1, serie Eventów): zamiana kierowcy, transfer, rezerwa — od wybranej rundy. */
 function TeamChanges({ b, round, reload }) {
+  const license = licenseMap(b);
+  const withPoints = (id) => (license.get(id) ? ` · ${licenseLabel(license.get(id))}` : '');
   const after = lineupAt(b.entries, b.rosterChanges, round);
   const myChanges = b.rosterChanges.filter((c) => c.from_round === round);
   const [edit, setEdit] = useState(null); // { team_id, out_id | null }
@@ -153,13 +167,14 @@ function TeamChanges({ b, round, reload }) {
 
   const reserves = reserveSeats(after);
   const candidates = edit ? [
-    ...reserves.map((s) => ({ id: s.driver_id, label: `${nick(s.driver_id)} — rezerwa` })),
-    ...[...after.values()].filter((s) => s.team_id && s.team_id !== edit.team_id).map((s) => ({ id: s.driver_id, label: `${nick(s.driver_id)} — transfer z ${teamName(s.team_id)}` })),
+    ...reserves.map((s) => ({ id: s.driver_id, label: `${nick(s.driver_id)} — rezerwa${withPoints(s.driver_id)}` })),
+    ...[...after.values()].filter((s) => s.team_id && s.team_id !== edit.team_id).map((s) => ({ id: s.driver_id, label: `${nick(s.driver_id)} — transfer z ${teamName(s.team_id)}${withPoints(s.driver_id)}` })),
   ] : [];
   const outsiders = b.drivers.filter((d) => !after.has(d.id));
 
   return html`
     <h3>Skład zespołów</h3>
+    <${LicenseNote} license=${license} />
     <div class="lineup-grid">
       ${b.teams.map((t) => {
         const ts = teamSeats(after, t.id);
@@ -168,6 +183,7 @@ function TeamChanges({ b, round, reload }) {
           <ul>
             ${ts.map((s) => html`<li>
               <span class="lineup-driver">${myChanges.some((c) => c.driver_in_id === s.driver_id) ? html`<b class="in">▲</b>` : null} ${nick(s.driver_id)}</span>
+              <${LicenseBadge} points=${license.get(s.driver_id)} />
               <button class="btn btn-xs icon-btn" onClick=${() => { setEdit({ team_id: t.id, out_id: s.driver_id }); setInId(''); }} title="Zamień kierowcę" aria-label="Zamień kierowcę">⇄</button>
               <button class="btn btn-xs icon-btn" onClick=${() => toReserve(t.id, s.driver_id)} title="Przenieś do rezerwy" aria-label="Przenieś do rezerwy">⤓ R</button>
             </li>`)}
@@ -178,7 +194,7 @@ function TeamChanges({ b, round, reload }) {
             <select value=${inId} onChange=${(e) => setInId(e.target.value)}>
               <option value="">— kto wchodzi? —</option>
               ${candidates.map((c) => html`<option value=${c.id}>${c.label}</option>`)}
-              ${outsiders.length ? html`<optgroup label="Spoza składu sezonu">${outsiders.map((d) => html`<option value=${d.id}>${d.nick}</option>`)}</optgroup>` : null}
+              ${outsiders.length ? html`<optgroup label="Spoza składu sezonu">${outsiders.map((d) => html`<option value=${d.id}>${d.nick}${withPoints(d.id)}</option>`)}</optgroup>` : null}
             </select>
             <input placeholder="Powód (opcjonalnie, widoczny publicznie)" value=${note} onInput=${(e) => setNote(e.target.value)} />
             <div class="form-actions">
@@ -190,7 +206,7 @@ function TeamChanges({ b, round, reload }) {
       })}
       <div class="lineup-team lineup-reserve">
         <div class="lineup-team-head"><span class="badge badge-reserve">Rezerwa</span> <b>${reserves.length}</b></div>
-        <ul>${reserves.map((s) => html`<li><span class="lineup-driver">${myChanges.some((c) => c.driver_out_id === s.driver_id) ? html`<b class="out">▼</b>` : null} ${nick(s.driver_id)}</span></li>`)}</ul>
+        <ul>${reserves.map((s) => html`<li><span class="lineup-driver">${myChanges.some((c) => c.driver_out_id === s.driver_id) ? html`<b class="out">▼</b>` : null} ${nick(s.driver_id)}</span><${LicenseBadge} points=${license.get(s.driver_id)} /></li>`)}</ul>
         <form class="inline-form" onSubmit=${addReserve}>
           <select value=${newReserve} onChange=${(e) => setNewReserve(e.target.value)}>
             <option value="">— dodaj kierowcę do rezerwy —</option>

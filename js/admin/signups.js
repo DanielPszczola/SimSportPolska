@@ -1,7 +1,7 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, useAsync, Loader, ErrorBox, attempt, formatDate } from '../ui.js';
-import { formOpen, timeLeft, seasonLabel, answerText, signupsPurgeAt, SIGNUP_KEEP_DAYS } from '../pages/signup.js';
+import { formOpen, timeLeft, seasonLabel, answerText, signupsPurgeAt, SIGNUP_KEEP_DAYS, ProofImage } from '../pages/signup.js';
 
 // Zgłoszenia z formularza w ogłoszeniu (moderator i wyżej): podgląd odpowiedzi, przyjęcie albo odrzucenie.
 // Przyjęcie dodaje kierowcę do rezerwy sezonu z formularza (bez konta kierowcy — tworzy profil z nickiem z Discorda);
@@ -84,7 +84,7 @@ export function SignupsAdmin({ postId }) {
             <span class=${`tile-state ${STATUS[x.status][1]}`}>${STATUS[x.status][0]}</span>
           </header>
           ${fields.length ? html`<dl class="signup-answers">
-            ${fields.map((f) => html`<dt>${f.label}</dt><dd>${answerText(f, x.answers?.[f.id])}</dd>`)}
+            ${fields.map((f) => html`<dt>${f.label}</dt><dd>${f.type === 'image' && x.answers?.[f.id] ? html`<${ProofImage} signupId=${x.id} fieldId=${f.id} />` : answerText(f, x.answers?.[f.id])}</dd>`)}
           </dl>` : null}
           <footer class="signup-card-foot">
             <span class="muted small">Wysłane ${formatDate(x.created_at)}${x.updated_at && x.updated_at !== x.created_at ? ` · poprawione ${formatDate(x.updated_at)}` : ''}${x.decided_at ? ` · decyzja: ${x.decided_by || '?'}, ${formatDate(x.decided_at)}` : ''}</span>

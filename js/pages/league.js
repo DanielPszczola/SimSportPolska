@@ -3,13 +3,14 @@ import {
   html, useAsync, loadSeasonBundle, listSeasons, pickSeason, rememberSeason,
   seriesBase, seasonBase, seasonUnit, raceTimeState, StreamLinks, LiveBadge, Flag, TeamTag, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, seasonReady, sprintOf, sessionLabel, Tabs, Countdown, formatDate, shortDate, SeatCell, driverSeat, TrackMedia, VideoEmbed, youtubeId,
 } from '../ui.js';
-import { computeRace, computeStandings, penaltyLabel, formatDuration, resultClass, carClass, seasonClasses, seasonStyle, isSprint, SPRINT_POINTS } from '../scoring.js';
+import { computeRace, computeStandings, penaltyLabel, formatDuration, resultClass, carClass, seasonClasses, seasonStyle, isSprint, SPRINT_POINTS, licenseTable, licenseLabel } from '../scoring.js';
 import { TeamsGrid, TeamPage } from './teams.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
 import { EnduranceSection } from './endurance.js';
 import { SectionHead, LmuTopNav } from './section.js';
 import { RaceConditions } from '../race-conditions.js';
 import { DotdButton, DotdResult, loadDotd } from './dotd.js';
+import { SeasonChart } from './chart.js';
 
 
 // F1: Zespoły, LMU: Samochody; pojedyncze wydarzenie („Inne”): bez klasyfikacji, kalendarz = strona wydarzenia
@@ -154,6 +155,8 @@ function NextRaceStrip({ b }) {
 function Standings({ b }) {
   const [tab, setTab] = useState('drivers');
   const st = useMemo(() => computeStandings(b), [b]);
+  // punkty karne: tylko zatwierdzone wyścigi; w widoku klasy — kierowcy tej klasy
+  const license = useMemo(() => licenseTable(b, { approved: true }).filter((row) => !b.carClass || b.results.some((r) => r.driver_id === row.driver_id)), [b]);
   if (!st.races.length) {
     if (!seasonReady(b)) return html`<${SeasonWip} />`;
     return html`<${Empty}>Klasyfikacja pojawi się po pierwszym rozegranym wyścigu.<//>`;
@@ -166,11 +169,28 @@ function Standings({ b }) {
         // w lidze LMU klasyfikacja zespołów nie jest prowadzona
         ...(seasonStyle(b.season) === 'f1' ? [{ id: 'teams', label: 'Konstruktorzy' }] : []),
         { id: 'matrix', label: 'Runda po rundzie' },
+        { id: 'chart', label: 'Na przestrzeni sezonu' },
+        { id: 'license', label: 'Punkty karne' },
       ]} />
     </div>
     ${tab === 'drivers' ? html`<${DriverStandings} b=${b} st=${st} />` : null}
     ${tab === 'teams' && seasonStyle(b.season) === 'f1' ? html`<${TeamStandings} b=${b} st=${st} />` : null}
     ${tab === 'matrix' ? html`<${Matrix} b=${b} st=${st} />` : null}
+    ${tab === 'chart' ? html`<${SeasonChart} key=${b.carClass || 'all'} b=${b} st=${st} />` : null}
+    ${tab === 'license' ? (license.length ? html`<${LicenseStandings} b=${b} rows=${license} />` : html`<${Empty}>Nikt nie ma jeszcze punktów karnych.<//>`) : null}
+  `;
+}
+
+function LicenseStandings({ b, rows }) {
+  return html`
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Kierowca</th><th>Decyzje</th><th class="r">Punkty</th></tr></thead>
+      <tbody>${rows.map((row) => html`<tr>
+        <td><${DriverLink} driver=${b.driverById.get(row.driver_id)} /></td>
+        <td class="license-items">${row.items.map((it) => html`<div><span class="muted">${sessionLabel(it.race)}</span> · ${licenseLabel(it.points)}${it.reason ? ` — ${it.reason}` : ''}</div>`)}</td>
+        <td class="r pts">${row.points}</td>
+      </tr>`)}</tbody>
+    </table></div>
   `;
 }
 

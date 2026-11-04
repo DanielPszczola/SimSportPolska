@@ -1,7 +1,8 @@
-import { useState, useEffect } from '../../vendor/preact-htm.js';
+import { useState, useEffect, useRef } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, cached, attempt, formatDate, showModal, closeModal } from '../ui.js';
 import { useSession, isDiscordUser } from '../session.js';
+import { prepareProof, blobToBase64 } from '../images.js';
 import { DiscordButton } from './account.js';
 import { PrivacyNote } from './privacy.js';
 
@@ -16,6 +17,7 @@ export const FIELD_TYPES = [
   ['number', 'Liczba'],
   ['select', 'Wybór z listy'],
   ['checkbox', 'Zaznaczenie (tak / nie)'],
+  ['image', 'Zdjęcie (np. zrzut z gry)'],
 ];
 
 export const newFieldId = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -49,7 +51,58 @@ export const SIGNUP_KEEP_DAYS = 30;
 export const signupsPurgeAt = (post) => (post.form_until ? new Date(new Date(post.form_until).getTime() + SIGNUP_KEEP_DAYS * 86400000).toISOString() : null);
 
 /** Odpowiedź do wyświetlenia. */
-export const answerText = (field, v) => (v == null || v === '' ? '—' : field.type === 'checkbox' ? (v === 'true' ? '✓ tak' : '—') : String(v));
+export const answerText = (field, v) => (v == null || v === '' ? '—'
+  : field.type === 'checkbox' ? (v === 'true' ? '✓ tak' : '—')
+    : field.type === 'image' ? 'zdjęcie w panelu' : String(v));
+
+/** Zdjęcie ze zgłoszenia (widzi je autor i moderatorzy): pobierane, gdy jest blisko ekranu; klik powiększa na całą stronę. */
+export function ProofImage({ signupId, fieldId }) {
+  const ref = useRef(null);
+  const [src, setSrc] = useState(null);
+  const [error, setError] = useState(null);
+  const [zoom, setZoom] = useState(false);
+  useEffect(() => {
+    if (!zoom) return undefined;
+    const esc = (e) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation(); // Esc zamyka powiększenie, nie okno formularza pod spodem
+      setZoom(false);
+    };
+    window.addEventListener('keydown', esc, true);
+    return () => window.removeEventListener('keydown', esc, true);
+  }, [zoom]);
+  useEffect(() => {
+    let alive = true;
+    let url = null;
+    const load = async () => {
+      try {
+        const f = await db.rpc('signup_file', { p_signup: signupId, p_field: fieldId });
+        if (!f) throw new Error('brak pliku');
+        const bytes = Uint8Array.from(atob(f.data), (c) => c.charCodeAt(0));
+        url = URL.createObjectURL(new Blob([bytes], { type: f.mime }));
+        if (alive) setSrc(url);
+      } catch (e) {
+        if (alive) setError(e.message);
+      }
+    };
+    const seen = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      seen.disconnect();
+      load();
+    }, { rootMargin: '300px' });
+    seen.observe(ref.current);
+    return () => {
+      alive = false;
+      seen.disconnect();
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [signupId, fieldId]);
+  return html`<div class="proof-image" ref=${ref}>
+    ${src ? html`<button type="button" class="proof-thumb" onClick=${() => setZoom(true)} title="Powiększ"><img src=${src} alt="Załączone zdjęcie" /></button>`
+      : html`<span class="muted small">${error ? `Nie udało się wczytać zdjęcia: ${error}` : 'Ładowanie zdjęcia…'}</span>`}
+    ${zoom ? html`<div class="proof-zoom" onClick=${() => setZoom(false)} title="Zamknij"><img src=${src} alt="Powiększone zdjęcie" /></div>` : null}
+  </div>`;
+}
 
 const loadMine = (uid) => cached(`signups:${uid}`, () => db.rpc('my_signups').catch(() => []));
 
@@ -103,10 +156,44 @@ export function SignupBox({ post }) {
   </div>`;
 }
 
+/** Pole „Zdjęcie”: plik jest zmniejszany od razu po wybraniu, więc błąd i podgląd widać przed wysłaniem. */
+function PhotoField({ field, signupId, saved, file, touched, onChange }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const pick = async (e) => {
+    const picked = e.target.files?.[0];
+    e.target.value = '';
+    if (!picked) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const blob = await prepareProof(picked);
+      onChange({ url: URL.createObjectURL(blob), base64: await blobToBase64(blob) });
+    } catch (err) {
+      setError(err.message);
+    }
+    setBusy(false);
+  };
+  const showSaved = saved && !touched;
+  return html`<div class="field photo-field">
+    <span>${field.label}${field.required ? html` <span class="req">*</span>` : null}</span>
+    ${file ? html`<div class="proof-image"><img src=${file.url} alt="Podgląd zdjęcia" /></div>` : null}
+    ${showSaved ? html`<${ProofImage} signupId=${signupId} fieldId=${field.id} />` : null}
+    <div class="photo-actions">
+      <label class="btn btn-sm">${busy ? 'Przygotowuję…' : file || showSaved ? 'Zmień zdjęcie' : '📷 Dodaj zdjęcie'}
+        <input class="photo-input" type="file" accept="image/png,image/jpeg,image/webp" disabled=${busy} onChange=${pick} /></label>
+      ${(file || showSaved) && !field.required ? html`<button type="button" class="btn btn-sm" onClick=${() => onChange(null)}>Usuń</button>` : null}
+    </div>
+    ${error ? html`<p class="hint warn">${error}</p>` : null}
+    <small class="muted">Zdjęcie widzi tylko administracja ligi. Upewnij się, że nie ma na nim prywatnych danych.</small>
+  </div>`;
+}
+
 /** Okno z formularzem zgłoszenia (pola z ogłoszenia). */
 function SignupModal({ post, season, account, my, onSaved, onClose }) {
   const fields = post.form_fields || [];
   const [answers, setAnswers] = useState(() => ({ ...(my?.answers || {}) }));
+  const [files, setFiles] = useState({}); // {id pola: { url, base64 } albo null = usuń dotychczasowe}
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     const esc = (e) => e.key === 'Escape' && onClose();
@@ -114,10 +201,14 @@ function SignupModal({ post, season, account, my, onSaved, onClose }) {
     return () => window.removeEventListener('keydown', esc);
   }, []);
   const set = (id, v) => setAnswers((a) => ({ ...a, [id]: v }));
+  const hasFile = (f) => (f.id in files ? !!files[f.id] : my?.answers?.[f.id] === 'file');
   const submit = async (e) => {
     e.preventDefault();
+    const missing = fields.find((f) => f.type === 'image' && f.required && !hasFile(f));
+    if (missing) return alert(`Dodaj zdjęcie: ${missing.label}`);
     setBusy(true);
-    const list = await attempt(() => db.rpc('signup_submit', { p_post: post.id, p_answers: answers }), my ? 'Zgłoszenie poprawione' : 'Zgłoszenie wysłane — dziękujemy!');
+    const p_files = Object.fromEntries(Object.entries(files).map(([id, x]) => [id, x ? x.base64 : null]));
+    const list = await attempt(() => db.rpc('signup_submit', { p_post: post.id, p_answers: answers, p_files }), my ? 'Zgłoszenie poprawione' : 'Zgłoszenie wysłane — dziękujemy!');
     setBusy(false);
     if (list) onSaved(list);
   };
@@ -145,7 +236,10 @@ function SignupModal({ post, season, account, my, onSaved, onClose }) {
       <form class="modal-body signup-form" onSubmit=${submit}>
         <p class="muted small">Zgłaszasz się jako <b>${account?.display_name || 'konto Discord'}</b>${account?.driver_nick ? html` (profil kierowcy: <b>${account.driver_nick}</b>)` : ''}.
           Do końca zapisów możesz poprawić albo wycofać zgłoszenie. Odpowiedzi widzi tylko administracja ligi — <a href="#/prywatnosc" target="_blank">polityka prywatności</a>.</p>
-        ${fields.map((f) => (f.type === 'checkbox'
+        ${fields.map((f) => (f.type === 'image'
+          ? html`<${PhotoField} key=${f.id} field=${f} signupId=${my?.id} saved=${my?.answers?.[f.id] === 'file'} file=${files[f.id]} touched=${f.id in files}
+              onChange=${(v) => setFiles((x) => ({ ...x, [f.id]: v }))} />`
+          : f.type === 'checkbox'
           ? html`<label class="check-inline signup-check"><input type="checkbox" required=${!!f.required} checked=${answers[f.id] === 'true'} onChange=${(e) => set(f.id, e.target.checked ? 'true' : '')} />
               ${f.label}${f.required ? html` <span class="req">*</span>` : null}</label>`
           : html`<label class="field"><span>${f.label}${f.required ? html` <span class="req">*</span>` : null}</span>${input(f)}</label>`))}

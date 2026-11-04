@@ -70,13 +70,13 @@ export function AdminPage({ parts }) {
   </div>`;
 }
 
-/** Inne: wydarzenia i serie (silnik ligi) oraz open lobby. */
+/** Eventy: wydarzenia i serie (silnik ligi) oraz transmisje. */
 function OtherAdmin({ parts }) {
   const lobby = parts[1] === 'lobby';
   return html`
     <div class="db-tabs">
       <a href="#/admin/inne" class=${`btn btn-sm ${lobby ? '' : 'btn-accent'}`}>🏁 Serie i wydarzenia</a>
-      <a href="#/admin/inne/lobby" class=${`btn btn-sm ${lobby ? 'btn-accent' : ''}`}>🎮 Open lobby</a>
+      <a href="#/admin/inne/lobby" class=${`btn btn-sm ${lobby ? 'btn-accent' : ''}`}>📺 Transmisje</a>
     </div>
     ${lobby ? html`<${LobbyAdmin} />` : html`<${SeriesAdmin} key="inne" series="inne" parts=${parts} />`}
   `;

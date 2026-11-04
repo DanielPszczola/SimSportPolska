@@ -161,7 +161,7 @@ function buildOtherDemo({ uid, now }) {
       },
       {
         id: uid(), created_at: new Date(Date.now() - 5 * 86400000).toISOString(), title: 'Open lobby co czwartek', image_url: null, pinned: false, author: 'admin',
-        body: 'Od teraz w każdy czwartek o 20:00 zapraszamy na open lobby w Le Mans Ultimate. Szczegóły w zakładce Eventy → Open lobby.',
+        body: 'Od teraz w każdy czwartek o 20:00 zapraszamy na open lobby w Le Mans Ultimate. Szczegóły w zakładce Eventy → Transmisje.',
       },
     ],
   };

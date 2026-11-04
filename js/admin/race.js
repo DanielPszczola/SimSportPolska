@@ -3,7 +3,7 @@ import { db } from '../db.js';
 import { html, seasonUnit, sessionLabel, Flag, TeamTag, PosBadge, attempt, formatDate, raceTimeState, DEFAULT_RACE_MINUTES, formatMinutes, STREAMS } from '../ui.js';
 import {
   computeRaceByClass, computeStandings, parseTime, formatDuration, penaltyLabel, carClass,
-  STATUSES, PENALTY_TYPES, CAR_CLASSES, seasonClasses, seasonStyle, seasonCarType, isSprint, SPRINT_POINTS,
+  STATUSES, PENALTY_TYPES, CAR_CLASSES, seasonClasses, seasonStyle, seasonCarType, isSprint, SPRINT_POINTS, licenseTable, licenseLabel,
 } from '../scoring.js';
 import { lineupAt, teamSeats } from '../lineup.js';
 import { StepBar, NextStep, DurationInput } from './common.js';
@@ -376,7 +376,7 @@ const classOrder = (c) => CAR_CLASSES.findIndex((x) => x.id === c);
 const byClass = (rows) => rows.sort((x, y) => classOrder(y.carClass) - classOrder(x.carClass) || String(x.carClass ?? '').localeCompare(String(y.carClass ?? '')));
 
 function RacePenalties({ b, race, reload }) {
-  const [f, setF] = useState({ driver_id: '', type: 'time', value: 5, reason: '' });
+  const [f, setF] = useState({ driver_id: '', type: 'time', value: 5, license_points: 0, reason: '' });
   const results = b.results.filter((r) => r.race_id === race.id);
   if (!results.length) return html`<div class="empty">Najpierw wpisz wyniki wyścigu (krok 1).</div>`;
   const multiClass = seasonStyle(b.season) === 'lmu';
@@ -387,13 +387,20 @@ function RacePenalties({ b, race, reload }) {
   const nick = (id) => b.driverById.get(id)?.nick ?? '?';
   const selected = before.find((r) => r.driver_id === f.driver_id);
   const needsValue = f.type in VALUE_LABEL;
+  const license = licenseTable(b);
+  const driverPoints = license.find((r) => r.driver_id === f.driver_id)?.points ?? 0;
 
   const add = async (e) => {
     e.preventDefault();
     if (!f.driver_id) return;
-    const row = { race_id: race.id, driver_id: f.driver_id, type: f.type, value: needsValue ? Number(f.value) || 0 : 0, reason: f.reason.trim() };
+    const points = Math.max(0, Math.round(Number(f.license_points) || 0));
+    if (f.type === 'license' && !points) return alert('Podaj liczbę punktów karnych');
+    const row = {
+      race_id: race.id, driver_id: f.driver_id, type: f.type, value: needsValue ? Number(f.value) || 0 : 0, reason: f.reason.trim(),
+      ...(points ? { license_points: points } : {}), // kolumna dochodzi w aktualizacji bazy — zwykłe kary działają też bez niej
+    };
     if (await attempt(() => db.insert('penalties', row), `Nałożono karę: ${nick(f.driver_id)} ${penaltyLabel(row)}`)) {
-      setF({ ...f, driver_id: '', reason: '' });
+      setF({ ...f, driver_id: '', reason: '', license_points: 0 });
       reload();
     }
   };
@@ -420,6 +427,10 @@ function RacePenalties({ b, race, reload }) {
         ${needsValue ? html`<label class="field"><span>${VALUE_LABEL[f.type]}</span>
           <input type="number" min="0" step=${f.type === 'time' ? '0.5' : '1'} value=${f.value} onInput=${(e) => setF({ ...f, value: e.target.value })} />
         </label>` : null}
+        <label class="field"><span>Punkty karne</span>
+          <input type="number" min="0" step="1" value=${f.license_points} onInput=${(e) => setF({ ...f, license_points: e.target.value })} />
+          <small class="muted">${f.driver_id ? `${nick(f.driver_id)}: ${driverPoints} w sezonie` : 'Sumują się w sezonie, niezależnie od kary na wyścig'}</small>
+        </label>
         <label class="field span2"><span>Uzasadnienie (widoczne publicznie)</span>
           <input value=${f.reason} onInput=${(e) => setF({ ...f, reason: e.target.value })} placeholder="np. Spowodowanie kolizji w zakręcie 1" />
         </label>
@@ -438,6 +449,14 @@ function RacePenalties({ b, race, reload }) {
         <button class="btn btn-xs btn-danger" onClick=${() => remove(p)}>Cofnij</button>
       </li>`)}
     </ul>`}
+
+    ${license.length ? html`<h3>Punkty karne w sezonie</h3>
+      <ul class="pen-list">
+        ${license.map((r) => html`<li>
+          <span class="badge badge-pen">${licenseLabel(r.points)}</span>
+          <b>${nick(r.driver_id)}</b>
+        </li>`)}
+      </ul>` : null}
 
     <h3>Wynik po karach</h3>
     <div class="table-wrap"><table class="table">

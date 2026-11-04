@@ -17,7 +17,7 @@ const DISCORD_ICON = 'M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.074
 
 export function HomePage() {
   const data = useAsync(async () => {
-    // wszystko równolegle: bieżący sezon F1, bieżący sezon LMU (po jednym zapytaniu), Endurance, open lobby i ogłoszenia
+    // wszystko równolegle: bieżący sezon F1, bieżący sezon LMU (po jednym zapytaniu), Endurance, transmisje i ogłoszenia
     const [f1, lmu, endurance, lobbies, posts, events] = await Promise.all([loadCurrentBundle('f1'), loadCurrentBundle('lmu'), loadEndurance(), loadLobbies(), loadPosts(), loadEvents()]);
     // trwające wydarzenia „Inne”: kalendarz w nadchodzących, serie dodatkowo z klasyfikacją w bieżących sezonach
     const other = await Promise.all(activeEvents(events).map((e) => loadSeasonBundle(e.season.id)));
@@ -73,7 +73,7 @@ function relative(iso) {
   return `za ${days} dni`;
 }
 
-const TYPE = { f1: ['F1', 'Formuła 1'], lmu: ['LMU', 'Liga LMU'], end: ['END', 'Endurance'], lobby: ['LOBBY', 'Open lobby'], inne: ['EVENT', 'Event'] };
+const TYPE = { f1: ['F1', 'Formuła 1'], lmu: ['LMU', 'Liga LMU'], end: ['END', 'Endurance'], lobby: ['LIVE', 'Transmisja'], inne: ['EVENT', 'Event'] };
 
 /** Sesje ligi / wydarzenia „Inne” w danym stanie czasowym ('upcoming' + bez terminu, albo 'live'). */
 function leagueItems(b, type, live) {
@@ -120,7 +120,7 @@ function collectEvents(d) {
     };
   };
   const endState = (ev) => timeState(ev.start_at, (Number(ev.duration_hours) || 2) * 60, now);
-  const lobbyItem = (l) => ({ key: l.id, type: 'lobby', date: l.start_at, href: `#/inne/lobby/${l.id}`, title: l.title, sub: lobbyMeta(l) || 'Open lobby', links: l });
+  const lobbyItem = (l) => ({ key: l.id, type: 'lobby', date: l.start_at, href: `#/inne/lobby/${l.id}`, title: l.title, sub: lobbyMeta(l) || 'Transmisja', links: l });
   const leagues = (live) => [
     ...leagueItems(d.f1, 'f1', live),
     ...leagueItems(d.lmu, 'lmu', live),

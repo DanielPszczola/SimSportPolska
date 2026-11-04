@@ -4,7 +4,7 @@ import { LEAGUE_NAME, DISCORD_INVITE } from '../config.js';
 // Polityka prywatności (RODO): co strona zbiera, po co, komu przekazuje i jak usunąć swoje dane.
 // Przy zmianie zasad przetwarzania (nowe dane, nowy dostawca) zaktualizuj tekst i datę.
 
-const UPDATED = '1 listopada 2026';
+const UPDATED = '4 listopada 2026';
 
 /** Krótka informacja przy logowaniu przez Discord. */
 export function PrivacyNote({ text = 'Logując się przez Discord, przekazujesz nam podstawowe dane konta Discord.' }) {
@@ -41,9 +41,10 @@ export function PrivacyPage() {
       interes ligi (historia wyników).</p>
 
     <h2>Zgłoszenia do sezonów i wydarzeń</h2>
-    <p>Wysyłając zgłoszenie przez formularz w ogłoszeniu, przekazujesz odpowiedzi na pytania z formularza. Widzi je tylko
-      administracja ligi (moderatorzy i administratorzy). Cel: nabór kierowców. Podstawa: art. 6 ust. 1 lit. b RODO.
-      Zgłoszenia są usuwane automatycznie 30 dni po zakończeniu zapisów (przyjęci kierowcy zostają w składzie sezonu).
+    <p>Wysyłając zgłoszenie przez formularz w ogłoszeniu, przekazujesz odpowiedzi na pytania z formularza i dołączone zdjęcia
+      (np. zrzut ekranu z gry jako dowód czasu okrążenia). Widzi je tylko administracja ligi (moderatorzy i administratorzy).
+      Przed wysłaniem zdjęcie jest zmniejszane w przeglądarce, co usuwa z pliku metadane. Cel: nabór kierowców. Podstawa: art. 6 ust. 1 lit. b RODO.
+      Zgłoszenia ze zdjęciami są usuwane automatycznie 30 dni po zakończeniu zapisów (przyjęci kierowcy zostają w składzie sezonu).
       Do końca zapisów możesz zgłoszenie poprawić albo wycofać.</p>
     <p>Jeśli ogłoszenie prowadzi do zewnętrznego formularza (np. Google Forms), dane podajesz w tamtym serwisie, na jego zasadach.</p>
 
@@ -74,7 +75,7 @@ export function PrivacyPage() {
     <ul>
       <li>konto Discord — do czasu, aż je odepniesz (albo poprosisz o usunięcie);</li>
       <li>profil kierowcy i wyniki — przez czas istnienia ligi, jako archiwum rozgrywek;</li>
-      <li>zgłoszenia — 30 dni po zakończeniu zapisów, potem są usuwane automatycznie;</li>
+      <li>zgłoszenia i dołączone zdjęcia — 30 dni po zakończeniu zapisów, potem są usuwane automatycznie;</li>
       <li>głosy w ankietach — 30 dni po zakończeniu głosowania (potem zostają tylko łączne wyniki);</li>
       <li>skrót adresu IP z głosowania na kierowcę dnia — do zakończenia głosowania.</li>
     </ul>
@@ -86,7 +87,7 @@ export function PrivacyPage() {
 
     <h2>Usunięcie konta</h2>
     <p>W <a href="#/konto">Moje konto</a> możesz w każdej chwili kliknąć <b>„Odepnij konto Discord”</b>. Usuwa to konto na stronie
-      i wszystkie dane z Discorda (identyfikator, nazwy, e-mail, awatar) oraz Twoje zgłoszenia. Oddane głosy zostają w wynikach, ale bez powiązania z Tobą. Profil kierowcy z nickiem i wynikami
+      i wszystkie dane z Discorda (identyfikator, nazwy, e-mail, awatar) oraz Twoje zgłoszenia ze zdjęciami. Oddane głosy zostają w wynikach, ale bez powiązania z Tobą. Profil kierowcy z nickiem i wynikami
       zostaje jako część historii ligi. Jeśli chcesz, żeby z wyników zniknął także Twój nick, wyślij do administracji ligi prośbę
       o jego zmianę — zastąpimy go neutralnym (np. „Kierowca #57”). Wyniki i klasyfikacje się przy tym nie zmieniają.</p>
   </div>`;

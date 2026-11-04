@@ -1413,3 +1413,48 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
 .poll-option-row { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 520px; }
 .poll-option-row input { flex: 1; }
 .poll-admin-results { max-width: 460px; margin: 6px 0; font-size: .9rem; }
+
+/* ---------- Zdjęcia w zgłoszeniach ---------- */
+.photo-field { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.photo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.photo-actions label.btn { position: relative; cursor: pointer; }
+.photo-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.proof-image img { display: block; max-width: 100%; max-height: 280px; border-radius: 8px; border: 1px solid var(--line); }
+.proof-thumb { display: inline-block; padding: 0; border: 0; background: none; cursor: zoom-in; max-width: 100%; }
+.proof-zoom { position: fixed; inset: 0; z-index: 1100; display: flex; padding: 12px; background: rgba(5, 3, 12, .94); cursor: zoom-out; }
+.proof-zoom img { margin: auto; max-width: 100%; max-height: 100%; border: 0; border-radius: 4px; object-fit: contain; }
+
+/* ---------- Punkty karne ---------- */
+.license-items { font-size: .88rem; overflow-wrap: anywhere; }
+.license-badge { flex: none; margin-left: 0; }
+
+/* ---------- Klasyfikacja: wykres punktów na przestrzeni sezonu ---------- */
+.season-chart {
+  /* paleta sprawdzona na tle --surface (kontrast, daltonizm); kolory linii, nigdy tekstu */
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.chart-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chart-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-2); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
+.chart-chip:hover { border-color: var(--muted); }
+.chart-chip i, .chart-tip-row i { flex: none; width: 14px; height: 3px; border-radius: 2px; }
+.chart-add { width: auto; max-width: 240px; padding: 6px 8px; }
+.chart-plot { position: relative; width: 100%; touch-action: pan-y; border-radius: 6px; }
+.chart-plot:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.chart-plot svg { display: block; overflow: visible; }
+.chart-grid { stroke: var(--line); stroke-width: 1; }
+.chart-cross { stroke: var(--muted); stroke-width: 1; }
+.chart-axis { fill: var(--muted); font-size: 12px; }
+.chart-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chart-dot { stroke: var(--surface); stroke-width: 2; }
+.chart-end { fill: var(--muted); font-size: 13px; font-weight: 600; }
+.chart-end-value { fill: var(--text); font-weight: 800; }
+.chart-tip { position: absolute; top: 8px; z-index: 2; width: 200px; max-width: 100%; padding: 8px 10px; pointer-events: none; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 22px rgba(0, 0, 0, .45); font-size: .85rem; }
+.chart-tip-head { margin-bottom: 5px; color: var(--muted); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chart-tip-row { display: grid; grid-template-columns: 14px auto minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 1px 0; }
+.chart-tip-row span:not(.muted) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted); }
+.chart-empty { margin: 28px 0; text-align: center; }
+.chart-table summary { cursor: pointer; color: var(--muted); font-size: .9rem; }
+.chart-table[open] summary { margin-bottom: 8px; }

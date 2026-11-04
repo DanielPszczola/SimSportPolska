@@ -262,6 +262,7 @@ function FieldsEditor({ fields, onChange }) {
       </span>
       ${x.type === 'select' ? html`<input class="ff-options" value=${(x.options || []).join(', ')} placeholder="Opcje oddzielone przecinkami, np. PC, PlayStation, Xbox"
         onChange=${(e) => patch(i, { options: e.target.value.split(',').map((o) => o.trim()).filter(Boolean) })} />` : null}
+      ${x.type === 'image' ? html`<small class="ff-options muted">Jedno zdjęcie JPG, PNG albo WebP, zmniejszane do 1 MB. Widzi je tylko administracja, znika razem ze zgłoszeniem.</small>` : null}
     </div>`)}
     <button type="button" class="btn btn-sm" onClick=${() => onChange([...fields, { id: newFieldId(), label: '', type: 'text', required: false }])}>+ Dodaj pole</button>
   </div>`;

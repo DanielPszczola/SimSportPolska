@@ -7,10 +7,10 @@ import { LeagueSection } from './league.js';
 
 // Inne: wydarzenia spoza lig F1 i LMU.
 //  - Wydarzenia: serie kilku wyścigów i pojedyncze wydarzenia (własne klasy aut, składy) — silnik ligi,
-//  - Open lobby: luźne, regularne jazdy z transmisją (bez wyników).
+//  - Transmisje: zapowiedzi transmisji, np. open lobby (bez wyników; w bazie i adresach nazwa „lobby”).
 // Adresy: #/inne (lista wydarzeń), #/inne/e/<wydarzenie>/<podstrona>, #/inne/lobby[/<lobby>]
 
-const TOPNAV = [['wydarzenia', 'Serie i wydarzenia', '#/inne'], ['lobby', 'Open lobby', '#/inne/lobby']];
+const TOPNAV = [['wydarzenia', 'Serie i wydarzenia', '#/inne'], ['lobby', 'Transmisje', '#/inne/lobby']];
 
 export function OtherTopNav({ active }) {
   return html`<nav class="wrap topnav">
@@ -67,7 +67,7 @@ function EventsList({ events }) {
     <div class="page-head"><h2>Serie i wydarzenia</h2></div>
     <p class="muted">Serie kilku wyścigów i pojedyncze wydarzenia poza ligami F1 i Le Mans Ultimate.</p>
     ${live.length ? html`<div class="event-grid">${live.map((e) => html`<${EventCard} key=${e.season.id} e=${e} />`)}</div>`
-      : html`<${Empty}>Brak zaplanowanych wydarzeń. Zajrzyj do zakładki <a href="#/inne/lobby">Open lobby</a>.<//>`}
+      : html`<${Empty}>Brak zaplanowanych wydarzeń. Zajrzyj do zakładki <a href="#/inne/lobby">Transmisje</a>.<//>`}
     ${done.length ? html`<h3>Zakończone</h3><div class="event-grid">${done.map((e) => html`<${EventCard} key=${e.season.id} e=${e} />`)}</div>` : null}
   `;
 }
@@ -99,7 +99,7 @@ function EventPage({ id, parts }) {
   return html`<${LeagueSection} series="inne" fixedSeason=${e.season} parts=${parts} top=${html`<${OtherTopNav} active="wydarzenia" />`} />`;
 }
 
-// ---------- open lobby ----------
+// ---------- transmisje (tabela lobbies) ----------
 
 // tabela dochodzi w aktualizacji bazy — bez niej strona działa dalej (brak lobby)
 export const loadLobbies = () => cached('lobbies', () => db.list('lobbies', { order: ['start_at'] }).catch(() => []));
@@ -155,13 +155,13 @@ function LobbyList({ lobbies, focusId }) {
   const upcoming = of('scheduled');
   const ended = of('ended').reverse().slice(0, 10);
   return html`
-    <div class="page-head"><h2>Open lobby</h2></div>
-    <p class="muted">Otwarte jazdy dla wszystkich chętnych — bez zapisów i klasyfikacji. Dołącz przez Discord albo oglądaj transmisję.</p>
+    <div class="page-head"><h2>Transmisje</h2></div>
+    <p class="muted">Zapowiedzi transmisji, np. open lobby — bez zapisów i klasyfikacji. Oglądaj na żywo albo dołącz przez Discord.</p>
     ${live.length ? html`<div class="lobby-list">${live.map((l) => html`<${LobbyCard} key=${l.id} lobby=${l} state="live" focused=${l.id === focusId} />`)}</div>` : null}
     <h3>Nadchodzące</h3>
     ${upcoming.length
       ? html`<div class="lobby-list">${upcoming.map((l) => html`<${LobbyCard} key=${l.id} lobby=${l} state="scheduled" focused=${l.id === focusId} />`)}</div>`
-      : html`<${Empty}>Brak zaplanowanych lobby.<//>`}
+      : html`<${Empty}>Brak zaplanowanych transmisji.<//>`}
     ${ended.length ? html`<h3>Ostatnie</h3>
       <div class="lobby-list">${ended.map((l) => html`<${LobbyCard} key=${l.id} lobby=${l} state="ended" focused=${l.id === focusId} />`)}</div>` : null}
   `;
@@ -174,7 +174,7 @@ function LobbyCard({ lobby, state, focused }) {
   }, [focused]);
   return html`<article ref=${ref} id=${`lobby-${lobby.id}`} class=${`lobby-card lobby-${state} ${focused ? 'focused' : ''}`}>
     <div class="lobby-main">
-      <div class="eyebrow">${state === 'live' ? html`<${LiveBadge} />` : state === 'ended' ? 'Zakończone' : 'Open lobby'}</div>
+      <div class="eyebrow">${state === 'live' ? html`<${LiveBadge} />` : state === 'ended' ? 'Zakończone' : 'Transmisja'}</div>
       <h3>${lobby.title}</h3>
       <div class="lobby-meta">
         <span>📅 ${lobby.start_at ? formatDate(lobby.start_at) : 'Termin do ustalenia'}</span>

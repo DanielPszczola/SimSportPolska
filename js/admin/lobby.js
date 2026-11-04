@@ -4,7 +4,7 @@ import { html, useAsync, Loader, ErrorBox, attempt, formatDate } from '../ui.js'
 import { toLocalInput, fromLocalInput, DateTimeInput, DurationInput } from './common.js';
 import { lobbyState, lobbyMeta, STREAMS } from '../pages/other.js';
 
-// Eventy → Open lobby: luźne, regularne jazdy z transmisją. Bez zapisów, składów i wyników.
+// Eventy → Transmisje (tabela lobbies): zapowiedzi transmisji, np. open lobby. Bez zapisów, składów i wyników.
 // Status liczy się sam (wg startu i czasu trwania); moderator może go ustawić ręcznie.
 
 const STATE_LABEL = { scheduled: 'Zaplanowane', live: '🔴 Trwa teraz', ended: '✓ Zakończone' };
@@ -15,7 +15,7 @@ export function LobbyAdmin() {
   const data = useAsync(() => db.list('lobbies', { order: ['start_at'] }), []);
   if (data.loading && !data.data) return html`<${Loader} />`;
   if (data.error) {
-    return html`<div class="hint warn">Open lobby wymaga aktualizacji bazy: uruchom w Supabase → SQL Editor plik
+    return html`<div class="hint warn">Transmisje wymagają aktualizacji bazy: uruchom w Supabase → SQL Editor plik
       <b>supabase/migrations/2026-10-30_inne_lobby_ogloszenia.sql</b> (niczego nie usuwa).</div><${ErrorBox} error=${data.error} />`;
   }
   const lobbies = data.data;
@@ -27,8 +27,8 @@ export function LobbyAdmin() {
     const start = new Date(Date.now() + 86400000);
     start.setHours(20, 0, 0, 0);
     const l = await attempt(() => db.insert('lobbies', {
-      title: 'Open lobby', game: '', cars: '', start_at: start.toISOString(), duration_minutes: 120, description: '', status: 'auto',
-    }), 'Utworzono lobby — uzupełnij szczegóły i linki do transmisji');
+      title: 'Transmisja', game: '', cars: '', start_at: start.toISOString(), duration_minutes: 120, description: '', status: 'auto',
+    }), 'Utworzono transmisję — uzupełnij szczegóły i linki');
     if (l) {
       setOpen(l.id);
       data.reload();
@@ -54,15 +54,15 @@ export function LobbyAdmin() {
 
   return html`
     <div class="season-bar">
-      <div class="season-bar-title"><span class="eyebrow">Eventy</span><b class="season-switch-static">Open lobby</b></div>
-      <button class="btn btn-accent btn-sm" onClick=${add}>+ Nowe lobby</button>
+      <div class="season-bar-title"><span class="eyebrow">Eventy</span><b class="season-switch-static">Transmisje</b></div>
+      <button class="btn btn-accent btn-sm" onClick=${add}>+ Nowa transmisja</button>
     </div>
-    <p class="muted">Otwarte jazdy bez zapisów i wyników. Lobby pojawia się w <a href="#/inne/lobby">Eventy → Open lobby</a> i w nadchodzących
+    <p class="muted">Zapowiedzi transmisji, np. open lobby, bez zapisów i wyników. Transmisja pojawia się w <a href="#/inne/lobby">Eventy → Transmisje</a> i w nadchodzących
       wydarzeniach na stronie głównej, a w trakcie — jako <b>„Trwa teraz”</b> z przyciskami do transmisji.</p>
     <h3>Nadchodzące i trwające (${active.length})</h3>
-    <div class="end-admin-list">${active.map(row)}${!active.length ? html`<p class="muted">Brak zaplanowanych lobby.</p>` : null}</div>
+    <div class="end-admin-list">${active.map(row)}${!active.length ? html`<p class="muted">Brak zaplanowanych transmisji.</p>` : null}</div>
     <h3>Zakończone (${ended.length})</h3>
-    <div class="end-admin-list">${ended.map(row)}${!ended.length ? html`<p class="muted">Brak zakończonych lobby.</p>` : null}</div>
+    <div class="end-admin-list">${ended.map(row)}${!ended.length ? html`<p class="muted">Brak zakończonych transmisji.</p>` : null}</div>
   `;
 }
 
@@ -75,19 +75,19 @@ function LobbyEditor({ lobby, state, reload, onOpen }) {
     if (url && !isUrl(url)) return alert('Podaj pełny adres, np. https://www.twitch.tv/…');
     return patch({ [key]: url || null });
   };
-  // regularne lobby: kopia z tymi samymi ustawieniami i linkami tydzień później
+  // regularna transmisja: kopia z tymi samymi ustawieniami i linkami tydzień później
   const repeat = async () => {
     const { id, created_at, ...rest } = lobby;
     const start = lobby.start_at ? new Date(new Date(lobby.start_at).getTime() + 7 * 86400000).toISOString() : null;
-    const copy = await attempt(() => db.insert('lobbies', { ...rest, start_at: start, status: 'auto' }), `Zaplanowano kolejne lobby${start ? ` — ${formatDate(start)}` : ''}`);
+    const copy = await attempt(() => db.insert('lobbies', { ...rest, start_at: start, status: 'auto' }), `Zaplanowano kolejną transmisję${start ? ` — ${formatDate(start)}` : ''}`);
     if (copy) {
       onOpen(copy.id);
       reload();
     }
   };
   const remove = async () => {
-    if (!confirm(`Usunąć lobby „${lobby.title}”?`)) return;
-    if (await attempt(() => db.remove('lobbies', lobby.id), 'Lobby usunięte')) {
+    if (!confirm(`Usunąć transmisję „${lobby.title}”?`)) return;
+    if (await attempt(() => db.remove('lobbies', lobby.id), 'Transmisja usunięta')) {
       onOpen(null);
       reload();
     }
@@ -118,7 +118,7 @@ function LobbyEditor({ lobby, state, reload, onOpen }) {
     <div class="form-actions">
       <button class="btn" onClick=${repeat} title="Kopia z tymi samymi ustawieniami i linkami">↻ Zaplanuj kolejne (+7 dni)</button>
       <span class="spacer"></span>
-      <button class="btn btn-danger btn-sm" onClick=${remove}>Usuń lobby</button>
+      <button class="btn btn-danger btn-sm" onClick=${remove}>Usuń transmisję</button>
     </div>
   </div>`;
 }

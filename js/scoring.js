@@ -68,9 +68,17 @@ export const PENALTY_TYPES = [
   { id: 'dsq', label: 'Dyskwalifikacja z wyścigu' },
   { id: 'grid', label: 'Cofnięcie na starcie (kolejny wyścig)' },
   { id: 'warning', label: 'Ostrzeżenie / upomnienie' },
+  { id: 'license', label: 'Tylko punkty karne' },
 ];
 
-export function penaltyLabel(p) {
+/** „1 pkt karny”, „2 pkt karne”, „5 pkt karnych”. */
+export function licenseLabel(n) {
+  const v = Number(n) || 0;
+  const word = v === 1 ? 'karny' : v % 10 >= 2 && v % 10 <= 4 && (v % 100 < 12 || v % 100 > 14) ? 'karne' : 'karnych';
+  return `${v} pkt ${word}`;
+}
+
+function racePenaltyLabel(p) {
   switch (p.type) {
     case 'time': return `+${p.value}s`;
     case 'points': return `−${p.value} pkt`;
@@ -78,6 +86,31 @@ export function penaltyLabel(p) {
     case 'grid': return `Cofnięcie o ${p.value} poz. na starcie`;
     default: return 'Ostrzeżenie';
   }
+}
+
+export function penaltyLabel(p) {
+  const points = Number(p.license_points) || 0;
+  if (p.type === 'license') return licenseLabel(points);
+  return points ? `${racePenaltyLabel(p)} · ${licenseLabel(points)}` : racePenaltyLabel(p);
+}
+
+/**
+ * Punkty karne kierowców w sezonie, od najwyższych: [{ driver_id, points, items: [{ race, points, reason }] }].
+ * approved = tylko zatwierdzone wyścigi (strona publiczna; panel widzi też decyzje przed publikacją).
+ */
+export function licenseTable({ penalties, sessions }, { approved = false } = {}) {
+  const raceById = new Map(sessions.map((r) => [r.id, r]));
+  const rows = new Map();
+  for (const p of penalties) {
+    const points = Number(p.license_points) || 0;
+    const race = raceById.get(p.race_id);
+    if (!points || !race || (approved && race.status !== 'completed')) continue;
+    if (!rows.has(p.driver_id)) rows.set(p.driver_id, { driver_id: p.driver_id, points: 0, items: [] });
+    const row = rows.get(p.driver_id);
+    row.points += points;
+    row.items.push({ race, points, reason: p.reason });
+  }
+  return [...rows.values()].sort((a, b) => b.points - a.points);
 }
 
 // ---------- czasy ----------
@@ -223,6 +256,30 @@ export function teamPointsResolver({ season, entries, rosterChanges }) {
     if (!byRound.has(race.round)) byRound.set(race.round, lineupAt(entries, rosterChanges, race.round));
     return byRound.get(race.round).get(row.driver_id)?.team_id || null;
   };
+}
+
+/**
+ * Rundy do wykresu sezonu: cały kalendarz wg rundy; sessionIds = rozegrane sesje rundy (sprint i wyścig główny),
+ * played = do której rundy (włącznie) są wyniki — dalej oś jest pusta.
+ */
+export function progressRounds({ races, sprints = [] }, st) {
+  const done = new Set(st.races.map((r) => r.id));
+  const rounds = [...races].sort((a, b) => a.round - b.round).map((race) => ({
+    round: race.round,
+    race,
+    sessionIds: [...sprints.filter((s) => s.round === race.round), race].filter((s) => done.has(s.id)).map((s) => s.id),
+  }));
+  return { rounds, played: rounds.reduce((n, r, i) => (r.sessionIds.length ? i + 1 : n), 0) };
+}
+
+/** Punkty narastająco: [{ gain, total }] dla każdej rundy do played; pointsIn(id sesji) = punkty w tej sesji. */
+export function cumulativePoints(rounds, played, pointsIn) {
+  let total = 0;
+  return rounds.slice(0, played).map((r) => {
+    const gain = r.sessionIds.reduce((sum, id) => sum + (pointsIn(id) || 0), 0);
+    total += gain;
+    return { gain, total };
+  });
 }
 
 /** Kolejność sesji w sezonie: wg rundy, a w rundzie sprint przed wyścigiem głównym. */
