@@ -483,7 +483,7 @@ textarea { width: 100%; resize: vertical; }
 
 /* ---------- calendar: karuzela dużych kafelków ---------- */
 .cal-nav { display: flex; align-items: center; gap: 10px; }
-.cal-jump { margin-bottom: 12px; }
+.cal-jump { margin-bottom: 12px; scrollbar-width: thin; }
 .cal-jump button {
   display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 52px; padding: 6px 4px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer;
@@ -503,44 +503,59 @@ textarea { width: 100%; resize: vertical; }
   scrollbar-width: none;
 }
 .cal-strip::-webkit-scrollbar { display: none; }
+/* pas ma szerokość okna razem z paskiem przewijania (Windows) — bez tego cała strona przewijała się w poziomie */
+main { overflow-x: clip; }
 .cal-tile {
   /* kafelek zajmuje większość szerokości strony; rozmiar nie zależy od tego, czy są materiały */
-  flex: 0 0 min(1100px, 86vw); scroll-snap-align: center; display: flex; flex-direction: column;
+  flex: 0 0 min(1100px, 86vw); scroll-snap-align: center;
   background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
   opacity: .55; transform: scale(.97); transition: opacity .25s, transform .25s, border-color .25s;
 }
 .cal-tile.active { opacity: 1; transform: none; }
-.cal-tile.next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 12px 40px rgba(198, 244, 50, .08); }
-.cal-tile-head {
-  display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'round status' 'title status' 'meta status';
-  gap: 2px 16px; padding: 18px 22px; background: linear-gradient(120deg, var(--primary-deep), var(--surface) 70%); border-bottom: 1px solid var(--line);
+.cal-tile.next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* dwie kolumny: po lewej informacje o rundzie, po prawej nitka toru i film obok siebie (równej wysokości) */
+.cal-tile { display: grid; grid-template-columns: minmax(250px, 310px) minmax(0, 1fr); }
+.cal-info {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 18px 20px;
+  background: linear-gradient(160deg, var(--primary-deep), var(--surface) 78%); border-right: 1px solid var(--line);
 }
-.cal-tile-round { grid-area: round; display: flex; align-items: baseline; gap: 10px; }
-.cal-tile-num { font-size: 1.6rem; font-weight: 900; font-style: italic; color: var(--accent); }
-.cal-tile-head h3 { grid-area: title; margin: 2px 0; color: var(--text); font-size: clamp(1.2rem, 2.6vw, 1.7rem); font-style: italic; display: flex; align-items: center; gap: 10px; }
-.cal-tile-meta { grid-area: meta; font-size: .9rem; }
-.cal-tile-status { grid-area: status; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 6px; }
-.cal-tile-status .badge { margin-left: 0; }
+.cal-tile-round { display: flex; align-items: baseline; gap: 10px; }
+.cal-tile-num { font-size: 1.5rem; font-weight: 900; font-style: italic; color: var(--accent); line-height: 1; }
+.cal-info h3 { margin: 2px 0 0; color: var(--text); font-size: clamp(1.15rem, 2vw, 1.5rem); font-style: italic; line-height: 1.15; display: flex; align-items: center; gap: 10px; }
+.cal-tile-meta { font-size: .88rem; }
+.cal-info-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 4px; }
+.cal-info-status .badge { margin-left: 0; }
 .cal-winner { font-weight: 700; }
-.cal-tile-media { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 18px 22px; flex: 1; }
-.cal-media-box { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.cal-media-box figcaption { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 700; }
-/* oba pola mają stałe proporcje 16:9 — z materiałem i bez */
-.cal-media-box > .cal-layout-img, .cal-media-box > .cal-nodata, .cal-media-box > .video-frame { aspect-ratio: 16 / 9; width: 100%; border-radius: 12px; }
-.cal-layout-img { display: flex; align-items: center; justify-content: center; background: var(--bg-2); border: 1px solid var(--line); padding: 14px; }
+.cal-info .race-conditions, .cal-info .stream-links, .cal-info .btn-dotd, .cal-info .dotd-result { margin-top: 4px; }
+.cal-info .btn-dotd { align-self: flex-start; }
+.cal-info-foot { margin-top: auto; padding-top: 10px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.cal-info-foot:empty { display: none; }
+.cal-info-foot .countdown div { min-width: 50px; }
+.cal-media { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 14px; padding: 16px; align-items: stretch; }
+.cal-media-box { position: relative; margin: 0; min-width: 0; display: flex; }
+.cal-media-box > * { flex: 1; min-width: 0; }
+/* film wyznacza wysokość rzędu (16:9), nitka toru dopasowuje się do niej */
+.cal-media-video > .video-frame, .cal-media-video > .cal-nodata { aspect-ratio: 16 / 9; }
+.cal-layout-img { position: relative; display: flex; align-items: center; justify-content: center; padding: 30px 14px 14px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; }
 .cal-layout-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.cal-media-label { position: absolute; top: 9px; left: 12px; font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 800; }
+.cal-media-box .video-frame { border-radius: 12px; }
 .cal-nodata {
-  display: flex; align-items: center; justify-content: center; border: 2px dashed var(--line); color: var(--muted);
-  font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: .9rem;
+  display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; border-radius: 12px;
+  border: 1px dashed var(--line); color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: .75rem;
   background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, .015) 0 12px, transparent 12px 24px);
 }
-.cal-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 22px 18px; min-height: 52px; }
+@media (max-width: 980px) {
+  .cal-tile { grid-template-columns: 1fr; }
+  .cal-info { border-right: 0; border-bottom: 1px solid var(--line); }
+}
 @media (max-width: 760px) {
   .cal-tile { flex-basis: 92vw; }
   .cal-strip { padding-inline: 4vw; }
-  .cal-tile-head { grid-template-columns: 1fr; grid-template-areas: 'round' 'title' 'meta' 'status'; }
-  .cal-tile-status { flex-direction: row; justify-content: flex-start; flex-wrap: wrap; margin-top: 6px; }
-  .cal-tile-media { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .cal-media { grid-template-columns: 1fr; padding: 12px; gap: 10px; }
+  .cal-media-map > * { aspect-ratio: 16 / 9; }
 }
 
 /* ---------- teams ---------- */
@@ -1305,7 +1320,6 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
 .tile-over { border-bottom: 3px solid var(--warn); }
 .next-strip.next-live { background: linear-gradient(90deg, rgba(225, 6, 0, .22), transparent 70%); }
 .next-live .eyebrow { display: flex; align-items: center; gap: 8px; }
-.cal-tile-head .stream-links { margin-top: 10px; }
 
 /* data i godzina w formacie 24h (panel) */
 .dt-input { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -1319,7 +1333,6 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
 .btn-dotd:hover { filter: brightness(1.08); }
 .live-actions .btn-dotd { padding: 10px 16px; border-radius: 10px; }
 .next-live .live-actions { margin-top: 0; }
-.cal-tile-head .btn-dotd { margin-top: 10px; }
 .dotd-result { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-size: .92rem; }
 .dotd-result b { color: var(--gold); }
 .modal-backdrop { position: fixed; inset: 0; z-index: 1000; background: rgba(5, 2, 12, .72); display: flex; align-items: center; justify-content: center; padding: 16px; }

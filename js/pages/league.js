@@ -416,6 +416,18 @@ function Delta({ v }) {
 
 function Calendar({ b, focusId }) {
   const stripRef = useRef(null);
+  const jumpRef = useRef(null);
+  // przewijanie przyciskiem / kółkiem: zaznaczenie od razu na docelowej rundzie, a kafelki mijane po drodze
+  // nie przejmują go (wcześniej ramka przeskakiwała po wszystkich rundach pomiędzy); blokada trwa, aż pas stanie
+  const lockRef = useRef(false);
+  const idleRef = useRef(null);
+  const release = () => {
+    clearTimeout(idleRef.current);
+    idleRef.current = setTimeout(() => {
+      lockRef.current = false;
+      syncActive();
+    }, 150);
+  };
   const next = nextRace(b);
   const dotd = useAsync(() => loadDotd(b.season.id), [b.season.id]).data; // kierowca dnia (po zamknięciu głosowania)
   // karuzela startuje na najbliższym wyścigu (albo na ostatniej rundzie zakończonego sezonu)
@@ -430,14 +442,19 @@ function Calendar({ b, focusId }) {
     if (!strip || !card) return;
     strip.scrollTo({ left: card.offsetLeft - (strip.clientWidth - card.clientWidth) / 2, behavior: smooth ? 'smooth' : 'instant' });
   };
+  const goTo = (i, smooth = true) => {
+    activeRef.current = i;
+    setActive(i);
+    lockRef.current = true;
+    release(); // gdy przewijania nie ma (ta sama runda), blokada i tak zaraz puści
+    scrollTo(i, smooth);
+  };
   useEffect(() => {
-    setActive(startIdx);
-    scrollTo(startIdx, false);
+    goTo(startIdx, false);
   }, [b.season.id, focusId]);
 
   // kółko myszy: jeden ruch = jeden kafelek; na pierwszym/ostatnim kafelku kółko przewija dalej stronę
   const activeRef = useRef(active);
-  activeRef.current = active;
   useEffect(() => {
     const strip = stripRef.current;
     if (!strip) return undefined;
@@ -450,24 +467,40 @@ function Calendar({ b, focusId }) {
       e.preventDefault();
       if (Date.now() < lockUntil) return;
       lockUntil = Date.now() + 450;
-      activeRef.current = target;
-      setActive(target);
-      scrollTo(target);
+      goTo(target);
     };
     strip.addEventListener('wheel', onWheel, { passive: false });
     return () => strip.removeEventListener('wheel', onWheel);
   }, [b.season.id, b.races.length]);
+  useEffect(() => () => clearTimeout(idleRef.current), []);
   // aktywny kafelek = ten najbliżej środka paska
-  const onScroll = () => {
+  const syncActive = () => {
     const strip = stripRef.current;
-    if (!strip) return;
+    if (!strip || !strip.children.length) return;
     const mid = strip.scrollLeft + strip.clientWidth / 2;
     let best = 0;
     [...strip.children].forEach((c, i) => {
       if (Math.abs(c.offsetLeft + c.clientWidth / 2 - mid) < Math.abs(cardAt(best).offsetLeft + cardAt(best).clientWidth / 2 - mid)) best = i;
     });
-    if (best !== active) setActive(best);
+    if (best !== activeRef.current) {
+      activeRef.current = best;
+      setActive(best);
+    }
   };
+  // ręczne przewijanie (palec, gładzik) zmienia zaznaczenie na bieżąco; przewijanie przyciskiem — dopiero po zatrzymaniu
+  const onScroll = () => {
+    if (lockRef.current) release();
+    else syncActive();
+  };
+  // pasek rund przesuwa się za zaznaczeniem (długi sezon, telefon)
+  useEffect(() => {
+    const jump = jumpRef.current;
+    const chip = jump?.children[active];
+    if (!jump || !chip) return;
+    const j = jump.getBoundingClientRect();
+    const c = chip.getBoundingClientRect();
+    jump.scrollTo({ left: jump.scrollLeft + (c.left - j.left) - (j.width - c.width) / 2, behavior: 'smooth' });
+  }, [active]);
 
   if (!b.races.length) return html`<${SeasonWip} />`;
   // pojedyncze wydarzenie (zakładka „Inne”): jeden kafelek bez nawigacji po rundach
@@ -478,15 +511,15 @@ function Calendar({ b, focusId }) {
       ${b.season.description ? html`<p class="muted">${b.season.description}</p>` : null}` : html`<div class="page-head">
       <h2>Kalendarz — ${b.races.length} rund</h2>
       <div class="cal-nav">
-        <button class="btn btn-sm" onClick=${() => scrollTo(Math.max(0, active - 1))} disabled=${active === 0} aria-label="Poprzednia runda">←</button>
+        <button class="btn btn-sm" onClick=${() => goTo(Math.max(0, active - 1))} disabled=${active === 0} aria-label="Poprzednia runda">←</button>
         <span class="muted">Runda ${b.races[active]?.round} / ${b.races.length}</span>
-        <button class="btn btn-sm" onClick=${() => scrollTo(Math.min(b.races.length - 1, active + 1))} disabled=${active === b.races.length - 1} aria-label="Następna runda">→</button>
+        <button class="btn btn-sm" onClick=${() => goTo(Math.min(b.races.length - 1, active + 1))} disabled=${active === b.races.length - 1} aria-label="Następna runda">→</button>
       </div>
     </div>
-    <div class="round-strip cal-jump">
+    <div class="round-strip cal-jump" ref=${jumpRef}>
       ${b.races.map((r, i) => {
         const t = b.trackById.get(r.track_id);
-        return html`<button class=${`${i === active ? 'active' : ''} ${r.status === 'completed' ? '' : 'future'}`} onClick=${() => scrollTo(i)} title=${t?.name}>
+        return html`<button class=${`${i === active ? 'active' : ''} ${r.status === 'completed' ? '' : 'future'}`} onClick=${() => goTo(i)} title=${t?.name} aria-current=${i === active ? 'true' : undefined}>
           <${Flag} code=${t?.country_code} size=${18} /><span>R${r.round}</span>
         </button>`;
       })}
@@ -500,14 +533,23 @@ function Calendar({ b, focusId }) {
         const isNext = next?.id === r.id;
         const sprint = sprintOf(b, r);
         const sprintWinner = sprint?.status === 'completed' ? computeRace(sprint, b.season, b.results, b.penalties)[0] : null;
+        const status = {
+          done: html`<span class="badge badge-ok">Rozegrany</span>`,
+          live: html`<${LiveBadge} />`,
+          over: html`<span class="badge badge-warn">Czeka na wyniki</span>`,
+        }[raceTimeState(r)] || (isNext ? html`<span class="badge badge-next">Następny wyścig</span>` : html`<span class="badge">Zaplanowany</span>`);
         return html`<article class=${`cal-tile ${done ? 'done' : ''} ${isNext ? 'next' : ''} ${i === active ? 'active' : ''}`}>
-          <header class="cal-tile-head">
+          <div class="cal-info">
             <div class="cal-tile-round">
               ${single ? null : html`<span class="cal-tile-num">R${r.round}</span>`}
               <span class="muted">${r.race_date ? formatDate(r.race_date) : 'Data do ustalenia'}</span>
             </div>
             <h3><${Flag} code=${t?.country_code} size=${28} /> ${t?.name ?? '—'}</h3>
             <div class="cal-tile-meta muted">${[t?.country, t?.length_km ? `${t.length_km} km` : null, r.laps ? `${r.laps} okr.` : null].filter(Boolean).join(' · ')}</div>
+            <div class="cal-info-status">
+              ${status}
+              ${winner?.finalPos === 1 ? html`<span class="cal-winner">🏆 ${b.driverById.get(winner.driver_id)?.nick}</span>` : null}
+            </div>
             ${b.season.series !== 'f1' ? html`<${RaceConditions} race=${r} />` : null}
             ${sprint ? html`<div class="cal-sprint">
               <span class="badge badge-sprint">Weekend sprinterski</span>
@@ -518,33 +560,23 @@ function Calendar({ b, focusId }) {
             <${DotdButton} b=${b} race=${r} />
             <${DotdResult} b=${b} result=${dotd?.get(r.id)} />
             ${sprint ? html`<${DotdResult} b=${b} result=${dotd?.get(sprint.id)} label="sprint" />` : null}
-            <div class="cal-tile-status">
-              ${{
-                done: html`<span class="badge badge-ok">Rozegrany</span>`,
-                live: html`<${LiveBadge} />`,
-                over: html`<span class="badge badge-warn">Czeka na wyniki</span>`,
-              }[raceTimeState(r)] || (isNext ? html`<span class="badge badge-next">Następny wyścig</span>` : html`<span class="badge">Zaplanowany</span>`)}
-              ${winner?.finalPos === 1 ? html`<span class="cal-winner">🏆 ${b.driverById.get(winner.driver_id)?.nick}</span>` : null}
+            <div class="cal-info-foot">
+              ${isNext && r.race_date && new Date(r.race_date) > new Date() ? html`<${Countdown} to=${r.race_date} />` : null}
+              ${done ? html`<a class="btn btn-sm btn-accent" href=${`${baseOf(b)}/wyniki/${r.id}`}>Wyniki →</a>` : null}
             </div>
-          </header>
-          <div class="cal-tile-media">
-            <figure class="cal-media-box">
-              <figcaption>Nitka toru</figcaption>
+          </div>
+          <div class="cal-media">
+            <figure class="cal-media-box cal-media-map">
               ${t?.layout_url
-                ? html`<div class="cal-layout-img"><img src=${t.layout_url} alt=${`Nitka toru ${t.name}`} loading="lazy" /></div>`
-                : html`<div class="cal-nodata">Brak danych</div>`}
+                ? html`<div class="cal-layout-img"><span class="cal-media-label">Nitka toru</span><img src=${t.layout_url} alt=${`Nitka toru ${t.name}`} loading="lazy" /></div>`
+                : html`<div class="cal-nodata">Brak nitki toru</div>`}
             </figure>
-            <figure class="cal-media-box">
-              <figcaption>Film z przejazdu</figcaption>
+            <figure class="cal-media-box cal-media-video">
               ${youtubeId(t?.video_url)
                 ? html`<${VideoEmbed} url=${t.video_url} title=${`Przejazd: ${t.name}`} />`
-                : html`<div class="cal-nodata">Brak danych</div>`}
+                : html`<div class="cal-nodata">Brak filmu z przejazdu</div>`}
             </figure>
           </div>
-          <footer class="cal-tile-foot">
-            ${isNext && r.race_date && new Date(r.race_date) > new Date() ? html`<${Countdown} to=${r.race_date} />` : html`<span></span>`}
-            ${done ? html`<a class="btn btn-sm btn-accent" href=${`${baseOf(b)}/wyniki/${r.id}`}>Wyniki →</a>` : null}
-          </footer>
         </article>`;
       })}
     </div>`;
