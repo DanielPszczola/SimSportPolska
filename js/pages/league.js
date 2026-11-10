@@ -3,7 +3,7 @@ import {
   html, useAsync, loadSeasonBundle, listSeasons, pickSeason, rememberSeason,
   seriesBase, seasonBase, seasonUnit, raceTimeState, StreamLinks, LiveBadge, Flag, TeamTag, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, seasonReady, sprintOf, sessionLabel, Tabs, Countdown, formatDate, shortDate, SeatCell, driverSeat, TrackMedia, VideoEmbed, youtubeId,
 } from '../ui.js';
-import { computeRace, computeStandings, penaltyLabel, formatDuration, resultClass, carClass, seasonClasses, seasonStyle, isSprint, SPRINT_POINTS, licenseTable, licenseLabel } from '../scoring.js';
+import { computeRace, computeStandings, penaltyLabel, formatDuration, resultClass, carClass, seasonClasses, seasonStyle, seasonHasPoints, isSprint, SPRINT_POINTS, licenseTable, licenseLabel } from '../scoring.js';
 import { TeamsGrid, TeamPage } from './teams.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
 import { EnduranceSection } from './endurance.js';
@@ -323,14 +323,16 @@ function ResultsPage({ b, raceId }) {
   const base = baseOf(b);
   const main = b.races.find((r) => r.round === race.round);
   const sprint = sprintOf(b, main);
+  // pojedyncze wydarzenie: jeden wyścig — bez paska rund
+  const single = b.season.event_format === 'single';
   return html`
-    <div class="round-strip">
+    ${single ? null : html`<div class="round-strip">
       ${b.races.map((r) => {
         const t = b.trackById.get(r.track_id);
         const cls = `${r.round === race.round ? 'active' : ''} ${r.status === 'completed' || sprintOf(b, r)?.status === 'completed' ? '' : 'future'}`;
         return html`<a href=${`${base}/wyniki/${r.id}`} class=${cls} title=${t?.name}><${Flag} code=${t?.country_code} size=${18} /><span>R${r.round}</span>${sprintOf(b, r) ? html`<i class="rs-sprint" title="Weekend sprinterski">S</i>` : null}</a>`;
       })}
-    </div>
+    </div>`}
     ${sprint ? html`<div class="session-tabs" role="tablist">
       ${[sprint, main].map((r) => html`<a role="tab" aria-selected=${r.id === race.id} href=${`${base}/wyniki/${r.id}`} class=${`session-tab ${r.id === race.id ? 'active' : ''}`}>
         ${isSprint(r) ? 'Sprint' : 'Wyścig główny'}${r.status === 'completed' ? '' : html` <span class="muted small">· zaplanowany</span>`}
@@ -345,9 +347,10 @@ export function RaceResult({ b, race, compact = false }) {
   const published = race.status === 'completed';
   const rows = published ? computeRace(race, b.season, b.results, b.penalties) : [];
   const pens = published ? b.penalties.filter((p) => p.race_id === race.id) : [];
+  const scored = seasonHasPoints(b.season); // pojedyncze wydarzenie — bez kolumny punktów
   return html`<section class="race">
     ${compact ? null : html`<div class="race-head">
-      <div class="race-round">${sessionLabel(race)}${b.carClass ? html` · <span class="class-badge" style=${{ '--cls': carClass(b.carClass)?.color }}>${carClass(b.carClass)?.label}</span>` : ''}</div>
+      <div class="race-round">${b.season.event_format === 'single' ? (isSprint(race) ? 'Sprint' : 'Wyścig') : sessionLabel(race)}${b.carClass ? html` · <span class="class-badge" style=${{ '--cls': carClass(b.carClass)?.color }}>${carClass(b.carClass)?.label}</span>` : ''}</div>
       <h2><${Flag} code=${track?.country_code} size=${28} /> ${track?.name ?? 'Tor'}</h2>
       <div class="race-meta">
         <span>📅 ${formatDate(race.race_date)}</span>
@@ -368,7 +371,7 @@ export function RaceResult({ b, race, compact = false }) {
         <thead><tr>
           <th class="c">Poz</th><th class="c hide-sm" title="Zmiana względem startu">+/−</th><th>Kierowca</th><th class="hide-sm">${seasonUnit(b.season).one}</th>
           <th class="c hide-sm">Start</th><th class="c hide-sm">Pit</th><th class="r hide-sm">Najl. okr.</th>
-          <th class="r">Czas / strata</th><th class="r">Pkt</th>
+          <th class="r">Czas / strata</th>${scored ? html`<th class="r">Pkt</th>` : null}
         </tr></thead>
         <tbody>
           ${rows.map((r) => {
@@ -387,7 +390,7 @@ export function RaceResult({ b, race, compact = false }) {
               <td class="c hide-sm">${r.pit_stops ?? '—'}</td>
               <td class=${`r mono hide-sm ${r.hasFastestLap ? 'fl-text' : ''}`}>${formatDuration(r.best_lap_ms)}</td>
               <td class="r mono">${r.gapText || (r.finalPos ? '' : html`<span class="muted">${r.status}</span>`)}</td>
-              <td class="r pts">${r.points || (r.points === 0 ? '·' : '')}</td>
+              ${scored ? html`<td class="r pts">${r.points || (r.points === 0 ? '·' : '')}</td>` : null}
             </tr>`;
           })}
         </tbody>

@@ -1,10 +1,11 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, seasonUnit, sprintOf, Flag, TeamLogo, attempt, formatDate } from '../ui.js';
+import { html, useAsync, seasonUnit, sprintOf, Flag, TeamLogo, attempt, formatDate } from '../ui.js';
 import { WEATHER } from '../race-conditions.js';
-import { DEFAULT_POINTS, LMU_CLASSES, seasonClasses, seasonStyle, carClass, registerClasses, TEAM_POINTS_MODES, SPRINT_POINTS } from '../scoring.js';
+import { DEFAULT_POINTS, LMU_CLASSES, seasonClasses, seasonStyle, seasonHasPoints, carClass, registerClasses, TEAM_POINTS_MODES, SPRINT_POINTS } from '../scoring.js';
 import { categoriesForSeries } from '../tracks-seed.js';
 import { F1_TEAMS_2026, LMU_CARS, LOGO_PRESETS, CAR_PRESETS } from '../team-assets.js';
+import { lineupAt } from '../lineup.js';
 import { StepBar, NextStep, ImageField, ClassSelect, toLocalInput, fromLocalInput, DateTimeInput, TimeInput } from './common.js';
 
 // ---------- kafelek "Start sezonu" ----------
@@ -32,7 +33,7 @@ export function StartPanel({ b, seasons, step, nav, reload, checks }) {
     <div class="panel-body">
       ${current === 'ustawienia' ? html`<${SeasonForm} season=${b.season} onSaved=${reload} />` : null}
       ${current === 'kalendarz' ? html`<${CalendarEditor} b=${b} reload=${reload} />` : null}
-      ${current === 'zespoly' ? html`<${TeamsEditor} b=${b} seasons=${seasons} reload=${reload} />` : null}
+      ${current === 'zespoly' ? html`<${TeamsEditor} b=${b} reload=${reload} />` : null}
       ${current === 'sklady' ? html`<${StartingLineup} b=${b} reload=${reload} />` : null}
     </div>
     ${idx < steps.length - 1
@@ -115,8 +116,10 @@ export function SeasonForm({ season, onCancel, onSaved }) {
 
   const submit = async (e) => {
     e.preventDefault();
+    // pojedyncze wydarzenie nie ma klasyfikacji — punktacji nie zbieramy ani nie zapisujemy
+    const scored = !(other && f.event_format === 'single');
     const points = f.points.split(/[,;\s]+/).filter(Boolean).map(Number);
-    if (points.some(Number.isNaN)) return alert('Punktacja: podaj liczby oddzielone przecinkami, np. 25, 18, 15');
+    if (scored && points.some(Number.isNaN)) return alert('Punktacja: podaj liczby oddzielone przecinkami, np. 25, 18, 15');
     if (series === 'lmu' && !f.classes.length) return alert('Wybierz co najmniej jedną klasę sezonu');
     // wydarzenie „Inne”: własne klasy (nazwa = identyfikator), w trybie zespołów najwyżej jeden typ aut
     const defs = (other && f.roster_mode === 'teams' ? f.class_defs.slice(0, 1) : f.class_defs)
@@ -127,10 +130,12 @@ export function SeasonForm({ season, onCancel, onSaved }) {
       if (new Set(names).size !== names.length) return alert('Nazwy klas muszą być różne');
     }
     const row = {
-      name: f.name.trim(), series, format: 'league', is_current: other ? false : f.is_current, points,
+      name: f.name.trim(), series, format: 'league', is_current: other ? false : f.is_current,
       classes: series === 'lmu' ? LMU_CLASSES.map((c) => c.id).filter((id) => f.classes.includes(id)) : ['HY', 'LMP', 'GT3'],
-      team_points: f.team_points,
-      fl_point: Number(f.fl_point) || 0, fl_top10: f.fl_top10, pole_point: Number(f.pole_point) || 0, finish_bonus: Number(f.finish_bonus) || 0,
+      ...(scored ? {
+        points, team_points: f.team_points,
+        fl_point: Number(f.fl_point) || 0, fl_top10: f.fl_top10, pole_point: Number(f.pole_point) || 0, finish_bonus: Number(f.finish_bonus) || 0,
+      } : {}),
       // kolumny wydarzeń „Inne” wysyłamy tylko dla nich (sezony F1/LMU działają też bez aktualizacji bazy)
       ...(other ? {
         event_format: f.event_format, roster_mode: f.roster_mode, description: f.description.trim(),
@@ -187,18 +192,20 @@ export function SeasonForm({ season, onCancel, onSaved }) {
         </div>
         <small class="muted">Wyniki i klasyfikacje są liczone osobno dla każdej klasy.</small>
       </div>` : null}
-      ${series === 'f1' || (other && f.roster_mode === 'teams') ? html`<div class="field span2"><span>Punkty ${other ? 'zespołów' : 'konstruktorów'}</span>
+      ${other && f.event_format === 'single' ? html`<p class="hint span2">Pojedyncze wydarzenie nie ma klasyfikacji, więc nie ustawia się w nim punktacji — wyniki pokazują pozycje i czasy.</p>` : null}
+      ${(series === 'f1' || (other && f.roster_mode === 'teams')) && !(other && f.event_format === 'single') ? html`<div class="field span2"><span>Punkty ${other ? 'zespołów' : 'konstruktorów'}</span>
         ${TEAM_POINTS_MODES.map((m) => html`<label class="radio-line"><input type="radio" name="team_points" checked=${f.team_points === m.id} onChange=${() => setF({ ...f, team_points: m.id })} />
           <span><b>${m.label}</b> — ${m.desc}</span></label>`)}
       </div>` : null}
-      <label class="field span2"><span>Punkty za pozycje (od 1. miejsca)</span><input value=${f.points} onInput=${set('points')} /></label>
-      <label class="field"><span>Pkt za najszybsze okrążenie</span><input type="number" min="0" value=${f.fl_point} onInput=${set('fl_point')} /></label>
-      <label class="field"><span>Pkt za pole position</span><input type="number" min="0" value=${f.pole_point} onInput=${set('pole_point')} /></label>
-      <label class="field"><span>Bonus za ukończenie wyścigu</span><input type="number" min="0" value=${f.finish_bonus} onInput=${set('finish_bonus')} /></label>
-      <div class="field checks">
-        <label><input type="checkbox" checked=${f.fl_top10} onChange=${set('fl_top10')} /> NO punktowane tylko w TOP 10</label>
-        ${!other ? html`<label><input type="checkbox" checked=${f.is_current} onChange=${set('is_current')} /> Bieżący sezon (domyślny na stronie)</label>` : null}
-      </div>
+      ${other && f.event_format === 'single' ? null : html`
+        <label class="field span2"><span>Punkty za pozycje (od 1. miejsca)</span><input value=${f.points} onInput=${set('points')} /></label>
+        <label class="field"><span>Pkt za najszybsze okrążenie</span><input type="number" min="0" value=${f.fl_point} onInput=${set('fl_point')} /></label>
+        <label class="field"><span>Pkt za pole position</span><input type="number" min="0" value=${f.pole_point} onInput=${set('pole_point')} /></label>
+        <label class="field"><span>Bonus za ukończenie wyścigu</span><input type="number" min="0" value=${f.finish_bonus} onInput=${set('finish_bonus')} /></label>
+        <div class="field checks">
+          <label><input type="checkbox" checked=${f.fl_top10} onChange=${set('fl_top10')} /> NO punktowane tylko w TOP 10</label>
+          ${!other ? html`<label><input type="checkbox" checked=${f.is_current} onChange=${set('is_current')} /> Bieżący sezon (domyślny na stronie)</label>` : null}
+        </div>`}
     </div>
     <div class="form-actions">
       <button class="btn btn-accent">${isNew ? (other ? 'Utwórz wydarzenie' : 'Utwórz sezon') : 'Zapisz ustawienia'}</button>
@@ -415,7 +422,24 @@ const INTRO_OTHER = {
   lmu: 'Dodaj auta jeżdżące w tym wydarzeniu i przypisz każdemu klasę. W kolejnym kroku przypisz kierowcom auta — jednym autem może jechać dowolnie wielu kierowców.',
 };
 
-function TeamsEditor({ b, seasons, reload }) {
+// szybki start: skąd można skopiować zespoły / auta — ta sama kategoria najpierw, w grupie od najnowszych
+const SOURCE_GROUPS = {
+  f1: [['f1', 'Liga F1'], ['inne', 'Eventy z zespołami']],
+  lmu: [['lmu', 'Liga LMU'], ['inne', 'Eventy z autami']],
+};
+const sourceGroups = (season) => {
+  const style = seasonStyle(season);
+  const groups = SOURCE_GROUPS[style];
+  return season.series === 'inne' ? [groups[1], groups[0]].map(([id, label]) => [id, id === 'inne' ? 'Eventy' : label]) : groups;
+};
+
+/** Klasa auta ze źródła → klasa tego sezonu (po identyfikatorze albo nazwie, bez względu na wielkość liter). */
+const matchClass = (id, targetIds) => {
+  const keys = [id, carClass(id)?.label].filter(Boolean).map((x) => String(x).toLowerCase());
+  return targetIds.find((t) => [t, carClass(t)?.label].filter(Boolean).some((x) => keys.includes(String(x).toLowerCase()))) ?? null;
+};
+
+function TeamsEditor({ b, reload }) {
   const season = b.season;
   const lmu = seasonStyle(season) === 'lmu';
   const t = season.series === 'inne'
@@ -425,7 +449,12 @@ function TeamsEditor({ b, seasons, reload }) {
   const classOptions = seasonClasses(season);
   const [draft, setDraft] = useState(null);
   const [copyFrom, setCopyFrom] = useState('');
-  const others = seasons.filter((s) => s.id !== season.id);
+  // w eventach także rezerwa ligi byłaby zwykle zbędna — domyślnie tylko kierowcy z miejscem w składzie
+  const [withReserve, setWithReserve] = useState(season.series !== 'inne');
+  const all = useAsync(() => db.list('seasons', { order: ['created_at', false] }), []);
+  // tylko źródła z tym samym układem: zespoły (F1, eventy z zespołami) albo auta z klasami (LMU, eventy z autami)
+  const others = (all.data || []).filter((s) => s.id !== season.id && seasonStyle(s) === seasonStyle(season));
+  const groups = sourceGroups(season).map(([id, label]) => [label, others.filter((s) => s.series === id)]).filter(([, list]) => list.length);
   // podpowiedź modeli z Le Mans Ultimate (tylko klasy jadące w sezonie, bez aut już dodanych)
   const carPresets = season.series === 'lmu' ? LMU_CARS.filter((c) => classOptions.includes(c.car_class) && !b.teams.some((x) => x.name === c.name)) : [];
 
@@ -447,19 +476,38 @@ function TeamsEditor({ b, seasons, reload }) {
     if (c) setDraft({ ...emptyTeam(), name: c.name, color: c.color, car_class: c.car_class });
   };
   const copy = async () => {
-    if (!copyFrom) return;
+    const src = others.find((s) => s.id === copyFrom);
+    if (!src) return;
+    const [srcTeams, srcEntries, srcChanges] = await Promise.all([
+      db.list('teams', { eq: { season_id: src.id } }),
+      db.list('entries', { eq: { season_id: src.id } }),
+      db.list('roster_changes', { eq: { season_id: src.id } }),
+    ]);
+    // aktualne składy źródła (po zmianach w trakcie sezonu), nie skład z pierwszej rundy
+    const existing = new Set(b.entries.map((e) => e.driver_id));
+    const seats = [...lineupAt(srcEntries, srcChanges, Infinity).values()].filter((s) => !existing.has(s.driver_id) && (s.team_id || withReserve));
+    // klasy aut: dopasowanie po nazwie; w evencie brakujące klasy dopisujemy, w lidze LMU auto zostaje bez klasy
+    const targetIds = seasonClasses(season);
+    const srcClasses = multiClass ? [...new Set(srcTeams.map((x) => x.car_class).filter(Boolean))] : [];
+    const missing = srcClasses.filter((id) => !matchClass(id, targetIds));
+    const added = season.series === 'inne' ? missing.map((id) => ({ id: carClass(id)?.label || id, label: carClass(id)?.label || id, color: carClass(id)?.color })) : [];
+    const msg = [`Skopiować z „${src.name}”: ${srcTeams.length} ${lmu ? 'aut' : 'zespołów'} i ${seats.length} kierowców?`,
+      added.length ? `Brakujące klasy zostaną dodane do wydarzenia: ${added.map((c) => c.label).join(', ')}.` : '',
+      !added.length && missing.length ? `Klasy ${missing.map((id) => carClass(id)?.label || id).join(', ')} nie jeżdżą w tym sezonie — te auta trzeba będzie przypisać do klasy ręcznie.` : ''].filter(Boolean).join('\n\n');
+    if (!confirm(msg)) return;
     const ok = await attempt(async () => {
-      const [srcTeams, srcEntries] = await Promise.all([
-        db.list('teams', { eq: { season_id: copyFrom } }),
-        db.list('entries', { eq: { season_id: copyFrom } }),
-      ]);
+      if (added.length) {
+        const defs = [...(season.class_defs || []), ...added];
+        await db.update('seasons', season.id, { class_defs: defs });
+        registerClasses(defs);
+      }
+      const classOf = (id) => (id ? matchClass(id, [...targetIds, ...added.map((c) => c.id)]) : null);
       const created = await db.insert('teams', srcTeams.map((x) => ({
-        season_id: season.id, name: x.name, color: x.color, logo_url: x.logo_url, car_url: x.car_url ?? null, car_class: multiClass ? x.car_class ?? null : null,
+        season_id: season.id, name: x.name, color: x.color, logo_url: x.logo_url, car_url: x.car_url ?? null, car_class: multiClass ? classOf(x.car_class) : null,
       })));
       const map = new Map(srcTeams.map((x, i) => [x.id, created[i].id]));
-      const existing = new Set(b.entries.map((e) => e.driver_id));
-      await db.insert('entries', srcEntries.filter((e) => !existing.has(e.driver_id)).map((e) => ({
-        season_id: season.id, driver_id: e.driver_id, team_id: map.get(e.team_id) ?? null, is_reserve: e.is_reserve,
+      await db.insert('entries', seats.map((s) => ({
+        season_id: season.id, driver_id: s.driver_id, team_id: map.get(s.team_id) ?? null, is_reserve: !map.get(s.team_id),
       })));
     }, t.copied);
     if (ok) reload();
@@ -479,17 +527,22 @@ function TeamsEditor({ b, seasons, reload }) {
     <h3>${t.title} — ${b.teams.length}</h3>
     <p class="muted">${t.intro}</p>
 
-    ${!b.teams.length && (season.series === 'f1' || others.length) ? html`<div class="subform">
+    ${!b.teams.length && (!lmu || others.length) ? html`<div class="subform quick-start">
       <b>Szybki start</b> <span class="muted">(opcjonalnie)</span>
       <div class="form-actions">
-        ${season.series === 'f1' ? html`<button class="btn" onClick=${useF1Template}>Szablon: 11 zespołów F1 2026</button>` : null}
+        ${!lmu ? html`<button class="btn" onClick=${useF1Template}>Szablon: 11 zespołów F1 2026</button>` : null}
         ${others.length ? html`
           <select value=${copyFrom} onChange=${(e) => setCopyFrom(e.target.value)}>
             <option value="">${t.copy}</option>
-            ${others.map((s) => html`<option value=${s.id}>${s.name}</option>`)}
+            ${groups.map(([label, list]) => html`<optgroup label=${label}>
+              ${list.map((s) => html`<option value=${s.id}>${s.name}${s.is_current && s.series !== 'inne' ? ' ★ bieżący' : ''}${s.series === 'inne' ? ` (${s.event_format === 'single' ? 'pojedyncze' : 'seria'})` : ''}</option>`)}
+            </optgroup>`)}
           </select>
+          <label class="check-inline"><input type="checkbox" checked=${withReserve} onChange=${(e) => setWithReserve(e.target.checked)} /> także rezerwa</label>
           <button class="btn" onClick=${copy} disabled=${!copyFrom}>Kopiuj</button>` : null}
       </div>
+      ${others.length ? html`<p class="muted small">Kopiowane są ${lmu ? 'auta z klasami' : 'zespoły z grafikami'} i aktualne składy (po zmianach w trakcie sezonu).
+        Lista pokazuje tylko źródła z tym samym układem — ${lmu ? 'auta z klasami (liga LMU, eventy z autami)' : 'zespoły (liga F1, eventy z zespołami)'}.</p>` : null}
     </div>` : null}
 
     <div class="team-edit-list">

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, cached, attempt, formatDate, showModal, closeModal } from '../ui.js';
+import { html, cached, useAsync, attempt, formatDate, showModal, closeModal } from '../ui.js';
 import { useSession, isDiscordUser } from '../session.js';
 import { prepareProof, blobToBase64 } from '../images.js';
+import { carClass } from '../scoring.js';
 import { DiscordButton } from './account.js';
 import { PrivacyNote } from './privacy.js';
 
@@ -18,7 +19,16 @@ export const FIELD_TYPES = [
   ['select', 'Wybór z listy'],
   ['checkbox', 'Zaznaczenie (tak / nie)'],
   ['image', 'Zdjęcie (np. zrzut z gry)'],
+  ['car', 'Wybór auta / zespołu'],
 ];
+
+/** Pole „Wybór auta”: sugestia (nic nie blokuje — liga z weryfikacją) albo rezerwacja miejsca (event). */
+export const CAR_MODES = [['suggest', 'Sugestia — nic nie blokuje'], ['reserve', 'Rezerwacja — wybór zajmuje miejsce']];
+export const carMax = (field) => Math.max(1, Number(field.max) || 2);
+
+/** Wolne miejsca w autach sezonu z formularza: Map(team_id -> { lineup, pending }). */
+export const loadSeats = (postId) => db.rpc('signup_seats', { p_post: postId }).then((rows) => new Map((rows || []).map((r) => [r.team_id, r])), () => new Map());
+export const freeSeats = (field, seat) => carMax(field) - (seat?.lineup || 0) - (field.mode === 'reserve' ? seat?.pending || 0 : 0);
 
 export const newFieldId = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
@@ -51,9 +61,10 @@ export const SIGNUP_KEEP_DAYS = 30;
 export const signupsPurgeAt = (post) => (post.form_until ? new Date(new Date(post.form_until).getTime() + SIGNUP_KEEP_DAYS * 86400000).toISOString() : null);
 
 /** Odpowiedź do wyświetlenia. */
-export const answerText = (field, v) => (v == null || v === '' ? '—'
+export const answerText = (field, v, teamName) => (v == null || v === '' ? '—'
   : field.type === 'checkbox' ? (v === 'true' ? '✓ tak' : '—')
-    : field.type === 'image' ? 'zdjęcie w panelu' : String(v));
+    : field.type === 'image' ? 'zdjęcie w panelu'
+      : field.type === 'car' ? (teamName ? teamName(v) ?? 'auto spoza listy sezonu' : 'wybrane auto') : String(v));
 
 /** Zdjęcie ze zgłoszenia (widzi je autor i moderatorzy): pobierane, gdy jest blisko ekranu; klik powiększa na całą stronę. */
 export function ProofImage({ signupId, fieldId }) {
@@ -142,7 +153,10 @@ export function SignupBox({ post }) {
     action = html`<span class="signup-state st-pending">✓ Zgłoszenie wysłane — czeka na decyzję</span>
       <button type="button" class="btn btn-sm" onClick=${openForm}>Popraw</button>
       <button type="button" class="btn btn-sm" onClick=${withdraw}>Wycofaj</button>`;
-  } else if (my.status === 'accepted') action = html`<span class="signup-state st-accepted">✓ Zgłoszenie przyjęte${season ? ` — jesteś w rezerwie: ${season.name}` : ''}</span>`;
+  } else if (my.status === 'accepted') {
+    action = html`<span class="signup-state st-accepted">✓ Zgłoszenie przyjęte${my.team_name ? ` — jesteś w składzie: ${my.team_name}${season ? ` (${season.name})` : ''}`
+      : season ? ` — jesteś w rezerwie: ${season.name}` : ''}</span>`;
+  }
   else action = html`<span class="signup-state st-rejected">Zgłoszenie nie zostało przyjęte</span>`;
 
   return html`<div class=${`signup-box ${open ? '' : 'closed'}`}>
@@ -154,6 +168,36 @@ export function SignupBox({ post }) {
       ${s.isStaff && post.form_kind === 'internal' ? html`<a class="btn btn-sm" href=${`#/admin/ogloszenia/${post.id}`}>Zgłoszenia w panelu →</a>` : null}
     </div>
   </div>`;
+}
+
+/** Pole „Wybór auta / zespołu”: auta sezonu z formularza z liczbą wolnych miejsc; w trybie rezerwacji pełnych nie da się wybrać. */
+function CarField({ field, post, value, onChange }) {
+  const data = useAsync(async () => {
+    const [teams, seats] = await Promise.all([db.list('teams', { eq: { season_id: post.form_season_id } }), loadSeats(post.id)]);
+    return { teams: teams.sort((a, b) => (!a.car_class - !b.car_class) || String(a.car_class ?? '').localeCompare(String(b.car_class ?? '')) || a.name.localeCompare(b.name)), seats }; // auta bez klasy na końcu
+  }, [post.id]);
+  const reserve = field.mode === 'reserve';
+  const max = carMax(field);
+  const teams = data.data?.teams || [];
+  const option = (t) => {
+    const free = freeSeats(field, data.data.seats.get(t.id));
+    const full = free <= 0 && t.id !== value;
+    return html`<option value=${t.id} disabled=${reserve && full}>${t.name} — ${free > 0 ? `wolne ${free} z ${max}` : 'pełne'}</option>`;
+  };
+  const classes = [...new Set(teams.map((t) => t.car_class || ''))];
+  return html`<label class="field"><span>${field.label}${field.required ? html` <span class="req">*</span>` : null}</span>
+    ${data.loading && !data.data ? html`<span class="muted small">Ładowanie listy…</span>`
+      : !teams.length ? html`<span class="muted small">Organizatorzy nie dodali jeszcze aut do tego sezonu.</span>`
+      : html`<select required=${!!field.required} value=${value || ''} onChange=${(e) => onChange(e.target.value)}>
+        <option value="">${field.required ? '— wybierz —' : '— bez preferencji —'}</option>
+        ${classes.length > 1
+          ? classes.map((c) => html`<optgroup label=${c ? carClass(c)?.label ?? c : 'Bez klasy'}>${teams.filter((t) => (t.car_class || '') === c).map(option)}</optgroup>`)
+          : teams.map(option)}
+      </select>`}
+    <small class="muted">${reserve
+      ? 'Wybrane auto jest od razu zarezerwowane dla Ciebie. Pełnych aut nie można wybrać.'
+      : 'To Twoja propozycja — ostateczny przydział ustalają organizatorzy.'}</small>
+  </label>`;
 }
 
 /** Pole „Zdjęcie”: plik jest zmniejszany od razu po wybraniu, więc błąd i podgląd widać przed wysłaniem. */
@@ -236,7 +280,9 @@ function SignupModal({ post, season, account, my, onSaved, onClose }) {
       <form class="modal-body signup-form" onSubmit=${submit}>
         <p class="muted small">Zgłaszasz się jako <b>${account?.display_name || 'konto Discord'}</b>${account?.driver_nick ? html` (profil kierowcy: <b>${account.driver_nick}</b>)` : ''}.
           Do końca zapisów możesz poprawić albo wycofać zgłoszenie. Odpowiedzi widzi tylko administracja ligi — <a href="#/prywatnosc" target="_blank">polityka prywatności</a>.</p>
-        ${fields.map((f) => (f.type === 'image'
+        ${fields.map((f) => (f.type === 'car'
+          ? html`<${CarField} key=${f.id} field=${f} post=${post} value=${answers[f.id] ?? ''} onChange=${(v) => set(f.id, v)} />`
+          : f.type === 'image'
           ? html`<${PhotoField} key=${f.id} field=${f} signupId=${my?.id} saved=${my?.answers?.[f.id] === 'file'} file=${files[f.id]} touched=${f.id in files}
               onChange=${(v) => setFiles((x) => ({ ...x, [f.id]: v }))} />`
           : f.type === 'checkbox'

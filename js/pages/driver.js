@@ -1,7 +1,7 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, seasonBase, seasonTeamHref, unit, useAsync, loadSeasonBundle, driverSeat, sessionLabel, Flag, TeamTag, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, formatDate, formatHours } from '../ui.js';
-import { computeRaceByClass, computeStandings, CAR_CLASSES, carClass, seasonStyle, isSprint } from '../scoring.js';
+import { computeRaceByClass, computeStandings, CAR_CLASSES, carClass, seasonStyle, seasonHasPoints, isSprint } from '../scoring.js';
 import { classBundle } from './league.js';
 import { loadEndurance, ClassBadge as EndClassBadge } from './endurance.js';
 
@@ -82,7 +82,8 @@ function summarize(all) {
   const finished = items.filter((h) => h.row.classPos);
   return {
     starts: items.length,
-    points: all.reduce((s, h) => s + h.row.points, 0),
+    points: all.reduce((s, h) => s + (seasonHasPoints(h.b.season) ? h.row.points : 0), 0), // pojedyncze wydarzenia bez punktów
+    scored: all.some((h) => seasonHasPoints(h.b.season)),
     wins: finished.filter((h) => h.row.classPos === 1).length,
     podiums: finished.filter((h) => h.row.classPos <= 3).length,
     poles: items.filter((h) => h.row.hasPole).length,
@@ -172,7 +173,7 @@ const plural = (n, one, few, many) => `${n} ${n === 1 ? one : n % 10 >= 2 && n %
 function StatGrid({ s }) {
   const stats = [
     ['Starty', s.starts],
-    ['Punkty', s.points],
+    ...(s.scored ? [['Punkty', s.points]] : []),
     ['Wygrane', s.wins],
     ['Podia', s.podiums],
     ['Pole', s.poles],
@@ -232,7 +233,7 @@ function LeagueView({ series, items, driverId }) {
             <td class="c">${x.s.podiums || '·'}</td>
             <td class="c hide-sm">${x.s.poles || '·'}</td>
             <td class="c hide-sm">${x.s.fls || '·'}</td>
-            <td class="r pts">${x.s.points}</td>
+            <td class="r pts">${x.s.scored ? x.s.points : '—'}</td>
           </tr>`)}
         </tbody>
       </table></div>
@@ -243,6 +244,7 @@ function LeagueView({ series, items, driverId }) {
 }
 
 function SeasonView({ x, lmu, u, w }) {
+  const scored = seasonHasPoints(x.b.season); // pojedyncze wydarzenie — bez kolumny punktów
   const { b, season, teams, places, s } = x;
   const base = seasonBase(season);
   const word = season.series === 'inne' ? (seasonStyle(season) === 'lmu' ? 'Auto' : 'Zespół') : w.car;
@@ -274,7 +276,7 @@ function SeasonView({ x, lmu, u, w }) {
       <thead><tr>
         <th class="c">R</th><th class="hide-sm">Data</th><th>Tor</th>${lmu ? html`<th class="c">Klasa</th>` : null}
         ${many || !lmu ? html`<th class="hide-sm">${word}</th>` : null}
-        <th class="c">Start</th><th class="c" title=${lmu ? 'Pozycja w klasie' : 'Pozycja na mecie'}>Meta</th><th class="r">Pkt</th>
+        <th class="c">Start</th><th class="c" title=${lmu ? 'Pozycja w klasie' : 'Pozycja na mecie'}>Meta</th>${scored ? html`<th class="r">Pkt</th>` : null}
       </tr></thead>
       <tbody>
         ${x.items.slice().reverse().map(({ race, row }) => {
@@ -287,7 +289,7 @@ function SeasonView({ x, lmu, u, w }) {
             ${many || !lmu ? html`<td class="hide-sm"><${TeamTag} team=${b.teamById.get(row.team_id)} season=${season} /></td>` : null}
             <td class="c">${row.grid || '—'}</td>
             <td class="c"><${PosBadge} pos=${row.classPos} status=${row.status} />${row.hasFastestLap ? html` <span class="badge badge-fl" title="Najszybsze okrążenie">NO</span>` : null}</td>
-            <td class="r pts">${row.points}</td>
+            ${scored ? html`<td class="r pts">${row.points}</td>` : null}
           </tr>`;
         })}
       </tbody>
@@ -322,7 +324,7 @@ function ClassTable({ items }) {
           <td class="c hide-sm">${x.fls || '·'}</td>
           <td class="c hide-sm">${x.best ?? '—'}</td>
           <td class="c hide-sm">${x.avg ?? '—'}</td>
-          <td class="r pts">${x.points}</td>
+          <td class="r pts">${x.scored ? x.points : '—'}</td>
         </tr>`)}
       </tbody>
     </table></div>

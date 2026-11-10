@@ -200,7 +200,9 @@ W serii wybierasz sezon (albo tworzysz nowy) i widzisz **oś sezonu z kafelkami*
 **Start sezonu** ma kroki:
 1. **Ustawienia**: nazwa, punktacja, typ sezonu (LMU: Liga / Endurance).
 2. **Kalendarz**: wyścigi z torów z bazy.
-3. **Zespoły**: nazwa, kolor, logo i bolid na ten sezon. Można skopiować zespoły z poprzedniego sezonu.
+3. **Zespoły**: nazwa, kolor, logo i bolid na ten sezon. *Szybki start* kopiuje zespoły (LMU: auta) z aktualnymi składami
+   z innego sezonu albo eventu o tym samym układzie: eventy z zespołami biorą z ligi F1, eventy z autami z ligi LMU.
+   Lista jest pogrupowana (liga / eventy) i ułożona od najnowszych. Brakujące klasy aut dopisują się do eventu same.
 4. **Składy startowe**: kto w jakim zespole, kto w rezerwie.
 
 **Kafelki „Składy”** stoją na osi sezonu między wyścigami: przed każdą rundą od drugiej (w weekendzie sprinterskim
@@ -372,6 +374,8 @@ Wydarzenie działa jak sezon ligi (kalendarz, zespoły/auta, składy, wyniki, ka
 - **Klasy aut:** własne nazwy i kolory (np. GT3, GT4, Porsche Cup). Zmiana nazwy klasy przepisuje ją w autach i wynikach;
   klasy używanej przez auta lub wyniki nie da się usunąć.
 - **Zarządzanie → Eventy → Serie i wydarzenia:** *+ Nowe wydarzenie / seria*, potem te same kroki co przy sezonie ligi.
+- **Pojedyncze wydarzenie** nie ma klasyfikacji, więc nie zbiera punktów: w ustawieniach nie ma pól punktacji (nic się nie zapisuje),
+  a wyniki, kary, strona zespołu i profil kierowcy pokazują pozycje i czasy bez punktów.
 - **Strona:** lista wydarzeń w *Eventy → Serie i wydarzenia*; trwające wydarzenia są w *Nadchodzących wydarzeniach* na stronie głównej,
   a trwające serie mają kartę z klasyfikacją w *Bieżących sezonach*. Profil kierowcy ma zakładkę *Eventy*.
 - **Baza:** jednorazowo uruchom `supabase/migrations/2026-10-31_inne_wydarzenia.sql` (dodaje kolumny wydarzenia
@@ -403,8 +407,12 @@ i administratorzy w *Zarządzanie → Ogłoszenia*. Przypięte są na początku,
 W edycji ogłoszenia, w sekcji *Formularz zgłoszeń*, wybierasz jedną z opcji:
 
 - **Własny formularz:** wybierasz sezon albo wydarzenie (z dowolnej serii) i datę końca zgłoszeń, a potem układasz pola:
-  krótki tekst, dłuższy tekst, liczba, wybór z listy, zaznaczenie tak / nie, **zdjęcie** (np. zrzut z gry jako dowód czasu).
-  Każde pole może być wymagane.
+  krótki tekst, dłuższy tekst, liczba, wybór z listy, zaznaczenie tak / nie, **zdjęcie** (np. zrzut z gry jako dowód czasu),
+  **wybór auta / zespołu** (auta sezonu z formularza z liczbą wolnych miejsc). Każde pole może być wymagane.
+- **Wybór auta** ma limit kierowców na auto i jeden z dwóch trybów: *sugestia* (ligi z weryfikacją — nic nie blokuje,
+  przy przyjęciu wybierasz „Przyjmij do: auto” albo rezerwę) albo *rezerwacja* (eventy — wybór od razu zajmuje miejsce,
+  pełnego auta nie da się wybrać, a przyjęcie wpisuje kierowcę do tego auta). Zajęte miejsca = kierowcy w składzie auta
+  + oczekujące rezerwacje; wycofanie, odrzucenie i wygaśnięcie zgłoszenia zwalniają miejsce. Limit pilnuje baza.
   Nicku nie trzeba dodawać, bo zgłoszenie jest przypisane do konta Discord.
 - **Link do zewnętrznego formularza** (np. Google Forms): przycisk w ogłoszeniu otwiera podany adres.
 
@@ -426,7 +434,8 @@ i moderatorzy, a znikają razem ze zgłoszeniem. Przeglądarka zmniejsza zdjęci
 JPG, PNG i WebP. W panelu zgłoszeń zdjęcie jest przy odpowiedziach, a klik powiększa je na cały ekran.
 
 **Baza:** jednorazowo uruchom `supabase/migrations/2026-11-01_zgloszenia.sql` (dodaje kolumny formularza w `posts`,
-tabelę `signups` i funkcje zgłoszeń; niczego nie usuwa), a dla zdjęć `supabase/migrations/2026-11-04_zgloszenia_zdjecia.sql`.
+tabelę `signups` i funkcje zgłoszeń; niczego nie usuwa), dla zdjęć `supabase/migrations/2026-11-04_zgloszenia_zdjecia.sql`,
+a dla wyboru auta `supabase/migrations/2026-11-10_zgloszenia_auta.sql`.
 
 ### Głosowanie (ankieta) w ogłoszeniu
 

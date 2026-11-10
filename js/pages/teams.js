@@ -3,7 +3,7 @@ import { db } from '../db.js';
 import {
   html, seasonBase, seasonUnit, seasonTeamHref, seasonTeamListHref, useAsync, loadSeasonBundle, Flag, TeamTag, TeamLogo, TeamCar, DriverLink, PosBadge, Loader, ErrorBox, Empty, SeasonWip, sessionLabel, roleInTeam, ROLE_LABEL,
 } from '../ui.js';
-import { computeRace, computeStandings, carClass, seasonStyle, teamPointsResolver, isSprint } from '../scoring.js';
+import { computeRace, computeStandings, carClass, seasonStyle, seasonHasPoints, teamPointsResolver, isSprint } from '../scoring.js';
 import { bundleLineup, teamSeats } from '../lineup.js';
 
 /** Punkty, starty i najlepszy wynik każdego kierowcy w barwach danego zespołu w sezonie. */
@@ -61,8 +61,9 @@ export function TeamsGrid({ b }) {
   const u = seasonUnit(b.season);
   if (!b.teams.length) return html`<${SeasonWip} />`;
 
-  // w lidze LMU nie ma klasyfikacji zespołów — bez pozycji i punktów zespołu
-  const ranked = seasonStyle(b.season) === 'f1';
+  // w lidze LMU nie ma klasyfikacji zespołów — bez pozycji i punktów zespołu; pojedyncze wydarzenie — w ogóle bez punktów
+  const scored = seasonHasPoints(b.season);
+  const ranked = seasonStyle(b.season) === 'f1' && scored;
   const posOf = (id) => {
     const i = st.teams.findIndex((t) => t.team_id === id);
     return i < 0 ? null : i + 1;
@@ -95,7 +96,7 @@ export function TeamsGrid({ b }) {
             ${teamDrivers(b, team.id, stats).map((d) => html`<li class=${d.role === 'current' ? '' : 'li-other'}>
               <${DriverLink} driver=${d.driver} />
               ${d.role !== 'current' ? html`<span class="badge">${roleBadge(b, d.role)}</span>` : null}
-              <span class="pts">${d.stats.points}</span>
+              ${scored ? html`<span class="pts">${d.stats.points}</span>` : null}
             </li>`)}
           </ul>
           <a class="tcard-more" href=${href}>${u.profile} →</a>
@@ -127,7 +128,8 @@ function TeamProfile({ team, b }) {
   const s = st.teams[idx];
   const drivers = teamDrivers(b, team.id, stats);
   const changes = (b.rosterChanges || []).filter((c) => c.team_id === team.id);
-  const ranked = seasonStyle(b.season) === 'f1'; // LMU: bez klasyfikacji zespołów
+  const scored = seasonHasPoints(b.season); // pojedyncze wydarzenie — bez punktów
+  const ranked = seasonStyle(b.season) === 'f1' && scored; // LMU: bez klasyfikacji zespołów
 
   // wyścig po wyścigu: kto jechał w barwach zespołu i ile punktów zdobył zespół
   const teamOf = teamPointsResolver(b);
@@ -172,7 +174,7 @@ function TeamProfile({ team, b }) {
           ${d.role !== 'current' ? html`<span class="badge">${roleBadge(b, d.role)}</span>` : null}
           <div class="muted">${d.stats.starts} startów dla zespołu · najlepiej ${d.stats.best ? `P${d.stats.best}` : '—'}${d.stats.wins ? ` · ${d.stats.wins} wygr.` : ''}${d.stats.podiums ? ` · ${d.stats.podiums} podia` : ''}</div>
         </div>
-        <div class="tdriver-pts"><b>${d.stats.points}</b><span>pkt</span></div>
+        ${scored ? html`<div class="tdriver-pts"><b>${d.stats.points}</b><span>pkt</span></div>` : null}
       </div>`)}
     </div>`}
 

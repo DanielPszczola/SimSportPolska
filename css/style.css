@@ -1379,6 +1379,9 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
 .fields-editor { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .form-field-row { width: 100%; display: grid; grid-template-columns: minmax(180px, 1fr) 200px auto auto; gap: 8px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .form-field-row .ff-options { grid-column: 1 / -1; }
+.ff-car { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.ff-car select { width: auto; }
+.ff-car small { flex-basis: 100%; }
 .ff-buttons { display: inline-flex; gap: 4px; }
 @media (max-width: 700px) { .form-field-row { grid-template-columns: 1fr 1fr; } }
 

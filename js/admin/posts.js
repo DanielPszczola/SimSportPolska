@@ -4,9 +4,10 @@ import { html, useAsync, Loader, ErrorBox, attempt, formatDate } from '../ui.js'
 import { useSession, userLabel } from '../session.js';
 import { ImageField, DateTimeInput, toLocalInput, fromLocalInput, SERIES } from './common.js';
 import { sortPosts, PostBody } from '../pages/announcements.js';
-import { FIELD_TYPES, newFieldId, formOpen, timeLeft, seasonLabel, signupsPurgeAt } from '../pages/signup.js';
+import { FIELD_TYPES, CAR_MODES, newFieldId, formOpen, timeLeft, seasonLabel, signupsPurgeAt } from '../pages/signup.js';
 import { SignupsAdmin } from './signups.js';
 import { PollResults } from '../pages/poll.js';
+import { seasonStyle } from '../scoring.js';
 
 // Ogłoszenia na stronie głównej (moderator i wyżej): tytuł, zdjęcie, treść, przypięcie i opcjonalnie dodatek:
 // formularz zgłoszeń (własny albo link do zewnętrznego) do wybranego sezonu / wydarzenia albo głosowanie (ankieta).
@@ -136,6 +137,7 @@ function PostEditor({ post, seasons, count = 0, onDone, onCancel }) {
         if (f.form_kind === 'internal' && !f.form_season_id) return alert('Wybierz sezon / wydarzenie — przyjęci kierowcy trafią do jego rezerwy');
         if (f.form_kind === 'internal' && f.form_fields.some((x) => !x.label.trim())) return alert('Każde pole formularza musi mieć nazwę');
         if (f.form_fields.some((x) => x.type === 'select' && !(x.options || []).length)) return alert('Pole „Wybór z listy” musi mieć co najmniej jedną opcję');
+        if (f.form_kind === 'internal' && f.form_fields.filter((x) => x.type === 'car').length > 1) return alert('Formularz może mieć jedno pole „Wybór auta / zespołu”');
       }
       Object.assign(row, {
         form_kind: f.form_kind || null,
@@ -179,7 +181,7 @@ function PostEditor({ post, seasons, count = 0, onDone, onCancel }) {
       ${f.form_kind === 'poll' ? html`<${PollEditor} f=${f} setF=${setF} options=${options} setOptions=${setOptions} />` : null}
       ${f.form_kind && f.form_kind !== 'poll' ? html`
         <p class="muted small">${f.form_kind === 'internal'
-          ? 'Zgłaszają się osoby zalogowane przez Discord. Zgłoszenia przeglądasz w panelu (przycisk „Zgłoszenia” przy ogłoszeniu) — przyjęty kierowca trafia do rezerwy wybranego sezonu. Zgłoszenia są usuwane automatycznie 30 dni po zakończeniu zapisów.'
+          ? 'Zgłaszają się osoby zalogowane przez Discord. Zgłoszenia przeglądasz w panelu (przycisk „Zgłoszenia” przy ogłoszeniu) — przyjęty kierowca trafia do rezerwy wybranego sezonu albo — z polem „Wybór auta / zespołu” — do wybranego auta. Zgłoszenia są usuwane automatycznie 30 dni po zakończeniu zapisów.'
           : 'Przycisk w ogłoszeniu otworzy podany formularz (np. Google Forms, Microsoft Forms). Zgłoszenia zbierasz w tamtym serwisie.'} Ogłoszenie jest na stronie głównej do końca zgłoszeń.</p>
         <div class="form-grid">
           <label class="field"><span>Sezon / wydarzenie${f.form_kind === 'external' ? ' (opcjonalnie)' : ''}</span>
@@ -193,7 +195,8 @@ function PostEditor({ post, seasons, count = 0, onDone, onCancel }) {
         </div>
         ${f.form_kind === 'internal' ? html`
           ${count ? html`<p class="hint">Wysłano już ${count} zgłoszeń — zmiana pól nie zmienia ich odpowiedzi (usunięte pole zniknie z podglądu).</p>` : null}
-          <${FieldsEditor} fields=${f.form_fields} onChange=${(list) => setF((x) => ({ ...x, form_fields: list }))} />` : null}
+          <${FieldsEditor} fields=${f.form_fields} onChange=${(list) => setF((x) => ({ ...x, form_fields: list }))}
+            carDefaults=${carDefaults(seasons.find((x) => x.id === f.form_season_id))} />` : null}
       ` : null}
     </div>
 
@@ -240,7 +243,10 @@ function PollRowInfo({ post }) {
 }
 
 /** Pola własnego formularza: nazwa, typ, wymagane, opcje listy; kolejność strzałkami. Nick i konto Discord dołączają się same. */
-function FieldsEditor({ fields, onChange }) {
+/** Domyślne ustawienia pola auta: event — rezerwacja, liga — sugestia; zespoły (F1) — 2 kierowców, auta z klasami — 3. */
+const carDefaults = (season) => ({ mode: season?.series === 'inne' ? 'reserve' : 'suggest', max: season && seasonStyle(season) === 'lmu' ? 3 : 2 });
+
+function FieldsEditor({ fields, onChange, carDefaults: defaults = carDefaults(null) }) {
   const patch = (i, p) => onChange(fields.map((x, j) => (j === i ? { ...x, ...p } : x)));
   const move = (i, d) => {
     const list = [...fields];
@@ -251,7 +257,7 @@ function FieldsEditor({ fields, onChange }) {
     <span class="field-label">Pola formularza <span class="muted">(nick i konto Discord dołączają się same)</span></span>
     ${fields.map((x, i) => html`<div class="form-field-row" key=${x.id}>
       <input class="ff-label" value=${x.label} placeholder="Nazwa pola, np. Numer startowy" onInput=${(e) => patch(i, { label: e.target.value })} />
-      <select class="ff-type" value=${x.type} onChange=${(e) => patch(i, { type: e.target.value })}>
+      <select class="ff-type" value=${x.type} onChange=${(e) => patch(i, { type: e.target.value, ...(e.target.value === 'car' && !x.mode ? defaults : {}) })}>
         ${FIELD_TYPES.map(([id, label]) => html`<option value=${id}>${label}</option>`)}
       </select>
       <label class="check-inline"><input type="checkbox" checked=${!!x.required} onChange=${(e) => patch(i, { required: e.target.checked })} /> wymagane</label>
@@ -262,6 +268,15 @@ function FieldsEditor({ fields, onChange }) {
       </span>
       ${x.type === 'select' ? html`<input class="ff-options" value=${(x.options || []).join(', ')} placeholder="Opcje oddzielone przecinkami, np. PC, PlayStation, Xbox"
         onChange=${(e) => patch(i, { options: e.target.value.split(',').map((o) => o.trim()).filter(Boolean) })} />` : null}
+      ${x.type === 'car' ? html`<div class="ff-options ff-car">
+        <select value=${x.mode || 'suggest'} onChange=${(e) => patch(i, { mode: e.target.value })} aria-label="Tryb wyboru auta">
+          ${CAR_MODES.map(([id, label]) => html`<option value=${id}>${label}</option>`)}
+        </select>
+        <label class="check-inline">kierowców na auto <input class="w-num" type="number" min="1" max="20" value=${x.max ?? 2} onChange=${(e) => patch(i, { max: Math.max(1, Number(e.target.value) || 1) })} /></label>
+        <small class="muted">Lista aut z sezonu wybranego w formularzu. ${x.mode === 'reserve'
+          ? 'Rezerwacja (eventy): wybór zajmuje miejsce do decyzji, pełnych aut nie da się wybrać, a przyjęcie wpisuje kierowcę do tego auta.'
+          : 'Sugestia (ligi z weryfikacją): chętny wskazuje, czego chce, ale nic nie blokuje — przy przyjęciu wybierzesz auto albo rezerwę.'}</small>
+      </div>` : null}
       ${x.type === 'image' ? html`<small class="ff-options muted">Jedno zdjęcie JPG, PNG albo WebP, zmniejszane do 1 MB. Widzi je tylko administracja, znika razem ze zgłoszeniem.</small>` : null}
     </div>`)}
     <button type="button" class="btn btn-sm" onClick=${() => onChange([...fields, { id: newFieldId(), label: '', type: 'text', required: false }])}>+ Dodaj pole</button>

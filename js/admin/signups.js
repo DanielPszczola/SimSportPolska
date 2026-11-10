@@ -1,11 +1,11 @@
 import { useState } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, useAsync, Loader, ErrorBox, attempt, formatDate } from '../ui.js';
-import { formOpen, timeLeft, seasonLabel, answerText, signupsPurgeAt, SIGNUP_KEEP_DAYS, ProofImage } from '../pages/signup.js';
+import { formOpen, timeLeft, seasonLabel, answerText, signupsPurgeAt, SIGNUP_KEEP_DAYS, ProofImage, loadSeats, freeSeats, carMax } from '../pages/signup.js';
 
 // Zgłoszenia z formularza w ogłoszeniu (moderator i wyżej): podgląd odpowiedzi, przyjęcie albo odrzucenie.
-// Przyjęcie dodaje kierowcę do rezerwy sezonu z formularza (bez konta kierowcy — tworzy profil z nickiem z Discorda);
-// cofnięcie przyjęcia zdejmuje go z rezerwy, o ile nie dostał jeszcze miejsca w zespole ani nie ma wyników.
+// Przyjęcie dodaje kierowcę do rezerwy sezonu z formularza albo do auta wybranego w zgłoszeniu (bez konta kierowcy —
+// tworzy profil z nickiem z Discorda); cofnięcie przyjęcia zdejmuje go ze składu, o ile nie ma jeszcze wyników.
 
 const STATUS = { pending: ['Oczekuje', 'st-next'], accepted: ['✓ Przyjęte', 'st-done'], rejected: ['Odrzucone', 'st-over'] };
 const FILTERS = [['pending', 'Oczekujące'], ['accepted', 'Przyjęte'], ['rejected', 'Odrzucone'], ['all', 'Wszystkie']];
@@ -15,11 +15,13 @@ export function SignupsAdmin({ postId }) {
   const data = useAsync(async () => {
     const [post] = await db.list('posts', { eq: { id: postId } });
     if (!post) throw new Error('Nie ma takiego ogłoszenia');
-    const [list, season] = await Promise.all([
+    const [list, season, teams, seats] = await Promise.all([
       post.form_kind === 'internal' ? db.rpc('signup_list', { p_post: postId }) : [],
       post.form_season_id ? db.list('seasons', { eq: { id: post.form_season_id } }).then((x) => x[0] || null) : null,
+      post.form_season_id ? db.list('teams', { eq: { season_id: post.form_season_id } }) : [],
+      loadSeats(postId),
     ]);
-    return { post, list: list || [], season };
+    return { post, list: list || [], season, teams, seats };
   }, [postId]);
 
   const back = html`<a class="btn btn-sm" href="#/admin/ogloszenia">← Ogłoszenia</a>`;
@@ -27,24 +29,30 @@ export function SignupsAdmin({ postId }) {
   if (data.error) {
     return html`${back}<div class="hint warn">Zgłoszenia wymagają aktualizacji bazy: uruchom w Supabase → SQL Editor plik <b>supabase/migrations/2026-11-01_zgloszenia.sql</b> (niczego nie usuwa).</div><${ErrorBox} error=${data.error} />`;
   }
-  const { post, list, season } = data.data;
+  const { post, list, season, teams, seats } = data.data;
+  const teamName = (id) => teams.find((t) => t.id === id)?.name;
+  const carField = (post.form_fields || []).find((f) => f.type === 'car');
+  const chosenCar = (x) => (carField ? x.answers?.[carField.id] : null);
+  const validCar = (x) => !!(chosenCar(x) && teamName(chosenCar(x))); // auto mogło zniknąć z sezonu albo sezon formularza się zmienił
+  // wolne miejsca w aucie przy przyjęciu: kierowcy w składzie (bez tej osoby) wobec limitu pola
+  const seatFree = (id, x) => carMax(carField) - (seats.get(id)?.lineup || 0) + (x.in_season && x.team_id === id ? 1 : 0);
   const open = formOpen(post);
   const fields = post.form_fields || [];
   const count = (st) => list.filter((x) => x.status === st).length;
   const active = filter || (count('pending') ? 'pending' : 'all');
   const shown = active === 'all' ? list : list.filter((x) => x.status === active);
 
-  const decide = async (x, status) => {
-    if (status === 'accepted' && !confirm(`Przyjąć zgłoszenie: ${x.display_name}? Trafi do rezerwy: ${season ? seasonLabel(season) : '?'}.`)) return;
-    if (status !== 'accepted' && x.status === 'accepted' && !confirm(`Cofnąć przyjęcie ${x.display_name}? Zniknie z rezerwy sezonu (o ile nie ma jeszcze miejsca w zespole ani wyników).`)) return;
-    const msg = { accepted: `${x.display_name}: przyjęte — dodano do rezerwy`, rejected: `${x.display_name}: odrzucone`, pending: 'Decyzja cofnięta' }[status];
-    if (await attempt(() => db.rpc('signup_decide', { p_signup: x.id, p_status: status }), msg)) data.reload();
+  const decide = async (x, status, team = null) => {
+    if (status === 'accepted' && !confirm(`Przyjąć zgłoszenie: ${x.display_name}? ${team ? `Trafi do: ${teamName(team)}` : 'Trafi do rezerwy'} (${season ? seasonLabel(season) : '?'}).`)) return;
+    if (status !== 'accepted' && x.status === 'accepted' && !confirm(`Cofnąć przyjęcie ${x.display_name}? Zniknie ze składu sezonu (o ile nie ma jeszcze wyników ani zmian w składzie).`)) return;
+    const msg = { accepted: `${x.display_name}: przyjęte — ${team ? `w składzie: ${teamName(team)}` : 'dodano do rezerwy'}`, rejected: `${x.display_name}: odrzucone`, pending: 'Decyzja cofnięta' }[status];
+    if (await attempt(() => db.rpc('signup_decide', { p_signup: x.id, p_status: status, p_team: team }), msg)) data.reload();
   };
 
   const csv = () => {
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const head = ['Discord', 'Kierowca', 'Status', 'Wysłane', ...fields.map((f) => f.label)];
-    const rows = list.map((x) => [x.display_name, x.driver_nick || '', STATUS[x.status][0], formatDate(x.created_at), ...fields.map((f) => answerText(f, x.answers?.[f.id]).replace('—', ''))]);
+    const rows = list.map((x) => [x.display_name, x.driver_nick || '', STATUS[x.status][0], formatDate(x.created_at), ...fields.map((f) => answerText(f, x.answers?.[f.id], teamName).replace('—', ''))]);
     const blob = new Blob(['﻿' + [head, ...rows].map((r) => r.map(esc).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `zgloszenia-${post.title.replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase()}.csv` });
     a.click();
@@ -84,12 +92,17 @@ export function SignupsAdmin({ postId }) {
             <span class=${`tile-state ${STATUS[x.status][1]}`}>${STATUS[x.status][0]}</span>
           </header>
           ${fields.length ? html`<dl class="signup-answers">
-            ${fields.map((f) => html`<dt>${f.label}</dt><dd>${f.type === 'image' && x.answers?.[f.id] ? html`<${ProofImage} signupId=${x.id} fieldId=${f.id} />` : answerText(f, x.answers?.[f.id])}</dd>`)}
+            ${fields.map((f) => html`<dt>${f.label}</dt><dd>${f.type === 'image' && x.answers?.[f.id] ? html`<${ProofImage} signupId=${x.id} fieldId=${f.id} />`
+              : f.type === 'car' && teamName(x.answers?.[f.id]) ? html`${answerText(f, x.answers[f.id], teamName)} <span class="muted small">· ${f.mode === 'reserve' ? 'rezerwacja' : 'sugestia'} · wolne ${Math.max(0, freeSeats(f, seats.get(x.answers[f.id])))} z ${carMax(f)}</span>`
+              : answerText(f, x.answers?.[f.id], teamName)}</dd>`)}
           </dl>` : null}
           <footer class="signup-card-foot">
             <span class="muted small">Wysłane ${formatDate(x.created_at)}${x.updated_at && x.updated_at !== x.created_at ? ` · poprawione ${formatDate(x.updated_at)}` : ''}${x.decided_at ? ` · decyzja: ${x.decided_by || '?'}, ${formatDate(x.decided_at)}` : ''}</span>
             <span class="spacer"></span>
-            ${x.status !== 'accepted' ? html`<button class="btn btn-sm btn-accent" disabled=${!season} onClick=${() => decide(x, 'accepted')}>✓ Przyjmij do rezerwy</button>` : null}
+            ${x.status !== 'accepted' && validCar(x) ? html`<button class="btn btn-sm btn-accent" disabled=${!season || seatFree(chosenCar(x), x) <= 0}
+              title=${seatFree(chosenCar(x), x) <= 0 ? 'Brak wolnego miejsca w tym aucie' : ''}
+              onClick=${() => decide(x, 'accepted', chosenCar(x))}>✓ Przyjmij do: ${teamName(chosenCar(x))}</button>` : null}
+            ${x.status !== 'accepted' ? html`<button class=${`btn btn-sm ${validCar(x) ? '' : 'btn-accent'}`} disabled=${!season} onClick=${() => decide(x, 'accepted')}>✓ Przyjmij do rezerwy</button>` : null}
             ${x.status !== 'rejected' ? html`<button class="btn btn-sm btn-danger" onClick=${() => decide(x, 'rejected')}>Odrzuć</button>` : null}
             ${x.status !== 'pending' ? html`<button class="btn btn-sm" onClick=${() => decide(x, 'pending')}>Cofnij decyzję</button>` : null}
           </footer>

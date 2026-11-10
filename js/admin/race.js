@@ -3,7 +3,7 @@ import { db } from '../db.js';
 import { html, seasonUnit, sessionLabel, Flag, TeamTag, PosBadge, attempt, formatDate, raceTimeState, DEFAULT_RACE_MINUTES, formatMinutes, STREAMS } from '../ui.js';
 import {
   computeRaceByClass, computeStandings, parseTime, formatDuration, penaltyLabel, carClass,
-  STATUSES, PENALTY_TYPES, CAR_CLASSES, seasonClasses, seasonStyle, seasonCarType, isSprint, SPRINT_POINTS, licenseTable, licenseLabel,
+  STATUSES, PENALTY_TYPES, CAR_CLASSES, seasonClasses, seasonStyle, seasonHasPoints, seasonCarType, isSprint, SPRINT_POINTS, licenseTable, licenseLabel,
 } from '../scoring.js';
 import { lineupAt, teamSeats } from '../lineup.js';
 import { StepBar, NextStep, DurationInput } from './common.js';
@@ -48,7 +48,8 @@ export function RacePanel({ b, race, step, nav, reload }) {
     </div>
     ${!done && timing === 'over' ? html`<p class="hint warn">Czas wyścigu minął — na stronie nie jest już „trwający”. Wpisz wyniki i zatwierdź je, żeby stały się oficjalne.</p>` : null}
     ${unapprovedBefore.length ? html`<p class="hint warn">Uwaga: niezatwierdzone wcześniejsze wyścigi: ${unapprovedBefore.map((r) => sessionLabel(r, true)).join(', ')}. Skład na ten wyścig może się jeszcze zmienić.</p>` : null}
-    ${sprint ? html`<p class="hint">Sprint: punkty ${SPRINT_POINTS.join('-')} dla pierwszej ósemki${seasonClasses(b.season).length > 1 ? ' w każdej klasie' : ''}, bez punktów za pole i najszybsze okrążenie. Kierowcy jadą w składzie z rundy ${race.round}.</p>` : null}
+    ${sprint && !seasonHasPoints(b.season) ? html`<p class="hint">Sprint: osobny wynik przed wyścigiem głównym. Kierowcy jadą w tym samym składzie.</p>` : null}
+    ${sprint && seasonHasPoints(b.season) ? html`<p class="hint">Sprint: punkty ${SPRINT_POINTS.join('-')} dla pierwszej ósemki${seasonClasses(b.season).length > 1 ? ' w każdej klasie' : ''}, bez punktów za pole i najszybsze okrążenie. Kierowcy jadą w składzie z rundy ${race.round}.</p>` : null}
     <${StepBar} steps=${steps} value=${current} onChange=${go} />
     <div class="panel-body">
       ${current === 'przed' ? html`<${PreRace} key=${race.id} race=${race} reload=${reload} />` : null}
@@ -161,6 +162,7 @@ function toRecords(rows, raceId, season) {
 function ResultsForm({ b, race, onSaved }) {
   const existing = b.results.filter((r) => r.race_id === race.id);
   const seats = lineupAt(b.entries, b.rosterChanges, race.round); // skład obowiązujący w tej rundzie
+  const scored = seasonHasPoints(b.season); // pojedyncze wydarzenie — bez kolumny punktów
   const multiClass = seasonStyle(b.season) === 'lmu';
   const classOptions = seasonClasses(b.season);
   // przy jednej klasie w sezonie ustawiamy ją automatycznie
@@ -253,14 +255,14 @@ function ResultsForm({ b, race, onSaved }) {
     <p class="hint">Dodawaj kierowców w kolejności na mecie (przed karami): pierwszy wiersz to P1, drugi P2 i tak dalej.
       Pomyłkę poprawisz strzałkami albo usuwając wiersz. Czas: pełny dla zwycięzcy
       (np. <code>1:28:33.412</code>), dla pozostałych pełny albo strata (np. <code>+3.215</code>). Zastępstwo: wybierz kierowcę z rezerwy i zespół, za który jechał.
-      ${multiClass ? ' Wyścig wieloklasowy: kolejność ogólna, a punkty liczą się w każdej klasie osobno.' : ''}</p>
+      ${multiClass ? (scored ? ' Wyścig wieloklasowy: kolejność ogólna, a punkty liczą się w każdej klasie osobno.' : ' Wyścig wieloklasowy: kolejność ogólna, pozycje liczone są też w każdej klasie.') : ''}</p>
 
     <div class="table-wrap">
       <table class="table edit-table results-edit">
         <thead><tr>
           <th class="c">Poz</th><th>Kierowca</th><th>${seasonUnit(b.season).one}</th>${multiClass ? html`<th>Klasa</th>` : null}<th class="c">Start</th><th>Status</th>
           <th>Czas / strata</th><th class="c" title="Okrążenia straty do lidera">Okr.−</th><th>Najl. okr.</th><th class="c" title="Najszybsze okrążenie">NO</th><th class="c">Pit</th>
-          <th class="r">Pkt</th><th></th>
+          ${scored ? html`<th class="r">Pkt</th>` : null}<th></th>
         </tr></thead>
         <tbody>
           ${rows.map((row, i) => {
@@ -286,7 +288,7 @@ function ResultsForm({ b, race, onSaved }) {
               <td><input class="w-time mono" value=${row.best_lap} placeholder="1:31.204" onInput=${(e) => setRow(i, { best_lap: e.target.value })} /></td>
               <td class="c"><input type="checkbox" checked=${row.fastest_lap} onChange=${() => setFastest(i)} /></td>
               <td class="c"><input class="w-num" type="number" min="0" value=${row.pit_stops} onInput=${(e) => setRow(i, { pit_stops: e.target.value })} /></td>
-              <td class="r pts" title=${p && multiClass ? `P${p.classPos ?? '-'} w klasie` : ''}>${p ? p.points : ''}</td>
+              ${scored ? html`<td class="r pts" title=${p && multiClass ? `P${p.classPos ?? '-'} w klasie` : ''}>${p ? p.points : ''}</td>` : null}
               <td class="r actions nowrap">
                 <button class="btn btn-xs" onClick=${() => moveTo(i, i - 1)} disabled=${i === 0} title="W górę">↑</button>
                 <button class="btn btn-xs" onClick=${() => moveTo(i, i + 1)} disabled=${i === rows.length - 1} title="W dół">↓</button>
@@ -379,6 +381,9 @@ function RacePenalties({ b, race, reload }) {
   const [f, setF] = useState({ driver_id: '', type: 'time', value: 5, license_points: 0, reason: '' });
   const results = b.results.filter((r) => r.race_id === race.id);
   if (!results.length) return html`<div class="empty">Najpierw wpisz wyniki wyścigu (krok 1).</div>`;
+  // pojedyncze wydarzenie: bez punktów — bez kary „odjęcie punktów” i bez kolumn punktów
+  const scored = seasonHasPoints(b.season);
+  const types = scored ? PENALTY_TYPES : PENALTY_TYPES.filter((t) => t.id !== 'points');
   const multiClass = seasonStyle(b.season) === 'lmu';
   const racePens = b.penalties.filter((p) => p.race_id === race.id);
   const before = byClass(computeRaceByClass(race, b.season, b.results, []));
@@ -421,7 +426,7 @@ function RacePenalties({ b, race, reload }) {
         </label>
         <label class="field"><span>Rodzaj kary</span>
           <select value=${f.type} onChange=${(e) => setF({ ...f, type: e.target.value })}>
-            ${PENALTY_TYPES.map((t) => html`<option value=${t.id}>${t.label}</option>`)}
+            ${types.map((t) => html`<option value=${t.id}>${t.label}</option>`)}
           </select>
         </label>
         ${needsValue ? html`<label class="field"><span>${VALUE_LABEL[f.type]}</span>
@@ -460,18 +465,17 @@ function RacePenalties({ b, race, reload }) {
 
     <h3>Wynik po karach</h3>
     <div class="table-wrap"><table class="table">
-      <thead><tr>${multiClass ? html`<th>Klasa</th>` : null}<th class="c">Poz</th><th class="c">Było</th><th>Kierowca</th><th class="r">Pkt przed</th><th class="r">Pkt po</th></tr></thead>
+      <thead><tr>${multiClass ? html`<th>Klasa</th>` : null}<th class="c">Poz</th><th class="c">Było</th><th>Kierowca</th>${scored ? html`<th class="r">Pkt przed</th><th class="r">Pkt po</th>` : null}</tr></thead>
       <tbody>
         ${after.map((r) => {
           const was = beforeBy.get(r.driver_id);
-          const changed = was.finalPos !== r.finalPos || was.points !== r.points;
+          const changed = was.finalPos !== r.finalPos || (scored && was.points !== r.points) || was.status !== r.status;
           return html`<tr class=${changed ? 'row-changed' : ''}>
             ${multiClass ? html`<td>${r.carClass}</td>` : null}
             <td class="c"><${PosBadge} pos=${r.finalPos} status=${r.status} /></td>
             <td class="c muted">${was.finalPos ?? was.status}</td>
             <td>${nick(r.driver_id)} ${r.penalties.map((p) => html`<span class="badge badge-pen">${penaltyLabel(p)}</span>`)}</td>
-            <td class="r muted">${was.points}</td>
-            <td class="r pts">${r.points}</td>
+            ${scored ? html`<td class="r muted">${was.points}</td><td class="r pts">${r.points}</td>` : null}
           </tr>`;
         })}
       </tbody>
@@ -495,6 +499,7 @@ function RaceSummary({ b, race, nav, reload }) {
   const thisName = sprint ? `sprint rundy ${race.round}` : `rundę ${race.round}`;
   const multiClass = seasonStyle(b.season) === 'lmu';
   const nick = (id) => b.driverById.get(id)?.nick ?? '?';
+  const scored = seasonHasPoints(b.season);
 
   const rows = byClass(computeRaceByClass(race, b.season, b.results, b.penalties));
   // klasyfikacja po tej rundzie (ten wyścig liczony tak, jakby był już zatwierdzony)
@@ -523,21 +528,21 @@ function RaceSummary({ b, race, nav, reload }) {
     </div>
 
     ${!results.length ? html`<div class="empty">Bez wyników nie można zatwierdzić wyścigu.</div>` : html`
-      <div class="summary-grid">
+      <div class=${scored ? 'summary-grid' : ''}>
         <div>
           <h3>Wynik końcowy (po karach)</h3>
           <div class="table-wrap"><table class="table">
-            <thead><tr>${multiClass ? html`<th>Kl.</th>` : null}<th class="c">Poz</th><th>Kierowca</th><th>${seasonUnit(b.season).one}</th><th class="r">Pkt</th></tr></thead>
+            <thead><tr>${multiClass ? html`<th>Kl.</th>` : null}<th class="c">Poz</th><th>Kierowca</th><th>${seasonUnit(b.season).one}</th>${scored ? html`<th class="r">Pkt</th>` : null}</tr></thead>
             <tbody>${rows.map((r) => html`<tr>
               ${multiClass ? html`<td>${r.carClass}</td>` : null}
               <td class="c"><${PosBadge} pos=${r.finalPos} status=${r.status} /></td>
               <td>${nick(r.driver_id)} ${r.penalties.map((p) => html`<span class="badge badge-pen">${penaltyLabel(p)}</span>`)}</td>
               <td><${TeamTag} team=${b.teamById.get(r.team_id)} link=${false} /></td>
-              <td class="r pts">${r.points}</td>
+              ${scored ? html`<td class="r pts">${r.points}</td>` : null}
             </tr>`)}</tbody>
           </table></div>
         </div>
-        <div>
+        ${scored ? html`<div>
           <h3>Klasyfikacja po: ${sessionLabel(race)}</h3>
           ${multiClass ? classTables.map(({ cls, st: cst }) => html`
             <div class="eyebrow">${carClass(cls)?.label ?? cls}</div>
@@ -552,7 +557,7 @@ function RaceSummary({ b, race, nav, reload }) {
             <div class="table-wrap"><table class="table">
               <tbody>${st.teams.slice(0, 5).map((t, i) => html`<tr><td class="c">${i + 1}</td><td><${TeamTag} team=${b.teamById.get(t.team_id)} link=${false} /></td><td class="r pts">${t.points}</td></tr>`)}</tbody>
             </table></div>`}
-        </div>
+        </div>` : null}
       </div>
 
       <div class="approve-bar">

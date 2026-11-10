@@ -52,6 +52,9 @@ export function seasonClasses(season) {
   return [];
 }
 
+/** Czy sezon zbiera punkty: pojedyncze wydarzenie (Eventy) nie ma klasyfikacji, więc punktów ani nie ustawia, ani nie pokazuje. */
+export const seasonHasPoints = (season) => !(season?.series === 'inne' && season.event_format === 'single');
+
 /** Typ aut wydarzenia „Inne” w trybie zespołów (np. F2) — jedna klasa dla całego wydarzenia. */
 export const seasonCarType = (season) => (season?.series === 'inne' ? season.class_defs?.[0]?.id || null : null);
 
