@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
-import { html, cached, useAsync, attempt, formatDate, showModal, closeModal } from '../ui.js';
+import { html, cached, useAsync, attempt, formatDate, showModal, closeModal, TeamLogo, TeamCar } from '../ui.js';
 import { useSession, isDiscordUser } from '../session.js';
 import { prepareProof, blobToBase64 } from '../images.js';
-import { carClass } from '../scoring.js';
+import { carClass, CAR_CLASSES } from '../scoring.js';
 import { DiscordButton } from './account.js';
 import { PrivacyNote } from './privacy.js';
 
@@ -170,34 +170,75 @@ export function SignupBox({ post }) {
   </div>`;
 }
 
-/** Pole „Wybór auta / zespołu”: auta sezonu z formularza z liczbą wolnych miejsc; w trybie rezerwacji pełnych nie da się wybrać. */
+/** Pole „Wybór auta / zespołu”: kafelki aut sezonu z formularza (logo, nazwa, bolid, miejsca, kto już jedzie).
+ *  Zajęte auta są wyszarzone; w trybie rezerwacji nie da się ich wybrać, w trybie sugestii — tylko jako propozycję. */
 function CarField({ field, post, value, onChange }) {
   const data = useAsync(async () => {
-    const [teams, seats] = await Promise.all([db.list('teams', { eq: { season_id: post.form_season_id } }), loadSeats(post.id)]);
-    return { teams: teams.sort((a, b) => (!a.car_class - !b.car_class) || String(a.car_class ?? '').localeCompare(String(b.car_class ?? '')) || a.name.localeCompare(b.name)), seats }; // auta bez klasy na końcu
+    const [teams, seats, entries] = await Promise.all([
+      db.list('teams', { eq: { season_id: post.form_season_id } }), loadSeats(post.id),
+      db.list('entries', { eq: { season_id: post.form_season_id } }).catch(() => []),
+    ]);
+    const seated = entries.filter((e) => e.team_id && !e.is_reserve);
+    const drivers = await db.list('drivers', { in: { id: [...new Set(seated.map((e) => e.driver_id))] } }).catch(() => []);
+    const nick = new Map(drivers.map((d) => [d.id, d.nick]));
+    const crew = new Map();
+    for (const e of seated) crew.set(e.team_id, [...(crew.get(e.team_id) || []), nick.get(e.driver_id)].filter(Boolean));
+    // kolejność klas jak w wynikach: Hypercar, LMP, GT3, potem własne klasy wydarzenia, na końcu auta bez klasy
+    const rank = (c) => (!c ? 1e3 : CAR_CLASSES.some((x) => x.id === c) ? -CAR_CLASSES.findIndex((x) => x.id === c) : 100);
+    teams.sort((a, b) => rank(a.car_class) - rank(b.car_class) || String(a.car_class ?? '').localeCompare(String(b.car_class ?? '')) || a.name.localeCompare(b.name) || String(a.created_at).localeCompare(String(b.created_at)));
+    // ta sama nazwa kilka razy (np. dwa takie same auta) → numer przy nazwie
+    const count = new Map(), seen = new Map();
+    for (const t of teams) count.set(t.name, (count.get(t.name) || 0) + 1);
+    const label = new Map(teams.map((t) => { const n = (seen.get(t.name) || 0) + 1; seen.set(t.name, n); return [t.id, count.get(t.name) > 1 ? `${t.name} #${n}` : t.name]; }));
+    return { teams, seats, crew, label };
   }, [post.id]);
   const reserve = field.mode === 'reserve';
   const max = carMax(field);
-  const teams = data.data?.teams || [];
-  const option = (t) => {
-    const free = freeSeats(field, data.data.seats.get(t.id));
-    const full = free <= 0 && t.id !== value;
-    return html`<option value=${t.id} disabled=${reserve && full}>${t.name} — ${free > 0 ? `wolne ${free} z ${max}` : 'pełne'}</option>`;
-  };
+  const d = data.data;
+  const teams = d?.teams || [];
   const classes = [...new Set(teams.map((t) => t.car_class || ''))];
-  return html`<label class="field"><span>${field.label}${field.required ? html` <span class="req">*</span>` : null}</span>
-    ${data.loading && !data.data ? html`<span class="muted small">Ładowanie listy…</span>`
+
+  const tile = (t) => {
+    const seat = d.seats.get(t.id);
+    const taken = Math.min(max, (seat?.lineup || 0) + (reserve ? seat?.pending || 0 : 0));
+    const mine = t.id === value;
+    const free = max - taken;
+    const full = free <= 0 && !mine;
+    const crew = d.crew.get(t.id) || [];
+    const cls = t.car_class ? carClass(t.car_class) : null;
+    return html`<button type="button" key=${t.id} class=${`car-pick ${mine ? 'is-picked' : ''} ${full ? 'is-full' : ''}`} style=${{ '--team': t.color || '#888' }}
+      disabled=${reserve && full} aria-pressed=${mine}
+      title=${full ? (reserve ? 'Auto jest już zajęte' : 'Auto jest pełne — możesz je wskazać tylko jako propozycję') : ''}
+      onClick=${() => onChange(mine && !field.required ? '' : t.id)}>
+      <span class="car-pick-head">
+        <${TeamLogo} team=${t} size=${32} />
+        <b class="car-pick-name">${d.label.get(t.id)}</b>
+        ${mine ? html`<span class="car-pick-check" aria-hidden="true">✓</span>` : null}
+      </span>
+      <span class="car-pick-img"><${TeamCar} team=${t} /></span>
+      <span class="car-pick-foot">
+        <span class="car-pick-seats" aria-label=${`zajęte ${taken} z ${max}`}>${Array.from({ length: max }, (_, k) => html`<i class=${k < taken ? 'on' : mine && k === taken ? 'me' : ''}></i>`)}</span>
+        <span class="car-pick-state">${mine ? 'Twój wybór' : full ? 'Zajęte' : `wolne ${free} z ${max}`}</span>
+        ${cls && classes.length === 1 ? html`<span class="class-badge" style=${{ '--cls': cls.color }}>${cls.label}</span>` : null}
+      </span>
+      ${crew.length ? html`<span class="car-pick-crew muted">Jadą: ${crew.join(', ')}</span>` : null}
+    </button>`;
+  };
+
+  return html`<div class="field car-field" role="group" aria-label=${field.label}>
+    <span>${field.label}${field.required ? html` <span class="req">*</span>` : null}</span>
+    ${data.loading && !d ? html`<span class="muted small">Ładowanie aut…</span>`
       : !teams.length ? html`<span class="muted small">Organizatorzy nie dodali jeszcze aut do tego sezonu.</span>`
-      : html`<select required=${!!field.required} value=${value || ''} onChange=${(e) => onChange(e.target.value)}>
-        <option value="">${field.required ? '— wybierz —' : '— bez preferencji —'}</option>
-        ${classes.length > 1
-          ? classes.map((c) => html`<optgroup label=${c ? carClass(c)?.label ?? c : 'Bez klasy'}>${teams.filter((t) => (t.car_class || '') === c).map(option)}</optgroup>`)
-          : teams.map(option)}
-      </select>`}
+      : classes.length > 1
+        ? classes.map((c) => html`<div class="car-pick-group" key=${c || '-'}>
+            <h4>${c ? html`<span class="class-badge" style=${{ '--cls': carClass(c)?.color }}>${carClass(c)?.label ?? c}</span>` : 'Bez klasy'}</h4>
+            <div class="car-pick-grid">${teams.filter((t) => (t.car_class || '') === c).map(tile)}</div>
+          </div>`)
+        : html`<div class="car-pick-grid">${teams.map(tile)}</div>`}
     <small class="muted">${reserve
-      ? 'Wybrane auto jest od razu zarezerwowane dla Ciebie. Pełnych aut nie można wybrać.'
-      : 'To Twoja propozycja — ostateczny przydział ustalają organizatorzy.'}</small>
-  </label>`;
+      ? 'Kliknij auto — po wysłaniu zgłoszenia jest zarezerwowane dla Ciebie. Wyszarzonych (zajętych) aut nie można wybrać.'
+      : 'Kliknij auto, którym chcesz jechać — to propozycja, ostateczny przydział ustalają organizatorzy.'}${field.required ? '' : ' Ponowne kliknięcie wybranego auta usuwa wybór.'}</small>
+  </div>`;
 }
 
 /** Pole „Zdjęcie”: plik jest zmniejszany od razu po wybraniu, więc błąd i podgląd widać przed wysłaniem. */
@@ -250,6 +291,8 @@ function SignupModal({ post, season, account, my, onSaved, onClose }) {
     e.preventDefault();
     const missing = fields.find((f) => f.type === 'image' && f.required && !hasFile(f));
     if (missing) return alert(`Dodaj zdjęcie: ${missing.label}`);
+    const noCar = fields.find((f) => f.type === 'car' && f.required && !answers[f.id]);
+    if (noCar) return alert(`Wybierz auto: ${noCar.label}`);
     setBusy(true);
     const p_files = Object.fromEntries(Object.entries(files).map(([id, x]) => [id, x ? x.base64 : null]));
     const list = await attempt(() => db.rpc('signup_submit', { p_post: post.id, p_answers: answers, p_files }), my ? 'Zgłoszenie poprawione' : 'Zgłoszenie wysłane — dziękujemy!');
