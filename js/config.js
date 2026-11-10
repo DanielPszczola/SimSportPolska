@@ -12,7 +12,7 @@
 const PROD_URL = 'https://sdlkqrwxbqhvnxoflpjh.supabase.co';
 const PROD_KEY = 'sb_publishable_vP4XYKzoxGsTbifaHacRmQ_LdBdSkEn';
 
-// Lokalny pre-prod (preprod.bat): na localhost plik js/config.local.js — jeśli istnieje — przełącza stronę
+// Lokalny pre-proadd (preprod.bat): na localhost plik js/config.local.js — jeśli istnieje — przełącza stronę
 // na lokalną bazę w Dockerze. Plik jest generowany automatycznie i nie trafia do repozytorium ani na serwer.
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname)
   ? await import('./config.local.js').catch(() => null)
