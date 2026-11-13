@@ -88,7 +88,8 @@ export function PrivacyPage() {
     <h2>Usunięcie konta</h2>
     <p>W <a href="#/konto">Moje konto</a> możesz w każdej chwili kliknąć <b>„Odepnij konto Discord”</b>. Usuwa to konto na stronie
       i wszystkie dane z Discorda (identyfikator, nazwy, e-mail, awatar) oraz Twoje zgłoszenia ze zdjęciami. Oddane głosy zostają w wynikach, ale bez powiązania z Tobą. Profil kierowcy z nickiem i wynikami
-      zostaje jako część historii ligi. Jeśli chcesz, żeby z wyników zniknął także Twój nick, wyślij do administracji ligi prośbę
-      o jego zmianę — zastąpimy go neutralnym (np. „Kierowca #57”). Wyniki i klasyfikacje się przy tym nie zmieniają.</p>
+      zostaje jako część historii ligi. Jeśli chcesz, żeby z wyników zniknął także Twój nick, przed odpięciem konta poproś o jego zmianę
+      w <a href="#/konto">Moje konto</a> („Zmień nick”) albo wyślij prośbę do administracji ligi — zastąpimy go neutralnym
+      (np. „Kierowca #57”). Wyniki i klasyfikacje się przy tym nie zmieniają.</p>
   </div>`;
 }

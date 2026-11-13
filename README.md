@@ -152,7 +152,11 @@ Kierowcy logują się kontem Discord (link **Zaloguj** w nagłówku → `#/konto
 - pierwsze logowanie: jeśli w bazie jest kierowca z takim samym nickiem (bez konta), powstaje **prośba o powiązanie** — admin zatwierdza ją w *Zarządzanie → Baza danych → Konta Discord*; w przeciwnym razie automatycznie powstaje **nowy kierowca** z nickiem z Discorda,
 - kierowca, który startował pod innym nickiem, może na stronie *Moje konto* wskazać swój stary profil (prośba do admina),
 - admin może powiązać dowolnego kierowcę z kontem Discord (kolumna *Discord* w bazie kierowców albo karta *Konta Discord*); profil założony automatycznie zostaje wtedy **scalony** z wybranym kierowcą — wyniki, składy i kary przechodzą na niego,
-- po powiązaniu nick i awatar kierowcy są odświeżane z Discorda przy każdym logowaniu (nazwa wyświetlana na Discordzie).
+- po powiązaniu nick i awatar kierowcy są odświeżane z Discorda przy każdym logowaniu (nazwa wyświetlana na Discordzie),
+- **prośba o nick**: w *Moje konto* kierowca klika „Zmień nick” i podaje nick używany w startach; moderator zatwierdza
+  albo odrzuca prośbę w *Zarządzanie → Baza danych → Kierowcy* (lista „Prośby o zmianę nicku” nad bazą kierowców).
+  Zatwierdzony nick — tak samo jak nick zmieniony ręcznie w bazie kierowców — **nie jest już nadpisywany** nickiem z Discorda
+  (awatar dalej się odświeża). **Baza:** uruchom `supabase/migrations/2026-11-11_prosba_o_nick.sql`.
 
 **Konfiguracja (jednorazowo):**
 1. Supabase → SQL Editor: uruchom `supabase/migrations/2026-10-30_discord.sql` (nic nie kasuje).
@@ -213,8 +217,13 @@ Przy nickach widać punkty karne kierowców w sezonie (⚖), także na liście �
 Jeśli wybrana runda ma już wyniki, panel ostrzega, że zmiana wpłynie na podział punktów w tych wyścigach.
 
 **Kafelek wyścigu** ma kroki:
-0. **Przed wyścigiem**: czas trwania i linki do transmisji.
-1. **Wyniki**: formularz od razu zawiera skład obowiązujący w tej rundzie. Kolejność ustawiasz numerem w kolumnie *Poz*.
+0. **Przed wyścigiem**: czas trwania, linki do transmisji i **skład startowy** — kto faktycznie jedzie w tym wyścigu.
+   Domyślnie to skład rundy z kafelka „Składy”; odznaczasz osoby, które nie przyszły, i dopisujesz zastępstwa (z rezerwy
+   albo dowolnego kierowcę, do wybranego zespołu / auta). Zmienia to tylko ten wyścig, nie skład na kolejne rundy.
+   Z tego składu biorą się kandydaci w głosowaniu na kierowcę dnia i lista „kogo jeszcze brakuje” w wynikach.
+   *Przywróć skład z kafelka „Składy”* usuwa ręczne zmiany.
+   **W trakcie wyścigu**: uruchomienie i zakończenie głosowania na kierowcę dnia (patrz niżej).
+1. **Wyniki**: formularz od razu podpowiada skład startowy tego wyścigu. Kolejność ustawiasz numerem w kolumnie *Poz*.
    Można też wkleić wyniki z tekstu w formacie `Nick | Zespół | P. startowa | Pit | Najlepsze okrążenie | Czas`.
 2. **Kary**: czasowe, punktowe, DSQ, na starcie, ostrzeżenia. Widać podgląd „przed / po”.
    Przy każdej decyzji możesz dodać **punkty karne**, a rodzaj *Tylko punkty karne* służy do decyzji bez kary na wyścig (patrz niżej).
@@ -354,13 +363,19 @@ z „trwających” i z nadchodzących — ale wyniki dalej trzeba wpisać i zat
 ### Kierowca dnia
 
 W trakcie wyścigu (ligi F1 / LMU, serie i pojedyncze eventy) przy kafelku „Trwa teraz”, w pasku nad stroną
-ligi i w kafelku kalendarza jest przycisk **⭐ Kierowca dnia** — okno z kierowcami składu tej rundy (rezerwowi po rozwinięciu).
+ligi i w kafelku kalendarza jest przycisk **⭐ Kierowca dnia** — okno z kierowcami ze składu startowego wyścigu
+(bez ustawionego składu startowego — skład rundy, rezerwowi po rozwinięciu).
 Głosować może **każdy**, jeden raz na wyścig (bez zmiany głosu): zalogowany — jako konto, gość — jako ta przeglądarka
 (losowy identyfikator w localStorage). Dodatkowo z jednego adresu sieciowego można oddać najwyżej 5 głosów na wyścig
 (w bazie jest tylko skrót adresu). Po oddaniu głosu okno pokazuje **bieżące wyniki** (odświeżane co 15 s) zamiast ankiety.
-Głosowanie trwa od startu przez czas trwania wyścigu; potem się zamyka, a wynik (kierowca i % głosów) pojawia się
-w kafelku kalendarza. Zasad pilnuje baza (funkcje `dotd_vote` / `dotd_poll` / `dotd_results`).
-**Baza:** jednorazowo uruchom `supabase/migrations/2026-11-01_kierowca_dnia.sql` (dodaje tabelę i funkcje — niczego nie usuwa).
+**Głosowanie uruchamia moderator:** Zarządzanie → wyścig → zakładka **„W trakcie wyścigu”** → „⭐ Uruchom głosowanie”
+(najlepiej, gdy kierowcy już jadą). Od tej chwili wszyscy na stronie widzą przycisk przy wyścigu i złotą kartę
+„Głosuj na kierowcę dnia” w rogu każdej strony (na telefonie pasek na dole; można ją zwinąć do gwiazdki) — pojawia się
+w ciągu ok. 20 s, bez odświeżania. W tej samej zakładce organizatorzy widzą wyniki na żywo. Głosowanie zamyka się przyciskiem
+„Zakończ głosowanie”, po zatwierdzeniu wyników albo samo po 12 godzinach; wtedy wynik (kierowca i % głosów) pojawia się
+w kafelku kalendarza. Zasad pilnuje baza (funkcje `dotd_vote` / `dotd_poll` / `dotd_results` / `dotd_set_open`).
+**Baza:** jednorazowo uruchom `supabase/migrations/2026-11-01_kierowca_dnia.sql` (dodaje tabelę i funkcje — niczego nie usuwa),
+a dla uruchamiania głosowania przez moderatora `supabase/migrations/2026-11-11_kierowca_dnia_start.sql`.
 
 ## Eventy: serie i wydarzenia
 

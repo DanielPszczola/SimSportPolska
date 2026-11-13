@@ -11,6 +11,7 @@ import { OtherSection } from './pages/other.js';
 import { AdminPage } from './admin/admin.js';
 import { AccountPage } from './pages/account.js';
 import { PrivacyPage } from './pages/privacy.js';
+import { DotdFloat } from './pages/dotd.js';
 
 function parseHash() {
   const h = location.hash.replace(/^#\/?/, '');
@@ -92,6 +93,7 @@ function App() {
     <${Header} section=${section} />
     <main>${page}</main>
     <footer class="site-footer"><div class="wrap footer-inner"><span>© ${new Date().getFullYear()} ${LEAGUE_NAME} · Liga sim racingowa</span><a href="#/prywatnosc">Polityka prywatności</a></div></footer>
+    ${section !== 'admin' ? html`<${DotdFloat} />` : null}
     <${Toasts} />
     <${ModalHost} />
   `;

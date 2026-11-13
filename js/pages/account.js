@@ -48,7 +48,7 @@ function Guest() {
   return html`<div class="card account-card">
     <h2>Zaloguj się</h2>
     ${error ? html`<div class="hint warn">Logowanie przez Discord nie powiodło się: ${error}</div>` : null}
-    <p>Zaloguj się kontem Discord. Twoje konto zostanie powiązane z profilem kierowcy, a nick na stronie będzie zawsze taki jak na Discordzie.</p>
+    <p>Zaloguj się kontem Discord. Twoje konto zostanie powiązane z profilem kierowcy, a nick na stronie będzie taki jak na Discordzie — jeśli w startach używasz innego, po zalogowaniu możesz poprosić o jego zmianę.</p>
     ${db.mode === 'demo' ? html`<p class="hint warn">W trybie demo logowanie przez Discord nie działa — wymaga podłączenia Supabase.</p>` : null}
     <${DiscordButton} />
     <${PrivacyNote} />
@@ -86,7 +86,10 @@ function DiscordAccount({ s }) {
     ${a.driver_id ? html`<div class="account-status ok">
       <span class="field-label">Twój profil kierowcy</span>
       <a class="account-driver" href=${`#/kierowca/${a.driver_id}`}>${a.driver_nick} →</a>
-      <div class="muted small">Nick i awatar są pobierane z Discorda przy każdym logowaniu.</div>
+      <div class="muted small">${a.nick_locked
+        ? 'Nick ustawiła administracja ligi — nie zmienia się razem z Discordem. Awatar jest pobierany z Discorda przy każdym logowaniu.'
+        : 'Nick i awatar są pobierane z Discorda przy każdym logowaniu.'}</div>
+      <${NickRequest} a=${a} />
     </div>` : null}
 
     ${a.claim_driver_id ? html`<div class="account-status pending">
@@ -109,6 +112,36 @@ function DiscordAccount({ s }) {
     </div>
 
     <${UnlinkDiscord} nick=${a.driver_nick} />
+  </div>`;
+}
+
+/** „Zmień nick” — prośba do administracji o nick używany w startach; po zatwierdzeniu zmienia się w wynikach i profilu. */
+function NickRequest({ a }) {
+  const [open, setOpen] = useState(false);
+  const [nick, setNick] = useState('');
+  const [busy, setBusy] = useState(false);
+  const send = async (value) => {
+    setBusy(true);
+    const acc = await attempt(() => db.rpc('nick_request', { p_nick: value }), value ? 'Prośba wysłana — administracja ją sprawdzi' : 'Prośba anulowana');
+    setBusy(false);
+    if (acc && acc !== true) { setAccount(acc); setOpen(false); setNick(''); }
+  };
+  if (a.nick_request) {
+    return html`<div class="account-nick pending">
+      <div>Prośba o zmianę nicku na <b>${a.nick_request}</b> czeka na zatwierdzenie przez administrację.</div>
+      <button class="btn btn-sm" disabled=${busy} onClick=${() => send(null)}>Anuluj prośbę</button>
+    </div>`;
+  }
+  return html`<div class="account-nick">
+    ${a.nick_rejected ? html`<div class="muted small">Administracja nie zatwierdziła nicku <b>${a.nick_rejected}</b>. Możesz wysłać inną prośbę.</div>` : null}
+    ${!open ? html`<button class="link small" onClick=${() => setOpen(true)}>Zmień nick →</button>` : html`
+      <form class="inline-form" onSubmit=${(e) => { e.preventDefault(); if (nick.trim()) send(nick.trim()); }}>
+        <input maxlength="40" required placeholder="Nick, którego używasz w startach" value=${nick} onInput=${(e) => setNick(e.target.value)} />
+        <button class="btn btn-sm btn-accent" disabled=${busy || nick.trim().length < 2}>${busy ? 'Wysyłanie…' : 'Wyślij prośbę'}</button>
+        <button type="button" class="btn btn-sm" onClick=${() => setOpen(false)}>Anuluj</button>
+      </form>
+      <div class="muted small">Podaj nick, którego używasz w startach (w grze). Zmianę zatwierdza administracja ligi — potem nick zmieni się
+        w wynikach, klasyfikacjach i na Twoim profilu i nie będzie już nadpisywany nickiem z Discorda.</div>`}
   </div>`;
 }
 

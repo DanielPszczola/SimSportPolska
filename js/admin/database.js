@@ -85,13 +85,15 @@ function DriversCard({ isAdmin }) {
     if (ok) data.reload();
   };
 
-  return html`<div class="card">
+  return html`<${NickRequests} onDecided=${data.reload} />
+  <div class="card">
     <div class="card-head">
       <h2>Baza kierowców <span class="muted">(${data.data.length})</span></h2>
       <input class="search" placeholder="Szukaj…" value=${q} onInput=${(e) => setQ(e.target.value)} />
     </div>
     <p class="muted">Kierowcy są wspólni dla F1 i LMU oraz wszystkich sezonów — profil zbiera całą historię startów.
-      Do składu sezonu dodajesz ich w kafelku <b>Start sezonu</b>.</p>
+      Do składu sezonu dodajesz ich w kafelku <b>Start sezonu</b>. Zmiana nicku kierowcy powiązanego z kontem Discord zostaje —
+      logowanie nie nadpisze jej nickiem z Discorda.</p>
     <form class="inline-form" onSubmit=${add}>
       <input required placeholder="Nick (jak w grze)" value=${nd.nick} onInput=${(e) => setNd({ ...nd, nick: e.target.value })} />
       <input class="w-code" maxlength="2" placeholder="PL" title="Kod kraju (2 litery, ISO)" value=${nd.country_code} onInput=${(e) => setNd({ ...nd, country_code: e.target.value })} />
@@ -115,6 +117,38 @@ function DriversCard({ isAdmin }) {
         </tr>`)}
       </tbody>
     </table></div>
+  </div>`;
+}
+
+/** Prośby kierowców o zmianę nicku (Moje konto → „Zmień nick”) — moderator zatwierdza albo odrzuca.
+ *  Bez aktualizacji bazy / w trybie demo — nic się nie pokazuje. */
+function NickRequests({ onDecided }) {
+  const list = useAsync(() => (db.mode === 'demo' ? Promise.resolve([]) : db.rpc('nick_requests').catch(() => [])), []);
+  const rows = list.data || [];
+  if (!rows.length) return null;
+  const decide = async (r, accept) => {
+    if (!confirm(accept
+      ? `Zmienić nick kierowcy ${r.driver_nick} na „${r.nick_request}”?\n\nNick zmieni się w wynikach, klasyfikacjach i profilu i nie będzie już nadpisywany nickiem z Discorda.`
+      : `Odrzucić prośbę ${r.display_name} o nick „${r.nick_request}”?`)) return;
+    if (await attempt(() => db.rpc('nick_decide', { p_user: r.user_id, p_accept: accept }), accept ? `Nick zmieniony na ${r.nick_request}` : 'Prośba odrzucona')) {
+      list.reload();
+      if (accept) onDecided();
+    }
+  };
+  return html`<div class="card nick-requests">
+    <h2>Prośby o zmianę nicku <span class="muted">(${rows.length})</span></h2>
+    <p class="muted">Kierowcy proszą o nick używany w startach (Moje konto → „Zmień nick”). Po zatwierdzeniu nick zmienia się w wynikach,
+      klasyfikacjach i profilu i nie jest już nadpisywany nickiem z Discorda.</p>
+    <div class="discord-list">
+      ${rows.map((r) => html`<div class="discord-row" key=${r.user_id}>
+        <div class="who">${r.avatar_url ? html`<img src=${r.avatar_url} alt="" />` : html`<span class="dot"></span>`}
+          <div><b>${r.display_name}</b><div class="muted small">@${r.username}</div></div></div>
+        <div><a href=${`#/kierowca/${r.driver_id}`}>${r.driver_nick ?? '?'}</a> → <b>${r.nick_request}</b>
+          <div class="muted small">wysłano ${new Date(r.nick_request_at).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' })}</div></div>
+        <button class="btn btn-sm btn-accent" onClick=${() => decide(r, true)}>✓ Zmień nick</button>
+        <button class="btn btn-sm" onClick=${() => decide(r, false)}>Odrzuć</button>
+      </div>`)}
+    </div>
   </div>`;
 }
 
@@ -164,7 +198,8 @@ function DiscordCard() {
   return html`<div class="card">
     <h2>Konta Discord <span class="muted">(${accounts.length})</span></h2>
     <p class="muted">Konto pojawia się tu po pierwszym zalogowaniu przez Discord. Nowy kierowca dostaje profil automatycznie (nick z Discorda);
-      jeśli nick zgadza się z istniejącym kierowcą, czeka tu na zatwierdzenie. Po powiązaniu nick kierowcy jest zawsze taki jak na Discordzie,
+      jeśli nick zgadza się z istniejącym kierowcą, czeka tu na zatwierdzenie. Po powiązaniu nick kierowcy jest taki jak na Discordzie
+      (chyba że administracja ustawiła inny — prośbą o nick albo zmianą w zakładce Kierowcy),
       a profil założony automatycznie zostaje scalony z wybranym kierowcą — wyniki nie giną.</p>
 
     <h3>Do zatwierdzenia (${pending.length})</h3>

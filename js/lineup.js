@@ -22,6 +22,18 @@ export function lineupAt(entries, changes, round) {
 
 export const bundleLineup = (b, round = Infinity) => lineupAt(b.entries, b.rosterChanges, round);
 
+/**
+ * Kto startuje w tym wyścigu: skład startowy ustawiony w panelu (Przed wyścigiem → Skład startowy — np. bez osób,
+ * które nie przyszły, z zastępstwami), a bez niego skład rundy z kafelka „Składy”.
+ * Map(driver_id -> { driver_id, team_id | null }) — przy składzie startowym team_id null = start bez zespołu.
+ */
+export function startingSeats(b, race) {
+  if (Array.isArray(race?.start_lineup)) {
+    return new Map(race.start_lineup.filter((x) => x?.driver_id).map((x) => [x.driver_id, { driver_id: x.driver_id, team_id: x.team_id || null }]));
+  }
+  return lineupAt(b.entries, b.rosterChanges, race?.round ?? Infinity);
+}
+
 export const teamSeats = (seats, teamId) => [...seats.values()].filter((s) => s.team_id === teamId);
 
 export const reserveSeats = (seats) => [...seats.values()].filter((s) => !s.team_id);

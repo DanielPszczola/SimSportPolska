@@ -941,7 +941,7 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
 .account-card > .btn-discord { align-self: flex-start; }
 .account-head { display: flex; align-items: center; gap: 14px; }
 .account-avatar { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line); }
-.account-avatar.empty { display: inline-flex; align-items: center; justify-content: center; background: #5865F2; color: #fff; font-size: 1.6rem; font-weight: 800; }
+.account-avatar.empty { display: inline-flex; align-items: center; justify-content: center; background: #5865F2; color: #fff; font-size: 1.6rem; font-weight: 800; padding: 0; } /* bez odstępów z ogólnej klasy .empty */
 .account-status { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; background: var(--bg-2); border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 10px; padding: 12px 14px; }
 .account-status.ok { border-left-color: var(--accent); }
 .account-status.pending { border-left-color: var(--gold, #f5c518); }
@@ -949,6 +949,11 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
 .account-claim { display: flex; flex-direction: column; gap: 6px; }
 .account-claim .inline-form { margin: 0; }
 .account-claim-toggle { align-self: flex-start; }
+.account-nick { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; margin-top: 4px; width: 100%; }
+.account-nick.pending { padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--gold) 12%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); }
+.account-nick .inline-form { margin: 0; width: 100%; }
+.account-nick .inline-form input { flex: 1 1 200px; }
+.nick-requests { margin-bottom: 16px; border-color: color-mix(in srgb, var(--gold) 45%, var(--line)); }
 .driver-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, .25); }
 .role-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .72rem; font-weight: 700; letter-spacing: .03em; border: 1px solid var(--line); background: var(--bg-2); color: var(--muted); white-space: nowrap; }
 .role-badge.role-owner { background: rgba(198, 244, 50, .15); border-color: var(--accent); color: var(--accent); }
@@ -1332,6 +1337,73 @@ a.team-tag:hover { color: var(--accent); text-decoration: none; }
 .btn-dotd { background: linear-gradient(135deg, #f5c542, #f59e0b); color: #2b1d00; border-color: #f5c542; font-weight: 800; }
 .btn-dotd:hover { filter: brightness(1.08); }
 .live-actions .btn-dotd { padding: 10px 16px; border-radius: 10px; }
+/* kierowca dnia: karta głosowania na każdej stronie */
+@keyframes dotd-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(245, 197, 66, .55); } 50% { box-shadow: 0 0 0 7px rgba(245, 197, 66, 0), 0 0 22px rgba(245, 197, 66, .45); } }
+@keyframes dotd-spin { 0%, 70%, 100% { transform: rotate(0) scale(1); } 80% { transform: rotate(-18deg) scale(1.25); } 90% { transform: rotate(14deg) scale(1.15); } }
+.dotd-float {
+  position: fixed; right: 16px; bottom: 16px; z-index: 90; width: min(380px, calc(100vw - 32px));
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 14px 16px;
+  background: radial-gradient(120% 140% at 0% 0%, rgba(245, 197, 66, .28), transparent 55%), linear-gradient(135deg, #2a1a52, #170d33);
+  border: 1px solid rgba(245, 197, 66, .55); border-radius: 16px; box-shadow: 0 16px 44px rgba(0, 0, 0, .55), 0 0 0 1px rgba(245, 197, 66, .15) inset;
+  animation: dotd-in .45s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+.dotd-float-star { font-size: 2.1rem; line-height: 1; filter: drop-shadow(0 0 10px rgba(245, 197, 66, .7)); animation: dotd-spin 2.6s ease-in-out infinite; }
+.dotd-float-text { display: flex; flex-direction: column; min-width: 0; }
+.dotd-float-text b { font-size: 1.15rem; font-weight: 900; text-transform: uppercase; letter-spacing: .03em; color: var(--gold); line-height: 1.15; }
+.dotd-float-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.dotd-float-eyebrow .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #e10600; animation: live-pulse 1.4s ease-in-out infinite; }
+.dotd-float.is-done .live-dot { background: var(--ok); animation: none; }
+.dotd-float-sub { display: flex; align-items: center; gap: 5px; font-size: .78rem; color: var(--muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.dotd-float-cta { background: linear-gradient(135deg, #f5c542, #f59e0b); color: #2b1d00; border-color: #f5c542; font-weight: 900; white-space: nowrap; animation: dotd-glow 2.2s ease-in-out infinite; }
+.dotd-float.is-done .dotd-float-cta { animation: none; }
+.dotd-float-cta:hover { filter: brightness(1.08); }
+.dotd-float-close { position: absolute; top: -9px; right: -9px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: .7rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.dotd-float-close:hover { color: var(--text); }
+.dotd-float-min {
+  position: fixed; right: 16px; bottom: 16px; z-index: 90; width: 54px; height: 54px; border-radius: 50%; font-size: 1.6rem; cursor: pointer;
+  background: linear-gradient(135deg, #f5c542, #f59e0b); border: 0; box-shadow: 0 10px 28px rgba(0, 0, 0, .5); animation: dotd-glow 2.2s ease-in-out infinite;
+}
+@keyframes dotd-in { from { transform: translateY(24px) scale(.96); opacity: 0; } }
+body.has-dotd-float .site-footer { padding-bottom: 96px; }
+/* Zarządzanie → wyścig → Przed wyścigiem → Skład startowy */
+.start-lineup { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.sl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 10px; margin: 10px 0; }
+.sl-team { padding: 10px 12px; border: 1px solid var(--line); border-left: 4px solid var(--team); border-radius: 10px; background: var(--surface-2); display: flex; flex-direction: column; gap: 4px; }
+.sl-team-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 2px; }
+.sl-team-head .team-tag { flex: 1; min-width: 0; white-space: normal; font-weight: 700; }
+.sl-count { flex-shrink: 0; white-space: nowrap; line-height: 20px; }
+.sl-row { display: flex; align-items: center; gap: 8px; min-height: 30px; font-weight: 600; cursor: pointer; }
+.sl-row input { width: auto; margin: 0; }
+.sl-row .muted { margin-left: auto; font-weight: 400; }
+.sl-absent { color: var(--muted); }
+.sl-absent .sl-name { text-decoration: line-through; }
+.sl-name { min-width: 0; overflow-wrap: anywhere; }
+.sl-sub { cursor: default; }
+.sl-sub .badge { font-size: .62rem; }
+.sl-sub .sl-name { flex: 1; }
+.sl-sub .btn { margin-left: auto; padding: 2px 8px; }
+.sl-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 12px; }
+.sl-add select { width: auto; min-width: 180px; flex: 1 1 200px; max-width: 320px; }
+/* Zarządzanie → wyścig → W trakcie wyścigu */
+.dotd-admin { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+.dotd-admin-open { border-color: rgba(245, 197, 66, .6); background: radial-gradient(120% 160% at 0% 0%, rgba(245, 197, 66, .16), transparent 60%), var(--surface-2); }
+.dotd-admin-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dotd-admin-star { font-size: 2rem; line-height: 1; }
+.dotd-admin-idle .dotd-admin-star { filter: grayscale(1); opacity: .6; }
+.dotd-admin-title { flex: 1; min-width: 200px; }
+.dotd-admin-title b { font-size: 1.05rem; }
+.dotd-admin-start { padding: 12px 20px; font-size: 1rem; border-radius: 10px; }
+.dotd-admin .dotd-results { margin: 0; }
+
+@media (max-width: 560px) {
+  .dotd-float { left: 10px; right: 10px; bottom: 10px; width: auto; padding: 12px; gap: 10px; }
+  .dotd-float-star { font-size: 1.7rem; }
+  .dotd-float-text b { font-size: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dotd-float, .dotd-float-star, .dotd-float-cta, .dotd-float-min, .dotd-float-eyebrow .live-dot { animation: none; }
+}
+
 .next-live .live-actions { margin-top: 0; }
 .dotd-result { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-size: .92rem; }
 .dotd-result b { color: var(--gold); }

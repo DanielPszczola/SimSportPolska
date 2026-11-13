@@ -476,6 +476,11 @@ create table if not exists public.discord_accounts (
   last_login_at timestamptz
 );
 
+-- prośba o zmianę nicku (Moje konto → „Zmień nick”) i nick ustawiony przez administrację (opis: migrations/2026-11-11_prosba_o_nick.sql)
+alter table public.discord_accounts add column if not exists nick_request text;            -- nick, o który prosi użytkownik
+alter table public.discord_accounts add column if not exists nick_request_at timestamptz;
+alter table public.discord_accounts add column if not exists nick_rejected text;           -- ostatnia odrzucona prośba (informacja dla użytkownika)
+alter table public.discord_accounts add column if not exists nick_locked boolean not null default false;  -- nick ustawiła administracja: logowanie go nie nadpisuje
 alter table public.discord_accounts enable row level security;
 drop policy if exists "own or admin read" on public.discord_accounts;
 create policy "own or admin read" on public.discord_accounts for select to authenticated using (user_id = auth.uid() or public.is_admin());
@@ -493,7 +498,8 @@ as $$
     'status', case when a.driver_id is not null then 'linked' when a.claim_driver_id is not null then 'pending' else 'unlinked' end,
     'display_name', a.display_name, 'username', a.username, 'avatar_url', a.avatar_url,
     'driver_id', a.driver_id, 'driver_nick', d.nick, 'auto_driver', a.auto_driver,
-    'claim_driver_id', a.claim_driver_id, 'claim_nick', c.nick)
+    'claim_driver_id', a.claim_driver_id, 'claim_nick', c.nick,
+    'nick_request', a.nick_request, 'nick_request_at', a.nick_request_at, 'nick_rejected', a.nick_rejected, 'nick_locked', a.nick_locked)
   from public.discord_accounts a
   left join public.drivers d on d.id = a.driver_id
   left join public.drivers c on c.id = a.claim_driver_id
@@ -553,11 +559,14 @@ begin
     update public.discord_accounts
       set username = v_user, display_name = v_name, avatar_url = v_avatar, last_login_at = now()
       where user_id = u.id;
-    -- nick i awatar kierowcy zawsze jak na Discordzie (o ile nikt inny nie ma już takiego nicku)
+    -- nick i awatar kierowcy jak na Discordzie (o ile nikt inny nie ma już takiego nicku);
+    -- nick ustawiony przez administrację (prośba o nick albo ręczna zmiana w panelu) zostaje
     if acc.driver_id is not null then
       update public.drivers set avatar_url = v_avatar where id = acc.driver_id;
-      if not exists (select 1 from public.drivers where lower(nick) = lower(v_name) and id <> acc.driver_id) then
+      if not acc.nick_locked and not exists (select 1 from public.drivers where lower(nick) = lower(v_name) and id <> acc.driver_id) then
+        perform set_config('ssp.nick_sync', '1', true); -- nick z Discorda — to nie jest ręczna zmiana (trigger drivers_nick_lock)
         update public.drivers set nick = v_name where id = acc.driver_id and nick is distinct from v_name;
+        perform set_config('ssp.nick_sync', '', true);
       end if;
     end if;
   end if;
@@ -612,6 +621,13 @@ begin
   update public.roster_changes set driver_in_id = p_to where driver_in_id = p_from;
   update public.roster_changes set driver_out_id = p_to where driver_out_id = p_from;
   update public.endurance_crews set driver_ids = array_replace(driver_ids, p_from, p_to) where p_from = any (driver_ids);
+  -- głosy na kierowcę dnia (inaczej zniknęłyby razem z profilem), przyjęte zgłoszenia i składy startowe wyścigów
+  update public.dotd_votes set driver_id = p_to where driver_id = p_from;
+  update public.signups set driver_id = p_to where driver_id = p_from;
+  update public.races r set start_lineup = (
+      select jsonb_agg(case when e ->> 'driver_id' = p_from::text then jsonb_set(e, '{driver_id}', to_jsonb(p_to::text)) else e end)
+      from jsonb_array_elements(r.start_lineup) e)
+    where r.start_lineup @> jsonb_build_array(jsonb_build_object('driver_id', p_from));
   delete from public.drivers where id = p_from;
 end;
 $$;
@@ -648,13 +664,111 @@ begin
 
   -- nick i awatar jak na Discordzie
   update public.drivers set avatar_url = acc.avatar_url where id = p_driver;
-  if acc.display_name is not null and not exists (select 1 from public.drivers where lower(nick) = lower(acc.display_name) and id <> p_driver) then
+  if acc.display_name is not null and not acc.nick_locked and not exists (select 1 from public.drivers where lower(nick) = lower(acc.display_name) and id <> p_driver) then
+    perform set_config('ssp.nick_sync', '1', true); -- nick z Discorda przy powiązaniu — to nie jest ręczna zmiana
     update public.drivers set nick = acc.display_name where id = p_driver;
+    perform set_config('ssp.nick_sync', '', true);
   end if;
   return public.discord_state(p_user);
 end;
 $$;
 grant execute on function public.discord_link(uuid, uuid) to authenticated;
+
+-- ręczna zmiana nicku kierowcy w panelu (Baza danych → Kierowcy) blokuje nick przed nadpisaniem z Discorda
+create or replace function public.drivers_nick_lock()
+returns trigger
+language plpgsql security definer
+set search_path = public
+as $$
+begin
+  if new.nick is distinct from old.nick and coalesce(current_setting('ssp.nick_sync', true), '') <> '1' then
+    update public.discord_accounts
+      set nick_locked = true,
+          nick_request = case when lower(nick_request) = lower(new.nick) then null else nick_request end,
+          nick_request_at = case when lower(nick_request) = lower(new.nick) then null else nick_request_at end
+      where driver_id = new.id;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists drivers_nick_lock on public.drivers;
+create trigger drivers_nick_lock after update of nick on public.drivers
+  for each row execute function public.drivers_nick_lock();
+
+-- użytkownik: prośba o nick używany w startach (null = anuluj prośbę)
+create or replace function public.nick_request(p_nick text)
+returns json
+language plpgsql security definer
+set search_path = public
+as $$
+declare
+  acc public.discord_accounts%rowtype;
+  v text := left(btrim(regexp_replace(coalesce(p_nick, ''), '\s+', ' ', 'g')), 40);
+begin
+  select * into acc from public.discord_accounts where user_id = auth.uid() for update;
+  if not found then raise exception 'Najpierw zaloguj się przez Discord'; end if;
+  if p_nick is null then
+    update public.discord_accounts set nick_request = null, nick_request_at = null where user_id = auth.uid();
+    return public.discord_state(auth.uid());
+  end if;
+  if acc.driver_id is null then raise exception 'Konto nie ma jeszcze profilu kierowcy — poczekaj na powiązanie z profilem'; end if;
+  if char_length(v) < 2 then raise exception 'Nick musi mieć co najmniej 2 znaki'; end if;
+  if exists (select 1 from public.drivers where id = acc.driver_id and nick = v) then raise exception 'To już jest Twój nick'; end if;
+  if exists (select 1 from public.drivers where lower(nick) = lower(v) and id <> acc.driver_id) then
+    raise exception 'Nick „%” ma już inny kierowca w lidze', v;
+  end if;
+  update public.discord_accounts set nick_request = v, nick_request_at = now(), nick_rejected = null where user_id = auth.uid();
+  return public.discord_state(auth.uid());
+end;
+$$;
+grant execute on function public.nick_request(text) to authenticated;
+
+-- moderator: prośby o zmianę nicku do rozpatrzenia
+create or replace function public.nick_requests()
+returns json
+language plpgsql stable security definer
+set search_path = public
+as $$
+begin
+  if not public.is_staff() then raise exception 'Brak uprawnień'; end if;
+  return coalesce((
+    select json_agg(json_build_object(
+      'user_id', a.user_id, 'display_name', a.display_name, 'username', a.username, 'avatar_url', a.avatar_url,
+      'driver_id', a.driver_id, 'driver_nick', d.nick, 'nick_request', a.nick_request, 'nick_request_at', a.nick_request_at
+    ) order by a.nick_request_at)
+    from public.discord_accounts a
+    left join public.drivers d on d.id = a.driver_id
+    where a.nick_request is not null
+  ), '[]'::json);
+end;
+$$;
+grant execute on function public.nick_requests() to authenticated;
+
+-- moderator: zatwierdzenie (nick kierowcy się zmienia i nie wraca do nicku z Discorda) albo odrzucenie prośby
+create or replace function public.nick_decide(p_user uuid, p_accept boolean)
+returns void
+language plpgsql security definer
+set search_path = public
+as $$
+declare
+  acc public.discord_accounts%rowtype;
+begin
+  if not public.is_staff() then raise exception 'Brak uprawnień'; end if;
+  select * into acc from public.discord_accounts where user_id = p_user for update;
+  if not found or acc.nick_request is null then raise exception 'Ta prośba została już rozpatrzona'; end if;
+  if p_accept then
+    if acc.driver_id is null then raise exception 'Konto nie ma profilu kierowcy'; end if;
+    if exists (select 1 from public.drivers where lower(nick) = lower(acc.nick_request) and id <> acc.driver_id) then
+      raise exception 'Nick „%” ma już inny kierowca w lidze', acc.nick_request;
+    end if;
+    update public.drivers set nick = acc.nick_request where id = acc.driver_id;
+    update public.discord_accounts set nick_locked = true, nick_request = null, nick_request_at = null, nick_rejected = null where user_id = p_user;
+  else
+    update public.discord_accounts set nick_rejected = acc.nick_request, nick_request = null, nick_request_at = null where user_id = p_user;
+  end if;
+end;
+$$;
+grant execute on function public.nick_decide(uuid, boolean) to authenticated;
 
 -- admin: odrzuć prośbę o powiązanie
 create or replace function public.discord_reject_claim(p_user uuid)
@@ -747,7 +861,19 @@ alter table public.dotd_votes enable row level security;
 drop policy if exists "read own vote" on public.dotd_votes;
 -- (brak polityk = strona nie czyta tabeli bezpośrednio; głos i wyniki wyłącznie przez funkcje poniżej)
 
--- głosowanie otwarte: wyścig niezatwierdzony, od startu przez czas trwania (domyślnie 120 min)
+-- głosowanie uruchamia i kończy moderator (opis: supabase/migrations/2026-11-11_kierowca_dnia_start.sql)
+alter table public.races add column if not exists dotd_started_at timestamptz;  -- kiedy moderator uruchomił głosowanie
+alter table public.races add column if not exists dotd_ended_at timestamptz;    -- kiedy je zakończył
+-- skład startowy wyścigu: [{driver_id, team_id}] — kto faktycznie jedzie (bez nieobecnych, z zastępstwami);
+-- null = skład rundy z kafelka „Składy”. Z niego biorą się kandydaci do głosowania na kierowcę dnia.
+alter table public.races add column if not exists start_lineup jsonb;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'races_start_lineup_array') then
+    alter table public.races add constraint races_start_lineup_array check (start_lineup is null or jsonb_typeof(start_lineup) = 'array');
+  end if;
+end $$;
+
+-- głosowanie otwarte: uruchomione przez moderatora, jeszcze niezakończone, wyścig niezatwierdzony, najwyżej 12 h
 create or replace function public.dotd_window_open(p_race uuid)
 returns boolean
 language sql stable security definer
@@ -755,11 +881,69 @@ set search_path = public
 as $$
   select exists (
     select 1 from public.races r
-    where r.id = p_race and r.status <> 'completed' and r.race_date is not null
-      and now() >= r.race_date and now() < r.race_date + make_interval(mins => coalesce(r.duration_minutes, 120))
+    where r.id = p_race and r.status <> 'completed'
+      and r.dotd_started_at is not null and r.dotd_ended_at is null
+      and now() < r.dotd_started_at + interval '12 hours'
   );
 $$;
 grant execute on function public.dotd_window_open(uuid) to anon, authenticated;
+
+-- trwające głosowania (dla przycisku na każdej stronie): wyścig, sezon i tor
+create or replace function public.dotd_live()
+returns json
+language sql stable security definer
+set search_path = public
+as $$
+  select coalesce(json_agg(json_build_object(
+    'race_id', r.id, 'season_id', r.season_id, 'season', s.name, 'series', s.series,
+    'round', r.round, 'kind', r.kind, 'track', t.name, 'country_code', t.country_code, 'started_at', r.dotd_started_at
+  ) order by r.dotd_started_at), '[]'::json)
+  from public.races r
+  join public.seasons s on s.id = r.season_id
+  left join public.tracks t on t.id = r.track_id
+  where r.status <> 'completed' and r.dotd_started_at is not null and r.dotd_ended_at is null
+    and now() < r.dotd_started_at + interval '12 hours';
+$$;
+grant execute on function public.dotd_live() to anon, authenticated;
+
+-- moderator: uruchom (p_open = true; także ponownie po zakończeniu — oddane głosy zostają) albo zakończ głosowanie
+create or replace function public.dotd_set_open(p_race uuid, p_open boolean)
+returns void
+language plpgsql security definer
+set search_path = public
+as $$
+declare
+  r public.races%rowtype;
+begin
+  if not public.is_staff() then raise exception 'Brak uprawnień'; end if;
+  select * into r from public.races where id = p_race for update;
+  if not found then raise exception 'Nie ma takiego wyścigu'; end if;
+  if p_open then
+    if r.status = 'completed' then raise exception 'Wyścig jest już zatwierdzony — głosowanie jest zamknięte'; end if;
+    update public.races set dotd_started_at = now(), dotd_ended_at = null where id = p_race;
+  else
+    update public.races set dotd_ended_at = now() where id = p_race and dotd_started_at is not null and dotd_ended_at is null;
+    update public.dotd_votes set ip_hash = null where race_id = p_race and ip_hash is not null;
+  end if;
+end;
+$$;
+grant execute on function public.dotd_set_open(uuid, boolean) to authenticated;
+
+-- moderator: wyniki na żywo w trakcie głosowania (publicznie widać je dopiero po oddaniu głosu albo po zamknięciu)
+create or replace function public.dotd_staff_results(p_race uuid)
+returns json
+language plpgsql stable security definer
+set search_path = public
+as $$
+begin
+  if not public.is_staff() then raise exception 'Brak uprawnień'; end if;
+  return coalesce((
+    select json_agg(json_build_object('driver_id', driver_id, 'votes', votes) order by votes desc)
+    from (select driver_id, count(*)::int votes from public.dotd_votes where race_id = p_race group by driver_id) x
+  ), '[]'::json);
+end;
+$$;
+grant execute on function public.dotd_staff_results(uuid) to authenticated;
 
 -- kto głosuje: konto (zalogowany) albo identyfikator przeglądarki (gość)
 create or replace function public.dotd_voter(p_token text)
@@ -790,10 +974,17 @@ declare
 begin
   perform public.dotd_clear_ip();
   if not public.dotd_window_open(p_race) then
-    raise exception 'Głosowanie na kierowcę dnia jest zamknięte — trwa tylko podczas wyścigu';
+    raise exception 'Głosowanie na kierowcę dnia nie jest teraz otwarte — uruchamia je organizator w trakcie wyścigu';
   end if;
-  if not exists (select 1 from public.entries e join public.races r on r.season_id = e.season_id where r.id = p_race and e.driver_id = p_driver) then
-    raise exception 'Ten kierowca nie jedzie w tym wyścigu';
+  -- kandydaci: skład startowy tego wyścigu (jeśli ustawiony w panelu), inaczej kierowcy ze składu sezonu
+  if not exists (
+    select 1 from public.races r
+    where r.id = p_race and (
+      (r.start_lineup is not null and r.start_lineup @> jsonb_build_array(jsonb_build_object('driver_id', p_driver)))
+      or (r.start_lineup is null and exists (select 1 from public.entries e where e.season_id = r.season_id and e.driver_id = p_driver))
+    )
+  ) then
+    raise exception 'Ten kierowca nie startuje w tym wyścigu';
   end if;
   if exists (select 1 from public.dotd_votes where race_id = p_race and voter = v_voter) then
     raise exception 'Już głosowałeś w tym wyścigu';

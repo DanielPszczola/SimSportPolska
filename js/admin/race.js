@@ -1,13 +1,14 @@
-import { useState, useMemo } from '../../vendor/preact-htm.js';
+import { useState, useMemo, useEffect } from '../../vendor/preact-htm.js';
 import { db } from '../db.js';
 import { html, seasonUnit, sessionLabel, Flag, TeamTag, PosBadge, attempt, formatDate, raceTimeState, DEFAULT_RACE_MINUTES, formatMinutes, STREAMS } from '../ui.js';
 import {
   computeRaceByClass, computeStandings, parseTime, formatDuration, penaltyLabel, carClass,
   STATUSES, PENALTY_TYPES, CAR_CLASSES, seasonClasses, seasonStyle, seasonHasPoints, seasonCarType, isSprint, SPRINT_POINTS, licenseTable, licenseLabel,
 } from '../scoring.js';
-import { lineupAt, teamSeats } from '../lineup.js';
+import { lineupAt, teamSeats, startingSeats } from '../lineup.js';
 import { StepBar, NextStep, DurationInput } from './common.js';
 import { classBundle } from '../pages/league.js';
+import { refreshDotdLive } from '../pages/dotd.js';
 
 // ---------- kafelek wyścigu ----------
 
@@ -22,15 +23,17 @@ export function RacePanel({ b, race, step, nav, reload }) {
 
   const streams = STREAMS.filter(([k]) => race[k]).length;
   const timing = raceTimeState(race);
+  const dotd = dotdState(race);
   const steps = [
-    { id: 'przed', label: 'Przed wyścigiem', note: streams ? `${streams} ${streams === 1 ? 'transmisja' : 'transmisje'}` : 'transmisja, czas', state: streams ? 'done' : 'info' },
+    { id: 'przed', label: 'Przed wyścigiem', note: [streams ? `${streams} ${streams === 1 ? 'transmisja' : 'transmisje'}` : 'transmisja, czas', Array.isArray(race.start_lineup) ? `skład: ${race.start_lineup.length}` : null].filter(Boolean).join(' · '), state: streams || Array.isArray(race.start_lineup) ? 'done' : 'info' },
+    { id: 'trakcie', label: 'W trakcie wyścigu', note: dotd === 'open' ? '⭐ głosowanie trwa' : dotd === 'ended' ? 'głosowanie zakończone' : 'kierowca dnia', state: dotd === 'open' ? 'done' : 'info' },
     { id: 'wyniki', label: 'Wyniki', note: results.length ? `${results.length} kierowców` : 'do wpisania', state: results.length ? 'done' : 'todo' },
     { id: 'kary', label: 'Kary', note: pens.length ? `${pens.length} decyzji` : 'brak kar', state: !results.length ? 'todo' : pens.length ? 'done' : 'info' },
     { id: 'zatwierdzenie', label: 'Zatwierdzenie', note: done ? 'opublikowany' : 'nieopublikowany', state: done ? 'done' : 'todo' },
   ];
-  // przed startem — konfiguracja transmisji; w trakcie i po wyścigu — wyniki
+  // przed startem — konfiguracja transmisji; w trakcie — kierowca dnia; po wyścigu — wyniki
   const current = steps.some((s) => s.id === step) ? step
-    : !results.length ? (timing === 'upcoming' || timing === 'unscheduled' ? 'przed' : 'wyniki') : done ? 'zatwierdzenie' : 'kary';
+    : !results.length ? (timing === 'upcoming' || timing === 'unscheduled' ? 'przed' : timing === 'live' || dotd === 'open' ? 'trakcie' : 'wyniki') : done ? 'zatwierdzenie' : 'kary';
   const idx = steps.findIndex((s) => s.id === current);
   const go = (id) => nav(race.id, id);
 
@@ -52,7 +55,8 @@ export function RacePanel({ b, race, step, nav, reload }) {
     ${sprint && seasonHasPoints(b.season) ? html`<p class="hint">Sprint: punkty ${SPRINT_POINTS.join('-')} dla pierwszej ósemki${seasonClasses(b.season).length > 1 ? ' w każdej klasie' : ''}, bez punktów za pole i najszybsze okrążenie. Kierowcy jadą w składzie z rundy ${race.round}.</p>` : null}
     <${StepBar} steps=${steps} value=${current} onChange=${go} />
     <div class="panel-body">
-      ${current === 'przed' ? html`<${PreRace} key=${race.id} race=${race} reload=${reload} />` : null}
+      ${current === 'przed' ? html`<${PreRace} key=${race.id} b=${b} race=${race} reload=${reload} />` : null}
+      ${current === 'trakcie' ? html`<${DuringRace} key=${race.id} b=${b} race=${race} reload=${reload} />` : null}
       ${current === 'wyniki' ? html`<${ResultsForm} key=${race.id + results.length} b=${b} race=${race} onSaved=${reload} />` : null}
       ${current === 'kary' ? html`<${RacePenalties} b=${b} race=${race} reload=${reload} />` : null}
       ${current === 'zatwierdzenie' ? html`<${RaceSummary} b=${b} race=${race} nav=${nav} reload=${reload} />` : null}
@@ -65,7 +69,7 @@ export function RacePanel({ b, race, step, nav, reload }) {
 
 const RACE_STREAMS = STREAMS.filter(([k]) => ['youtube_url', 'twitch_url', 'tiktok_url'].includes(k));
 
-function PreRace({ race, reload }) {
+function PreRace({ b, race, reload }) {
   const patch = async (p) => (await attempt(() => db.update('races', race.id, p), 'Zapisano')) && reload();
   const setLink = (key, v) => {
     const url = v.trim();
@@ -88,6 +92,174 @@ function PreRace({ race, reload }) {
         <input value=${race[key] || ''} placeholder=${key === 'youtube_url' ? 'https://www.youtube.com/live/… (w tle kafelka na stronie głównej)' : 'https://…'} onChange=${(e) => setLink(key, e.target.value)} /></label>`)}
     </div>
     <p class="hint">YouTube: wklej link do konkretnej transmisji (…/live/<i>ID</i> albo watch?v=<i>ID</i>) — wtedy wideo jest tłem kafelka. Link do kanału zadziała tylko jako przycisk „Oglądaj”.</p>
+    <${StartingLineup} key=${race.id + JSON.stringify(race.start_lineup ?? null)} b=${b} race=${race} reload=${reload} />
+  `;
+}
+
+// skład startowy: kto faktycznie jedzie w tym wyścigu (nieobecni odznaczeni, zastępstwa dopisane)
+const lineupKey = (list) => JSON.stringify([...list].map((x) => `${x.driver_id}:${x.team_id || ''}`).sort());
+
+function StartingLineup({ b, race, reload }) {
+  const roster = lineupAt(b.entries, b.rosterChanges, race.round); // skład rundy z kafelka „Składy”
+  const rosterStart = [...roster.values()].filter((x) => x.team_id);
+  const custom = Array.isArray(race.start_lineup);
+  const saved = custom ? race.start_lineup.map((x) => ({ driver_id: x.driver_id, team_id: x.team_id || null })) : rosterStart;
+  const [draft, setDraft] = useState(saved);
+  const [add, setAdd] = useState({ driver_id: '', team_id: '' });
+  const [busy, setBusy] = useState(false);
+  const inDraft = new Map(draft.map((x) => [x.driver_id, x]));
+  const nick = (id) => b.driverById.get(id)?.nick ?? '?';
+  const changed = lineupKey(draft) !== lineupKey(saved);
+
+  // kierowca ze składu: zaznaczony = startuje w swoim zespole
+  const starts = (seat) => inDraft.get(seat.driver_id)?.team_id === seat.team_id;
+  const toggle = (seat) => setDraft(starts(seat) ? draft.filter((x) => x.driver_id !== seat.driver_id)
+    : [...draft.filter((x) => x.driver_id !== seat.driver_id), { driver_id: seat.driver_id, team_id: seat.team_id }]);
+  // zastępstwa: startujący spoza składu tego zespołu
+  const subs = (teamId) => draft.filter((x) => (x.team_id || null) === teamId && roster.get(x.driver_id)?.team_id !== x.team_id);
+  const remove = (id) => setDraft(draft.filter((x) => x.driver_id !== id));
+  // wolne miejsce (ktoś nie przyszedł) — domyślny zespół dla zastępstwa
+  const gap = b.teams.find((t) => teamSeats(roster, t.id).some((seat) => !starts(seat)));
+  const addSub = () => {
+    if (!add.driver_id) return;
+    const team_id = (add.team_id || gap?.id || null) === '-' ? null : add.team_id || gap?.id || null;
+    setDraft([...draft.filter((x) => x.driver_id !== add.driver_id), { driver_id: add.driver_id, team_id }]);
+    setAdd({ driver_id: '', team_id: '' });
+  };
+  const reserves = [...roster.values()].filter((x) => !x.team_id && !inDraft.has(x.driver_id)).map((x) => b.driverById.get(x.driver_id)).filter(Boolean);
+  const others = b.drivers.filter((d) => !roster.has(d.id) && !inDraft.has(d.id));
+  // kierowcy ze składu, którzy w tym wyścigu jadą gdzie indziej (np. przesiadka do innego auta)
+  const moved = rosterStart.filter((x) => !inDraft.has(x.driver_id)).map((x) => b.driverById.get(x.driver_id)).filter(Boolean);
+
+  const save = async (value) => {
+    setBusy(true);
+    const ok = await attempt(() => db.update('races', race.id, { start_lineup: value }), value ? `Zapisano skład startowy: ${value.length} kierowców` : 'Przywrócono skład z kafelka „Składy”');
+    setBusy(false);
+    if (ok) reload();
+  };
+
+  const teamCard = (t) => {
+    const seats = teamSeats(roster, t.id);
+    const extra = subs(t.id);
+    const n = seats.filter(starts).length + extra.length;
+    return html`<div class="sl-team" style=${{ '--team': t.color || '#888' }} key=${t.id}>
+      <div class="sl-team-head"><${TeamTag} team=${t} link=${false} /><span class="muted small sl-count">${n} ${n === 1 ? 'kierowca' : 'kierowców'}</span></div>
+      ${seats.map((seat) => html`<label class=${`sl-row ${starts(seat) ? '' : 'sl-absent'}`}>
+        <input type="checkbox" checked=${starts(seat)} onChange=${() => toggle(seat)} /> <span class="sl-name">${nick(seat.driver_id)}</span>
+        ${starts(seat) ? null : html`<span class="muted small">${inDraft.has(seat.driver_id) ? `jedzie w: ${b.teamById.get(inDraft.get(seat.driver_id).team_id)?.name ?? 'bez zespołu'}` : 'nie startuje'}</span>`}
+      </label>`)}
+      ${extra.map((x) => html`<div class="sl-row sl-sub"><span class="badge">zastępstwo</span> <span class="sl-name">${nick(x.driver_id)}</span>
+        <button type="button" class="btn btn-sm btn-ghost" title="Usuń ze startu" onClick=${() => remove(x.driver_id)}>✕</button></div>`)}
+    </div>`;
+  };
+  const noTeam = subs(null);
+
+  return html`<div class="start-lineup">
+    <h3>Skład startowy</h3>
+    <p class="muted">Kto <b>faktycznie jedzie</b> w tym wyścigu. Odznacz osoby, które nie przyszły, i dopisz zastępstwa. Tylko te osoby
+      są w <b>głosowaniu na kierowcę dnia</b>, a w wynikach pokazujemy, kogo ze startu jeszcze brakuje. Zmiany w składach na kolejne rundy
+      robisz jak dotąd w kafelku „Składy”.</p>
+    <p class="small">${custom
+      ? html`<span class="tile-state st-done">Ustawiony</span> ${race.start_lineup.length} kierowców startuje`
+      : html`<span class="tile-state st-next">Domyślny</span> skład rundy ${race.round} z kafelka „Składy” (${rosterStart.length} kierowców)`}</p>
+    <div class="sl-grid">
+      ${b.teams.map(teamCard)}
+      ${noTeam.length ? html`<div class="sl-team" style=${{ '--team': '#888' }}>
+        <div class="sl-team-head"><b>Bez zespołu</b></div>
+        ${noTeam.map((x) => html`<div class="sl-row sl-sub"><span class="badge">zastępstwo</span> <span class="sl-name">${nick(x.driver_id)}</span>
+          <button type="button" class="btn btn-sm btn-ghost" title="Usuń ze startu" onClick=${() => remove(x.driver_id)}>✕</button></div>`)}
+      </div>` : null}
+    </div>
+    <div class="sl-add">
+      <select value=${add.driver_id} onChange=${(e) => setAdd({ ...add, driver_id: e.target.value })} aria-label="Kierowca na zastępstwo">
+        <option value="">+ Zastępstwo: wybierz kierowcę…</option>
+        ${reserves.length ? html`<optgroup label="Rezerwa sezonu">${reserves.map((d) => html`<option value=${d.id}>${d.nick}</option>`)}</optgroup>` : null}
+        ${moved.length ? html`<optgroup label="Ze składu — przesiadka do innego zespołu / auta">${moved.map((d) => html`<option value=${d.id}>${d.nick}</option>`)}</optgroup>` : null}
+        ${others.length ? html`<optgroup label="Pozostali kierowcy">${others.map((d) => html`<option value=${d.id}>${d.nick}</option>`)}</optgroup>` : null}
+      </select>
+      <select value=${add.team_id || gap?.id || '-'} onChange=${(e) => setAdd({ ...add, team_id: e.target.value })} aria-label="Zespół zastępstwa">
+        ${b.teams.map((t) => html`<option value=${t.id}>${t.name}</option>`)}
+        <option value="-">bez zespołu</option>
+      </select>
+      <button type="button" class="btn btn-sm" disabled=${!add.driver_id} onClick=${addSub}>Dodaj</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-accent" disabled=${busy || (!changed && custom)} onClick=${() => save(draft)}>${busy ? 'Zapisywanie…' : 'Zapisz skład startowy'}</button>
+      ${changed ? html`<button type="button" class="btn" disabled=${busy} onClick=${() => setDraft(saved)}>Cofnij zmiany</button>` : null}
+      ${custom ? html`<button type="button" class="btn" disabled=${busy} onClick=${() => confirm('Wrócić do składu z kafelka „Składy”? Ręczne zmiany startu znikną.') && save(null)}>Przywróć skład z kafelka „Składy”</button>` : null}
+    </div>
+  </div>`;
+}
+
+// ---------- krok: w trakcie wyścigu (głosowanie na kierowcę dnia) ----------
+
+const DOTD_MAX_MS = 12 * 3600000; // baza zamyka głosowanie samo po 12 h (zabezpieczenie)
+
+/** 'open' — trwa, 'ended' — zakończone (przyciskiem, zatwierdzeniem albo po 12 h), 'idle' — nieuruchomione. */
+export function dotdState(race) {
+  if (!race.dotd_started_at) return 'idle';
+  if (race.dotd_ended_at || race.status === 'completed' || Date.now() >= new Date(race.dotd_started_at).getTime() + DOTD_MAX_MS) return 'ended';
+  return 'open';
+}
+
+const clock = (iso) => new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+const votesLabel = (n) => `${n} ${n === 1 ? 'głos' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'głosy' : 'głosów'}`;
+
+function DuringRace({ b, race, reload }) {
+  const state = dotdState(race);
+  const [votes, setVotes] = useState(null);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = () => db.rpc('dotd_staff_results', { p_race: race.id }).then((x) => { setVotes(x || []); setError(null); }, (e) => setError(e.message));
+  useEffect(() => {
+    load();
+    if (state !== 'open') return undefined;
+    const t = setInterval(load, 10000); // wyniki na żywo dla organizatorów
+    return () => clearInterval(t);
+  }, [race.id, state]);
+
+  const set = async (open) => {
+    if (!open && !confirm('Zakończyć głosowanie na kierowcę dnia? Przycisk zniknie ze strony, a wynik pojawi się w kalendarzu.')) return;
+    setBusy(true);
+    const ok = await attempt(() => db.rpc('dotd_set_open', { p_race: race.id, p_open: open }), open ? 'Głosowanie uruchomione — przycisk widzą teraz wszyscy' : 'Głosowanie zakończone');
+    setBusy(false);
+    if (ok) { refreshDotdLive(); reload(); }
+  };
+
+  const total = (votes || []).reduce((n, r) => n + r.votes, 0);
+  const teamOf = (id) => b.teamById.get(startingSeats(b, race).get(id)?.team_id);
+  return html`
+    <h3>W trakcie wyścigu</h3>
+    <div class=${`dotd-admin dotd-admin-${state}`}>
+      <div class="dotd-admin-head">
+        <span class="dotd-admin-star" aria-hidden="true">⭐</span>
+        <div class="dotd-admin-title">
+          <b>Głosowanie na kierowcę dnia</b>
+          <div class="muted small">${state === 'open' ? html`<span class="tile-state st-live">Trwa</span> od ${clock(race.dotd_started_at)} · ${votesLabel(total)}`
+            : state === 'ended' ? html`<span class="tile-state st-done">Zakończone</span>${race.dotd_ended_at ? ` o ${clock(race.dotd_ended_at)}` : ''} · ${votesLabel(total)}`
+            : html`<span class="tile-state st-next">Nieuruchomione</span>`}</div>
+        </div>
+        ${race.status === 'completed' ? null
+          : state === 'open' ? html`<button class="btn btn-danger" disabled=${busy} onClick=${() => set(false)}>■ Zakończ głosowanie</button>`
+          : html`<button class="btn btn-dotd dotd-admin-start" disabled=${busy} onClick=${() => set(true)}>⭐ ${state === 'ended' ? 'Wznów głosowanie' : 'Uruchom głosowanie'}</button>`}
+      </div>
+      <p class="muted small">${race.status === 'completed'
+        ? 'Wyścig jest zatwierdzony — głosowanie jest zamknięte, a wynik widać w kalendarzu.'
+        : html`Uruchom, gdy kierowcy już jadą. Wtedy <b>wszyscy na stronie</b> zobaczą przycisk i kartę „Głosuj na kierowcę dnia” (w ciągu ok. 20 s, bez odświeżania).
+          Głosowanie kończy się przyciskiem „Zakończ”, po zatwierdzeniu wyników albo samo po 12 godzinach.${state === 'ended' ? ' Wznowienie zachowuje oddane głosy.' : ''}`}</p>
+      ${error ? html`<p class="hint warn">Głosowanie wymaga aktualizacji bazy: uruchom w Supabase → SQL Editor plik <b>supabase/migrations/2026-11-11_kierowca_dnia_start.sql</b> (${error}).</p>` : null}
+      ${votes && votes.length ? html`<ol class="dotd-results">
+        ${votes.map((r, i) => {
+          const pct = total ? Math.round((r.votes / total) * 100) : 0;
+          return html`<li class=${i === 0 ? 'lead' : ''} style=${{ '--team': teamOf(r.driver_id)?.color || 'var(--gold)' }}>
+            <span class="dotd-bar" style=${{ width: `${pct}%` }}></span>
+            <span class="dotd-name">${i === 0 ? '⭐ ' : ''}${b.driverById.get(r.driver_id)?.nick ?? '?'}</span>
+            <span class="dotd-pct"><b>${pct}%</b> <span class="muted">(${r.votes})</span></span>
+          </li>`;
+        })}
+      </ol>` : votes && state !== 'idle' ? html`<p class="muted">Nikt jeszcze nie zagłosował.</p>` : null}
+      ${state === 'open' ? html`<p class="muted small">Wyniki odświeżają się co 10 s. Publicznie widzi je tylko ten, kto już zagłosował, a wszyscy — po zakończeniu.</p>` : null}
+    </div>
   `;
 }
 
@@ -161,7 +333,7 @@ function toRecords(rows, raceId, season) {
 
 function ResultsForm({ b, race, onSaved }) {
   const existing = b.results.filter((r) => r.race_id === race.id);
-  const seats = lineupAt(b.entries, b.rosterChanges, race.round); // skład obowiązujący w tej rundzie
+  const seats = startingSeats(b, race); // skład startowy tego wyścigu (albo skład rundy z kafelka „Składy”)
   const scored = seasonHasPoints(b.season); // pojedyncze wydarzenie — bez kolumny punktów
   const multiClass = seasonStyle(b.season) === 'lmu';
   const classOptions = seasonClasses(b.season);
@@ -196,7 +368,8 @@ function ResultsForm({ b, race, onSaved }) {
     setRows([...rows, { ...blankRow(), driver_id: driverId, team_id, car_class: teamClass(team_id) }]);
   };
   // kierowcy ze składu tej rundy, których jeszcze nie ma na liście
-  const missing = b.teams.flatMap((t) => teamSeats(seats, t.id)).filter((s) => !chosen.has(s.driver_id));
+  const custom = Array.isArray(race.start_lineup);
+  const missing = [...b.teams.flatMap((t) => teamSeats(seats, t.id)), ...(custom ? [...seats.values()].filter((s) => !s.team_id) : [])].filter((s) => !chosen.has(s.driver_id));
 
   const preview = useMemo(() => {
     try {
@@ -305,9 +478,9 @@ function ResultsForm({ b, race, onSaved }) {
     <div class="add-row">
       <button class="btn btn-accent" onClick=${() => addRow()}>+ Dodaj P${rows.length + 1}</button>
       ${missing.length ? html`<div class="quick-add">
-        <span class="muted">albo kliknij kierowcę ze składu rundy ${race.round}, który zajął P${rows.length + 1}:</span>
+        <span class="muted">albo kliknij kierowcę ${custom ? 'ze składu startowego' : `ze składu rundy ${race.round}`}, który zajął P${rows.length + 1}:</span>
         ${missing.map((s) => html`<button class="chip" style=${{ '--team': b.teamById.get(s.team_id)?.color || '#888' }} onClick=${() => addRow(s.driver_id)}>${b.driverById.get(s.driver_id)?.nick ?? '?'}</button>`)}
-      </div>` : rows.length ? html`<span class="muted">✓ Wpisano wszystkich kierowców ze składu tej rundy</span>` : null}
+      </div>` : rows.length ? html`<span class="muted">✓ Wpisano wszystkich kierowców ${custom ? 'ze składu startowego' : 'ze składu tej rundy'}</span>` : null}
     </div>
 
     <div class="form-actions">
